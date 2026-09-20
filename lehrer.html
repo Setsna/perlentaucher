@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=5">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -76,11 +76,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=4"></script>
-<script src="js/words.js?v=4"></script>
-<script src="js/mascot.js?v=4"></script>
-<script src="js/icons.js?v=4"></script>
-<script src="js/cloud.js?v=4"></script>
+<script src="js/config.js?v=5"></script>
+<script src="js/words.js?v=5"></script>
+<script src="js/mascot.js?v=5"></script>
+<script src="js/icons.js?v=5"></script>
+<script src="js/cloud.js?v=5"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -106,6 +106,15 @@
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function fmtCode(c) { return c.slice(0, 4).toUpperCase() + '-' + c.slice(4).toUpperCase(); }
   function el(id) { return document.getElementById(id); }
+  // Der letzte echte Übungstag steht in lastDay als "2026-09-20".
+  // Nicht updatedAt nehmen: das ist nur der Zeitpunkt der letzten
+  // Änderung am Datensatz und ändert sich auch beim Zurücksetzen.
+  function letzterTag(f) {
+    if (!f || !f.lastDay) return 'noch nie';
+    var t = String(f.lastDay).split('-');
+    if (t.length !== 3) return 'noch nie';
+    return t[2].replace(/^0/, '') + '.' + t[1].replace(/^0/, '') + '.' + t[0];
+  }
   function melde(text, art) { meldung = { text: text, art: art || 'ok' }; }
 
   if (typeof firebase === 'undefined') {
@@ -255,7 +264,7 @@
         '<td class="num">' + (f ? sicher : '–') + '</td>' +
         '<td>' + stufenWahl(k) + '</td>' +
         '<td>' + listenWahl(k, listen) + '</td>' +
-        '<td>' + (f && f.updatedAt ? new Date(f.updatedAt).toLocaleDateString('de-DE') : 'noch nie') + '</td></tr>';
+        '<td>' + letzterTag(f) + '</td></tr>';
     }).join('');
 
     return '<section class="stats">' +
