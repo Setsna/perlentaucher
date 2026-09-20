@@ -129,8 +129,8 @@ WA.firebaseConfig = {
   var wartUhr = null;
 
   function speicherMelden(zustand, meldung) {
-    clearTimeout(wartUhr);
     if (speicher.zustand === zustand && speicher.meldung === (meldung || null)) return;
+    clearTimeout(wartUhr); wartUhr = null;
     speicher = { zustand: zustand, seit: Date.now(), meldung: meldung || null };
     speicherLauscher.forEach(function (f) { try { f(speicher); } catch (e) {} });
   }
@@ -138,9 +138,13 @@ WA.firebaseConfig = {
   // Firestore lehnt einen Schreibvorgang ohne Netz nicht ab, sondern
   // hält ihn zurück. Dauert das ungewöhnlich lange, sagen wir das –
   // aber als Hinweis, nicht als Fehler.
+  // Läuft die Uhr schon, wird sie nicht neu gestartet. Sonst würde
+  // jeder neue Versuch die Wartezeit zurücksetzen und der Hinweis
+  // käme nie.
   function wartenBeobachten() {
-    clearTimeout(wartUhr);
+    if (wartUhr) return;
     wartUhr = setTimeout(function () {
+      wartUhr = null;
       if (speicher.zustand === 'wartet') speicherMelden('wartet-lange');
     }, 25000);
   }
@@ -229,24 +233,12 @@ WA.firebaseConfig = {
         WA.store.useProfile(id);
         return stammdatenLaden(d);
       })
-      .then(function () { return db.collection('fortschritt').doc(kind.code.toLowerCase()).get(); })
-      .then(function (snap) {
-        var lokal = WA.store.snapshot();
-        if (snap.exists) {
-          var fern = snap.data();
-          // Der neuere Stand gewinnt. So geht nichts verloren,
-          // wenn zwischendurch ohne Netz geübt wurde.
-          if ((fern.updatedAt || 0) >= (lokal.updatedAt || 0)) {
-            WA.store.hydrate(fern);
-            // Im Spielstand stehen keine Bilder mehr. Die lokal
-            // vorhandenen dürfen dabei nicht verloren gehen.
-            WA.store.malZusammenfuehren((lokal.mal && lokal.mal.bilder) || []);
-          }
-        }
+      .then(function () {
         bereit = true;
         WA.store.onChange(spaeterSchreiben);
-        schreiben();
-        return true;
+        // Beim Anmelden wird nicht überschrieben, sondern zusammen-
+        // geführt – genau wie bei jedem späteren Speichern auch.
+        return schreiben().then(function () { return true; });
       });
   }
 
@@ -261,49 +253,72 @@ WA.firebaseConfig = {
   // ==========================================================
   //  Speichern
   // ==========================================================
-  function spaeterSchreiben() {
+  function spaeterSchreiben(verzug) {
     if (!bereit) return;
     clearTimeout(schreibTimer);
-    schreibTimer = setTimeout(schreiben, 2500);
+    schreibTimer = setTimeout(schreiben, typeof verzug === 'number' ? verzug : 2500);
   }
 
+  function ohneBilder(x) {
+    var k = Object.assign({}, x);
+    k.mal = Object.assign({}, x.mal || {}, { bilder: [] });
+    return k;
+  }
+
+  // ==========================================================
+  //  Speichern = Zusammenführen
+  //  Es wird nicht blind überschrieben. In einer Transaktion wird
+  //  der ferne Stand gelesen, mit dem eigenen verrechnet (siehe
+  //  js/merge.js) und das Ergebnis zurückgeschrieben. Übt ein Kind
+  //  auf zwei Geräten, geht dadurch nichts mehr verloren.
+  // ==========================================================
   function schreiben() {
     if (!bereit || !kind) return Promise.resolve();
     clearTimeout(schreibTimer);
-    var s = WA.store.snapshot();
     var id = kind.code.toLowerCase();
-
-    // Neu dazugekommene Perlen dem Klassenziel gutschreiben.
-    var gemeldet = s.xpGemeldet || 0;
-    var neu = Math.max(0, Math.min(500, (s.xp || 0) - gemeldet));
-
-    // Die gemalten Bilder liegen in einer eigenen Sammlung, ein
-    // Datensatz je Bild. Im Spielstand steht nur noch das Zeitguthaben.
-    // Sonst würde der Spielstand mit jedem Bild größer, und Firestore
-    // lässt je Datensatz höchstens 1 MB zu.
-    var daten = Object.assign({}, s);
-    daten.mal = Object.assign({}, s.mal, { bilder: [] });
+    var ref = db.collection('fortschritt').doc(id);
+    var lokal = ohneBilder(WA.store.snapshot());
+    var basis = WA.store.basis();
+    var zusammen = null;
 
     speicherMelden('wartet');
     wartenBeobachten();
 
-    var p = db.collection('fortschritt').doc(id).set(daten);
-    bilderSichern();
-    if (neu > 0) {
-      p = p.then(function () {
-        return db.collection('klassenwochen').doc(wochenSchluessel())
-          .set({ perlen: firebase.firestore.FieldValue.increment(neu) }, { merge: true });
-      }).then(function () {
-        WA.store.setXpGemeldet(gemeldet + neu);
-        return db.collection('fortschritt').doc(id).update({ xpGemeldet: gemeldet + neu });
+    return db.runTransaction(function (t) {
+      return t.get(ref).then(function (snap) {
+        zusammen = WA.mische.spielstand(basis, lokal, snap.exists ? snap.data() : null);
+        // xpGemeldet hat keine eigene Bedeutung mehr, es zeigt nur an,
+        // wie viel insgesamt gemeldet wurde. Die Lehrkraft setzt es
+        // beim Zurücksetzen auf null.
+        zusammen.xpGemeldet = zusammen.xp;
+        t.set(ref, zusammen);
       });
-    }
-    return p.then(function () {
+    }).then(function () {
+      WA.store.abgleichUebernehmen(zusammen);
+      bilderSichern();
       speicherMelden('ok');
+      return klassenzielMelden(WA.mische.eigenerZuwachs(basis, lokal));
     }, function (e) {
+      // Ohne Netz kommt eine Transaktion nicht zustande. Das ist kein
+      // Fehler: Der Spielstand liegt weiter lokal, wir versuchen es
+      // gleich noch einmal.
+      if (!e || e.code === 'unavailable' || e.code === 'deadline-exceeded' ||
+          e.code === 'failed-precondition' || e.code === 'aborted') {
+        spaeterSchreiben(8000);
+        return;
+      }
       fehlerMelden(e);
       speicherMelden('fehler', schreibFehlerText(e));
     });
+  }
+
+  // Nur der eigene Zuwachs zählt für das Klassenziel. Was ein anderes
+  // Gerät beigesteuert hat, hat dieses Gerät dort schon gemeldet.
+  function klassenzielMelden(neu) {
+    if (!neu) return Promise.resolve();
+    return db.collection('klassenwochen').doc(wochenSchluessel())
+      .set({ perlen: firebase.firestore.FieldValue.increment(neu) }, { merge: true })
+      .catch(function (e) { fehlerMelden(e); });
   }
 
   // ==========================================================
@@ -364,6 +379,8 @@ WA.firebaseConfig = {
 
   // Beim Verlassen der Seite noch schnell sichern
   window.addEventListener('pagehide', function () { schreiben(); });
+  // Sobald das Gerät wieder Netz hat, sofort nachholen.
+  window.addEventListener('online', function () { spaeterSchreiben(500); });
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') schreiben();
   });

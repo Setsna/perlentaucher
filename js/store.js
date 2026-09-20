@@ -56,6 +56,36 @@ window.WA = window.WA || {};
     s = load();
   }
 
+  // ---------- Abgleichsbasis ----------
+  // Der Stand, den dieses Gerät zuletzt mit der Datenbank abgeglichen
+  // hat. Nur daraus lässt sich später sagen, was dieses Gerät selbst
+  // dazugewonnen hat. Liegt bewusst nur lokal.
+  function basisSchluessel() { return KEY + '.basis'; }
+  function basis() {
+    try {
+      var r = localStorage.getItem(basisSchluessel());
+      return r ? JSON.parse(r) : null;
+    } catch (e) { return null; }
+  }
+  function basisSetzen(stand) {
+    try {
+      var kopie = JSON.parse(JSON.stringify(stand || s));
+      if (kopie.mal) kopie.mal = Object.assign({}, kopie.mal, { bilder: [] });
+      localStorage.setItem(basisSchluessel(), JSON.stringify(kopie));
+    } catch (e) {}
+  }
+
+  // Ergebnis des Abgleichs übernehmen: Spielstand und Basis stehen
+  // danach auf demselben Wert. Die gemalten Bilder bleiben, die
+  // gehören nicht in den Abgleich.
+  function abgleichUebernehmen(zusammen) {
+    var bilder = (s.mal && s.mal.bilder) || [];
+    s = sicherMal(Object.assign(fresh(), zusammen));
+    s.mal.bilder = bilder;
+    save(true);
+    basisSetzen(zusammen);
+  }
+
   function snapshot() { return JSON.parse(JSON.stringify(s)); }
 
   function hydrate(obj) {
@@ -336,6 +366,7 @@ window.WA = window.WA || {};
     wordState: wordState, totals: totals, topWrong: topWrong, weekInfo: weekInfo,
     worldProgress: worldProgress, finishLesson: finishLesson, badges: BADGES,
     useProfile: useProfile, snapshot: snapshot, hydrate: hydrate, onChange: onChange,
+    basis: basis, basisSetzen: basisSetzen, abgleichUebernehmen: abgleichUebernehmen,
     setXpGemeldet: setXpGemeldet,
     malRest: malRest, malFrisch: malFrisch, malBild: malBild, malNeu: malNeu,
     malWaehlen: malWaehlen, malFertig: malFertig, malLoeschen: malLoeschen,

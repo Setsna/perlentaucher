@@ -20,6 +20,7 @@ Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukom
 | `js/cloud.js` | Anmeldung und Speicherung in Firebase |
 | `js/icons.js` | Alle Symbole als eigene Zeichnungen |
 | `js/malen.js` | Speicherformat und Zeichnen der Pixelbilder und freien Bilder |
+| `js/merge.js` | Führt Spielstände von zwei Geräten zusammen |
 | `js/mascot.js` | Otti, der Oktopus |
 | `css/style.css` | Das gesamte Aussehen |
 | `tools/qr_aufkleber.py` | Erzeugt den Druckbogen mit den QR-Zugangsaufklebern |
@@ -93,6 +94,39 @@ Die Bilder sehen nur das Kind selbst und die Lehrkraft, nicht die Klasse.
 Beim Zurücksetzen des Fortschritts bleiben sie unberührt, nur das
 Zeitguthaben wird auf null gesetzt.
 
+## Zwei Geräte, ein Spielstand
+
+Übt ein Kind nachmittags zu Hause und abends auf dem Schul-iPad, das seit
+Mittag offen liegt, darf der zweite Stand den ersten nicht einfach ersetzen.
+Deshalb wird nicht überschrieben, sondern **zusammengeführt** – mit einem
+Dreiwege-Vergleich, wie ihn Versionsverwaltungen benutzen:
+
+| | |
+|---|---|
+| **Basis** | der Stand, den dieses Gerät zuletzt abgeglichen hat (liegt nur lokal, Schlüssel `…​.basis`) |
+| **Lokal** | was dieses Gerät seitdem daraus gemacht hat |
+| **Fern** | was gerade in der Datenbank steht |
+
+Für Zähler – Perlen, Tagesperlen, Tauchgänge, richtige und falsche Antworten
+je Wort – gilt dann `neu = fern + (lokal − basis)`. Jedes Gerät steuert also
+nur seinen eigenen Zuwachs bei. Abzeichen werden vereinigt, Rekorde sind das
+Maximum, der spätere Übungstag gewinnt.
+
+Eine Ausnahme sind die **Luftblasen**: Sie füllen sich mit der Zeit von selbst
+auf, ein Zuwachs ließe sich nicht vom Nachfüllen unterscheiden. Dort gilt
+schlicht der jüngere Stand.
+
+Geschrieben wird in einer **Transaktion**: lesen, verrechnen, zurückschreiben.
+Ohne Netz kommt keine Transaktion zustande – dann bleibt der Stand lokal
+liegen und die App versucht es alle acht Sekunden erneut, außerdem sofort,
+sobald das Gerät wieder online ist. Verloren geht dabei nichts.
+
+Dem **Klassenziel** wird nur der eigene Zuwachs gemeldet, nicht der ganze
+Perlenstand. Sonst würde der Beitrag des anderen Geräts doppelt zählen.
+
+Die Logik steht in `js/merge.js` und ist bewusst von Firebase getrennt, damit
+sie sich ohne Netz testen lässt.
+
 ## Wenn das Speichern nicht klappt
 
 Die Kinder-App meldet den Speicherzustand sichtbar, statt Fehler nur in die
@@ -155,7 +189,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=11`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=12`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 
