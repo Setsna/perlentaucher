@@ -123,6 +123,7 @@ WA.wortAusDoc = function (id, d) {
     wort: d.wort,
     artikel: d.artikel || null,
     silben: String(d.silben || d.wort).split('-'),
+    trennung: String(d.trennung || d.silben || d.wort).split('-'),
     wortart: d.wortart || '',
     gruppe: d.gruppe || '',
     bild: d.bild || null,

@@ -1,6 +1,7 @@
 /* ==========================================================
    Lernwörter Klasse 3 – Merkwörter
-   Spalten: Wort | Artikel | Silben | Wortart | Gruppe | Bild | Bedeutung | Beispielsatz
+   Spalten: Wort | Artikel | Sprechsilben | Wortart | Gruppe | Bild | Bedeutung | Beispielsatz
+            (optional als 9. Spalte: Worttrennung nach Duden, falls abweichend)
    Das Wort muss im Beispielsatz genau so vorkommen (wird als Lücke genutzt).
    Silben, Bedeutungen und Sätze sind ENTWÜRFE – bitte prüfen!
    ========================================================== */
@@ -29,7 +30,7 @@ window.WA = window.WA || {};
     ['Morgen',         'der', 'Mor-gen',             'Nomen',   'zeit',    '🌅', 'die Tageszeit, wenn der Tag beginnt', 'Am Morgen putze ich mir die Zähne.'],
     ['Schwimmbecken',  'das', 'Schwimm-be-cken',     'Nomen',   'ort',     '🏊', 'ein großes, mit Wasser gefülltes Becken zum Schwimmen', 'Im Schwimmbecken ist das Wasser angenehm warm.'],
     ['Mittag',         'der', 'Mit-tag',             'Nomen',   'zeit',    '☀️', 'die Tageszeit, wenn die Sonne am höchsten steht', 'Zu Mittag essen wir in der Mensa.'],
-    ['Abend',          'der', 'A-bend',              'Nomen',   'zeit',    '🌆', 'die Tageszeit am Ende des Tages, wenn es dunkel wird', 'Am Abend gehe ich ins Bett.'],
+    ['Abend',          'der', 'A-bend',              'Nomen',   'zeit',    '🌆', 'die Tageszeit am Ende des Tages, wenn es dunkel wird', 'Am Abend gehe ich ins Bett.', 'Abend'],
     ['Bogen',          'der', 'Bo-gen',              'Nomen',   'ding',    '🏹', 'etwas Gebogenes, zum Beispiel zum Schießen von Pfeilen', 'Der Schütze spannt den Bogen.'],
     ['Wald',           'der', 'Wald',                'Nomen',   'ort',     '🌳', 'ein großes Gebiet mit vielen Bäumen', 'Im Wald sammeln wir Pilze.'],
     ['heizen',         null,  'hei-zen',             'Verb',    'verb',    '🔥', 'einen Raum warm machen', 'Im Winter müssen wir die Wohnung heizen.'],
@@ -55,6 +56,7 @@ window.WA = window.WA || {};
       wort: r[0],
       artikel: r[1],
       silben: r[2].split('-'),
+      trennung: (r[8] || r[2]).split('-'),   // Worttrennung nach Duden
       wortart: r[3],
       gruppe: r[4],
       bild: r[5],

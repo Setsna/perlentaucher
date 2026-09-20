@@ -87,7 +87,7 @@
     artikel: 'Artikel zuordnen', silben_zaehlen: 'Silben zählen', silben_ordnen: 'Silben ordnen',
     trennen: 'Silben trennen', bild: 'Wort zum Bild', bedeutung: 'Bedeutung wählen', satz: 'Lückensatz'
   };
-  var SPALTEN = ['wort', 'artikel', 'silben', 'wortart', 'gruppe', 'bild', 'bedeutung', 'satz', 'liste'];
+  var SPALTEN = ['wort', 'artikel', 'silben', 'trennung', 'wortart', 'gruppe', 'bild', 'bedeutung', 'satz', 'liste'];
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -313,6 +313,7 @@
         '<td>' + (w.bild ? '<span style="font-size:22px">' + esc(w.bild) + '</span>' : '') + '</td>' +
         '<td><b>' + esc((w.artikel ? w.artikel + ' ' : '') + w.wort) + '</b></td>' +
         '<td class="muted">' + esc(w.silben) + '</td>' +
+        '<td class="muted">' + esc(w.trennung || w.silben) + '</td>' +
         '<td class="muted">' + esc(w.wortart) + '</td>' +
         '<td><span class="chip' + (w.liste === einst.aktiveListe ? ' aktiv' : '') + '">' + esc(w.liste || '–') + '</span></td>' +
         '<td style="white-space:nowrap">' +
@@ -332,9 +333,9 @@
       '<button class="btn ghost mini" id="csvexport">Als CSV sichern</button>' +
       '<button class="btn ghost mini" id="csvimport">CSV einfügen</button></div>' +
       '<div class="tabwrap"><table class="tabelle"><thead><tr>' +
-      '<th></th><th>Wort</th><th>Silben</th><th>Wortart</th><th>Liste</th><th></th>' +
+      '<th></th><th>Wort</th><th>Sprechsilben</th><th>Worttrennung</th><th>Wortart</th><th>Liste</th><th></th>' +
       '</tr></thead><tbody>' + (zeilen ||
-        '<tr><td colspan="6" class="muted">Keine Wörter in dieser Liste.</td></tr>') +
+        '<tr><td colspan="7" class="muted">Keine Wörter in dieser Liste.</td></tr>') +
       '</tbody></table></div></section>' +
       '<div id="formular"></div>';
   }
@@ -347,6 +348,7 @@
         WA.words.forEach(function (w) {
           batch.set(db.collection('lernwoerter').doc(w.id), {
             wort: w.wort, artikel: w.artikel || null, silben: w.silben.join('-'),
+            trennung: (w.trennung || w.silben).join('-'),
             wortart: w.wortart || '', gruppe: w.gruppe || '', bild: w.bild || null,
             bedeutung: w.bedeutung || '', satz: w.satz || '', liste: w.liste || 'Merkwörter 1'
           });
@@ -386,7 +388,8 @@
       '<div class="raster">' +
       feld('f_wort', 'Wort', w ? w.wort : '') +
       feld('f_artikel', 'Artikel (leer bei Verben)', w ? (w.artikel || '') : '') +
-      feld('f_silben', 'Silben mit Bindestrich', w ? w.silben : '') +
+      feld('f_silben', 'Sprechsilben (Silbenbögen)', w ? w.silben : '') +
+      feld('f_trennung', 'Worttrennung nach Duden', w ? (w.trennung || w.silben) : '') +
       feld('f_wortart', 'Wortart', w ? w.wortart : '') +
       feld('f_gruppe', 'Gruppe', w ? w.gruppe : '') +
       feld('f_bild', 'Bild (Emoji, optional)', w ? (w.bild || '') : '') +
@@ -417,8 +420,11 @@
     if (!v.wort) fehler.push('Das Wort fehlt.');
     if (v.artikel && ['der', 'die', 'das'].indexOf(v.artikel) < 0) fehler.push('Der Artikel muss der, die oder das sein.');
     if (!v.silben) v.silben = v.wort;
-    if (v.silben.replace(/-/g, '') !== v.wort) fehler.push('Die Silben ergeben zusammen nicht das Wort. „' +
+    if (v.silben.replace(/-/g, '') !== v.wort) fehler.push('Die Sprechsilben ergeben zusammen nicht das Wort. „' +
       v.silben.replace(/-/g, '') + '“ statt „' + v.wort + '“.');
+    if (!v.trennung) v.trennung = v.silben;
+    if (v.trennung.replace(/-/g, '') !== v.wort) fehler.push('Die Worttrennung ergibt zusammen nicht das Wort. „' +
+      v.trennung.replace(/-/g, '') + '“ statt „' + v.wort + '“.');
     if (v.satz && v.satz.indexOf(v.wort) < 0) fehler.push('Das Wort kommt im Beispielsatz nicht genau so vor.');
     if (!v.liste) fehler.push('Die Liste fehlt.');
 
@@ -430,7 +436,7 @@
       return;
     }
 
-    var daten = { wort: v.wort, artikel: v.artikel || null, silben: v.silben, wortart: v.wortart,
+    var daten = { wort: v.wort, artikel: v.artikel || null, silben: v.silben, trennung: v.trennung, wortart: v.wortart,
                   gruppe: v.gruppe, bild: v.bild || null, bedeutung: v.bedeutung, satz: v.satz, liste: v.liste };
     var ziel = id || neueId;
     var p = db.collection('lernwoerter').doc(ziel).set(daten);
@@ -501,7 +507,9 @@
       if (!o.wort) { fehler.push(zeile + 'kein Wort'); return; }
       if (o.artikel && ['der', 'die', 'das'].indexOf(o.artikel) < 0) { fehler.push(zeile + 'Artikel „' + o.artikel + '“ ist ungültig'); return; }
       if (!o.silben) o.silben = o.wort;
-      if (o.silben.replace(/-/g, '') !== o.wort) { fehler.push(zeile + 'Silben ergeben nicht „' + o.wort + '“'); return; }
+      if (o.silben.replace(/-/g, '') !== o.wort) { fehler.push(zeile + 'Sprechsilben ergeben nicht „' + o.wort + '“'); return; }
+      if (!o.trennung) o.trennung = o.silben;
+      if (o.trennung.replace(/-/g, '') !== o.wort) { fehler.push(zeile + 'Worttrennung ergibt nicht „' + o.wort + '“'); return; }
       if (o.satz && o.satz.indexOf(o.wort) < 0) { fehler.push(zeile + 'Beispielsatz enthält „' + o.wort + '“ nicht'); return; }
       if (!o.liste) o.liste = einst.aktiveListe || 'Merkwörter 1';
       gut.push(o);
@@ -513,7 +521,7 @@
     var batch = db.batch();
     gut.forEach(function (o) {
       batch.set(db.collection('lernwoerter').doc(o.wort.toLowerCase()), {
-        wort: o.wort, artikel: o.artikel || null, silben: o.silben, wortart: o.wortart || '',
+        wort: o.wort, artikel: o.artikel || null, silben: o.silben, trennung: o.trennung, wortart: o.wortart || '',
         gruppe: o.gruppe || '', bild: o.bild || null, bedeutung: o.bedeutung || '',
         satz: o.satz || '', liste: o.liste
       }, { merge: true });

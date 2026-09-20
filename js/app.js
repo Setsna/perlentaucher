@@ -44,8 +44,9 @@
     for (var i = 0; i < max; i++) h += '<span class="bub ' + (i < n ? 'full' : 'empty') + '"></span>';
     return h;
   }
-  function sylHtml(w) {
-    return w.silben.map(function (s, i) { return '<span class="syl s' + (i % 3) + '">' + esc(s) + '</span>'; }).join('<span class="dot">·</span>');
+  function sylHtml(teile) {
+    if (!Array.isArray(teile)) teile = teile.silben;
+    return teile.map(function (s, i) { return '<span class="syl s' + (i % 3) + '">' + esc(s) + '</span>'; }).join('<span class="dot">·</span>');
   }
   function ico(k) { return (WA.icons && WA.icons[k]) || k; }
   function getWord(id) { return WA.words.filter(function (w) { return w.id === id; })[0]; }
@@ -355,7 +356,7 @@
       }).join('') + '</div>';
     } else if (q.kind === 'cut') {
       if (L.answered) {
-        h += '<div class="bigword cutdone">' + sylHtml(getWord(q.wordId)) + '</div>';
+        h += '<div class="bigword cutdone">' + sylHtml(q.teile || getWord(q.wordId).silben) + '</div>';
       } else {
         var ls = Array.from(q.word);
         h += '<div class="cutrow">' + ls.map(function (ch, i) {

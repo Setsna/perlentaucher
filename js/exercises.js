@@ -244,17 +244,20 @@ window.WA = window.WA || {};
     }
   };
 
+  // Achtung: Diese Übung fragt die Worttrennung am Zeilenende ab,
+  // nicht die Sprechsilben. Wörter, die nach Duden nicht trennbar
+  // sind (z. B. Abend, Efeu), kommen hier gar nicht vor.
   T.trennen = {
     cat: 'silben',
-    applies: function (w) { return w.silben.length >= 2; },
+    applies: function (w) { return (w.trennung || w.silben).length >= 2; },
     make: function (w) {
-      var pos = [], s = 0;
-      w.silben.slice(0, -1).forEach(function (x) { s += chars(x).length; pos.push(s); });
+      var t = w.trennung || w.silben, pos = [], s = 0;
+      t.slice(0, -1).forEach(function (x) { s += chars(x).length; pos.push(s); });
       return {
         type: 'trennen', cat: 'silben', kind: 'cut', wordId: w.id,
-        prompt: 'Tippe dorthin, wo die Silben getrennt werden.',
+        prompt: 'Tippe dorthin, wo das Wort getrennt wird.',
         show: { emoji: w.bild }, speak: w.wort, word: w.wort, solution: pos,
-        solutionText: w.silben.join('-')
+        teile: t, solutionText: t.join('-')
       };
     }
   };
