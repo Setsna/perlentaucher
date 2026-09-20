@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=4">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -60,6 +60,10 @@
     border-radius: 12px; padding: 12px 14px; font-weight: 700; cursor: pointer; }
   .typen input { width: 22px; height: 22px; accent-color: var(--brand); }
 
+  .namensknopf { display: block; text-align: left; padding: 4px 8px 4px 0; border-radius: 8px; }
+  .namensknopf b { display: block; font-size: 16px; }
+  .namensknopf .code { display: block; }
+  .namensknopf:hover b { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
   .merker { padding: 18px 0 8px; }
   .chip { display: inline-block; background: #E4F1F7; color: var(--brand-d); border-radius: 99px;
     padding: 4px 12px; font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -72,11 +76,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=3"></script>
-<script src="js/words.js?v=3"></script>
-<script src="js/mascot.js?v=3"></script>
-<script src="js/icons.js?v=3"></script>
-<script src="js/cloud.js?v=3"></script>
+<script src="js/config.js?v=4"></script>
+<script src="js/words.js?v=4"></script>
+<script src="js/mascot.js?v=4"></script>
+<script src="js/icons.js?v=4"></script>
+<script src="js/cloud.js?v=4"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -242,7 +246,9 @@
         });
       }
       var quote = (ok + wr) ? Math.round(ok / (ok + wr) * 100) + ' %' : '–';
-      return '<tr><td><b>' + esc(k.vorname) + '</b><br><span class="code">' + esc(fmtCode(k.id)) + '</span></td>' +
+      return '<tr><td><button class="namensknopf" data-reset="' + esc(k.id) + '" ' +
+        'title="Fortschritt von ' + esc(k.vorname) + ' zurücksetzen"><b>' + esc(k.vorname) + '</b>' +
+        '<span class="code">' + esc(fmtCode(k.id)) + '</span></button></td>' +
         '<td class="num">' + (f ? (f.xp || 0) : '–') + '</td>' +
         '<td class="num">' + (f ? (f.lessons || 0) : '–') + '</td>' +
         '<td class="num">' + quote + '</td>' +
@@ -260,12 +266,13 @@
 
       '<h2 class="sec">Fortschritt der Klasse</h2>' +
       '<div class="hinweis">Stufe und Liste gelten pro Kind. „wie Klasse“ bedeutet: die Einstellung ' +
-      'aus dem Reiter Einstellungen. Änderungen wirken, sobald das Kind die App neu lädt.</div>' +
+      'aus dem Reiter Einstellungen. Änderungen wirken, sobald das Kind die App neu lädt.<br>' +
+      'Auf einen <b>Namen</b> klicken, um den Fortschritt dieses Kindes zurückzusetzen.</div>' +
       '<section class="card"><div class="tabwrap"><table class="tabelle"><thead><tr>' +
       '<th>Kind</th><th>Perlen</th><th>Tauch&shy;gänge</th><th>Richtig</th><th>Sicher</th>' +
       '<th>Stufe</th><th>Liste</th><th>Zuletzt</th></tr></thead><tbody>' +
       (zeilen || '<tr><td colspan="8" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
-      '</tbody></table></div></section>';
+      '</tbody></table></div></section><div id="resetfeld"></div>';
   }
 
   function stufenWahl(k) {
@@ -286,6 +293,9 @@
   }
 
   function bindeFortschritt() {
+    document.querySelectorAll('[data-reset]').forEach(function (b) {
+      b.onclick = function () { resetFragen(b.getAttribute('data-reset')); };
+    });
     document.querySelectorAll('[data-kind]').forEach(function (s) {
       s.onchange = function () {
         var id = s.getAttribute('data-kind'), feld = s.getAttribute('data-feld');
@@ -691,7 +701,11 @@
 
   function resetFragen(id) {
     var k = kinder.filter(function (x) { return x.id === id; })[0];
-    var f = staende[id] || {};
+    if (!staende[id]) {
+      melde(esc(k.vorname) + ' hat noch nie geübt, es gibt nichts zurückzusetzen.', 'fehler');
+      zeichnen(); return;
+    }
+    var f = staende[id];
     var woerter = f.words ? Object.keys(f.words).length : 0;
     var abz = f.badges ? Object.keys(f.badges).length : 0;
     var feld = el('resetfeld');
