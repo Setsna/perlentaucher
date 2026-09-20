@@ -1,6 +1,6 @@
 # WortAbenteuer
 
-Lernwort-Plattform für die Klasse 3 der Deutschen Sektion der Taipei European School.
+Lernwort-Plattform für die Klasse 3.
 Die Kinder üben ihre Merkwörter in kleinen Tauchgängen und sammeln dabei Perlen.
 
 **Adresse:** https://setsna.github.io/wortabenteuer/
