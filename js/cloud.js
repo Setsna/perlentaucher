@@ -116,6 +116,44 @@ WA.firebaseConfig = {
   }
 
   // ==========================================================
+  //  Speicherzustand
+  //  Bisher landete ein fehlgeschlagener Schreibvorgang nur in der
+  //  Browser-Konsole. Ein Kind hätte weitergeübt und geglaubt, alles
+  //  sei gesichert. Diese drei Zustände werden nach außen gemeldet:
+  //    ok       zuletzt erfolgreich gespeichert
+  //    wartet   Schreibvorgang unterwegs (bei Funkloch: liegt bereit)
+  //    fehler   die Datenbank hat abgelehnt
+  // ==========================================================
+  var speicher = { zustand: 'ok', seit: Date.now(), meldung: null };
+  var speicherLauscher = [];
+  var wartUhr = null;
+
+  function speicherMelden(zustand, meldung) {
+    clearTimeout(wartUhr);
+    if (speicher.zustand === zustand && speicher.meldung === (meldung || null)) return;
+    speicher = { zustand: zustand, seit: Date.now(), meldung: meldung || null };
+    speicherLauscher.forEach(function (f) { try { f(speicher); } catch (e) {} });
+  }
+
+  // Firestore lehnt einen Schreibvorgang ohne Netz nicht ab, sondern
+  // hält ihn zurück. Dauert das ungewöhnlich lange, sagen wir das –
+  // aber als Hinweis, nicht als Fehler.
+  function wartenBeobachten() {
+    clearTimeout(wartUhr);
+    wartUhr = setTimeout(function () {
+      if (speicher.zustand === 'wartet') speicherMelden('wartet-lange');
+    }, 25000);
+  }
+
+  function schreibFehlerText(e) {
+    var c = e && e.code;
+    if (c === 'permission-denied') return 'Die Datenbank hat das Speichern abgelehnt.';
+    if (c === 'resource-exhausted') return 'Die Datenbank ist für heute ausgelastet.';
+    if (c === 'unavailable') return 'Die Datenbank ist gerade nicht erreichbar.';
+    return (e && (e.message || e)) || 'Unbekannter Fehler beim Speichern.';
+  }
+
+  // ==========================================================
   //  Anmelden
   // ==========================================================
   function anmelden(code) {
@@ -246,6 +284,9 @@ WA.firebaseConfig = {
     var daten = Object.assign({}, s);
     daten.mal = Object.assign({}, s.mal, { bilder: [] });
 
+    speicherMelden('wartet');
+    wartenBeobachten();
+
     var p = db.collection('fortschritt').doc(id).set(daten);
     bilderSichern();
     if (neu > 0) {
@@ -257,7 +298,12 @@ WA.firebaseConfig = {
         return db.collection('fortschritt').doc(id).update({ xpGemeldet: gemeldet + neu });
       });
     }
-    return p.catch(function (e) { fehlerMelden(e); });
+    return p.then(function () {
+      speicherMelden('ok');
+    }, function (e) {
+      fehlerMelden(e);
+      speicherMelden('fehler', schreibFehlerText(e));
+    });
   }
 
   // ==========================================================
@@ -310,7 +356,10 @@ WA.firebaseConfig = {
       else { daten.px = b.px || ''; daten.g = b.g || 16; }
       aufgaben.push(db.collection('bilder').doc(code + '_' + b.id).set(daten));
     });
-    return Promise.all(aufgaben).catch(function (e) { fehlerMelden(e); });
+    return Promise.all(aufgaben).catch(function (e) {
+      fehlerMelden(e);
+      speicherMelden('fehler', schreibFehlerText(e));
+    });
   }
 
   // Beim Verlassen der Seite noch schnell sichern
@@ -339,6 +388,11 @@ WA.firebaseConfig = {
     schreiben: schreiben,
     klassenWoche: klassenWoche,
     bilderLaden: bilderLaden,
+    speicher: function () { return speicher; },
+    onSpeicher: function (f) {
+      if (speicherLauscher.indexOf(f) < 0) speicherLauscher.push(f);
+      f(speicher);
+    },
     bilderSichern: bilderSichern,
     wochenSchluessel: wochenSchluessel,
     fehler: function () { return letzterFehler; }

@@ -359,3 +359,22 @@ h1, h2, h3, p { margin: 0; }
   .malhinweis { margin-bottom: 8px; }
   .breiten { margin-bottom: 8px; }
 }
+
+/* Hinweis zum Speichern – liegt über allem, damit er nicht übersehen wird */
+#sync:empty { display: none; }
+.sync { position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  font-size: 16px; font-weight: 600; text-align: center; line-height: 1.35;
+  box-shadow: 0 -4px 16px rgba(12,58,74,.18); }
+.sync.fehler { background: var(--bad-bg); color: var(--bad-d); border-top: 3px solid var(--bad); }
+.sync.warten { background: var(--sand); color: var(--sand-ink); border-top: 3px solid var(--sand-d); }
+body.sync-an .footer { bottom: var(--synch, 0px); }
+body.sync-an #app { padding-bottom: calc(var(--synch, 0px) + 10px); }
+/* Tauchgang und App fuellen sonst die volle Hoehe und schieben den
+   Knopf unter die Leiste. */
+body.sync-an .lesson, body.sync-an .center { min-height: calc(100vh - var(--synch, 0px)); }
+body.sync-an #app { min-height: calc(100vh - var(--synch, 0px)); }
+@supports (height: 100dvh) {
+  body.sync-an .lesson, body.sync-an .center,
+  body.sync-an #app { min-height: calc(100dvh - var(--synch, 0px)); }
+}

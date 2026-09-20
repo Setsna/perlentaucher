@@ -69,6 +69,60 @@
   }
 
   // ==========================================================
+  //  SPEICHERZUSTAND
+  //  Ein Kind darf nicht in dem Glauben weiterüben, alles sei
+  //  gesichert, während in Wirklichkeit nichts ankommt. Der Hinweis
+  //  liegt fest am unteren Rand und ist in jeder Ansicht zu sehen.
+  // ==========================================================
+  var speicherStand = null;
+
+  function speicherAnzeige(s) {
+    speicherStand = s;
+    var leiste = document.getElementById('sync');
+    if (!leiste) {
+      leiste = document.createElement('div');
+      leiste.id = 'sync';
+      document.body.appendChild(leiste);
+    }
+    if (!s || s.zustand === 'ok' || s.zustand === 'wartet') {
+      leiste.className = ''; leiste.innerHTML = '';
+      platzSchaffen(false);
+      return;
+    }
+    if (s.zustand === 'wartet-lange') {
+      leiste.className = 'sync warten';
+      leiste.innerHTML = '<b>Kein Internet.</b> Übe ruhig weiter – deine Perlen werden ' +
+        'gespeichert, sobald die Verbindung wieder da ist.';
+      platzSchaffen(true);
+      return;
+    }
+    leiste.className = 'sync fehler';
+    leiste.innerHTML = '<b>Achtung:</b> Deine Perlen können gerade nicht gespeichert werden. ' +
+      'Bitte sag deiner Lehrkraft Bescheid.';
+    platzSchaffen(true);
+  }
+
+  // Die Leiste liegt fest am unteren Rand. Damit sie den Knopf
+  // „Prüfen" im Tauchgang nicht verdeckt, rückt alles nach oben.
+  function platzSchaffen(an) {
+    var leiste = document.getElementById('sync');
+    document.body.classList.toggle('sync-an', !!an);
+    document.documentElement.style.setProperty('--synch',
+      (an && leiste ? leiste.offsetHeight : 0) + 'px');
+  }
+
+  // Der Satz in der Fußzeile der Startseite soll dasselbe sagen.
+  function fusstext() {
+    if (!(WA.cloud && WA.cloud.angemeldet && WA.cloud.angemeldet())) {
+      return 'Übungsmodus – der Spielstand bleibt nur auf diesem Gerät.';
+    }
+    var z = speicherStand && speicherStand.zustand;
+    if (z === 'fehler') return 'Dein Fortschritt kann gerade <b>nicht</b> gespeichert werden.';
+    if (z === 'wartet-lange') return 'Dein Fortschritt wird gespeichert, sobald wieder Internet da ist.';
+    return 'Dein Fortschritt wird gespeichert und ist auf jedem Gerät da.';
+  }
+
+  // ==========================================================
   //  STARTSEITE
   // ==========================================================
   function heartChip() {
@@ -147,10 +201,7 @@
       weakHtml +
       '<h2 class="sec">Diese Woche</h2><section class="card week">' + weekHtml + '</section>' +
       '<h2 class="sec">Abzeichen</h2><section class="badges">' + badges + '</section>' +
-      '<footer class="foot">' +
-      ((WA.cloud && WA.cloud.angemeldet && WA.cloud.angemeldet())
-        ? 'Dein Fortschritt wird gespeichert und ist auf jedem Gerät da.'
-        : 'Übungsmodus – der Spielstand bleibt nur auf diesem Gerät.') +
+      '<footer class="foot">' + fusstext() +
       '<br><a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a></footer></div>';
 
     timer = setInterval(function () { var el = $('#heartchip'); if (el) el.innerHTML = heartChip(); }, 1000);
@@ -878,6 +929,13 @@
 
   function boot() {
     klassenPerlen = null;
+    if (WA.cloud && WA.cloud.onSpeicher) {
+      WA.cloud.onSpeicher(function (s) {
+        speicherAnzeige(s);
+        if (view === 'home') { var f = $('.foot'); if (f) f.innerHTML = fusstext() +
+          '<br><a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a>'; }
+      });
+    }
     if (WA.cloud && WA.cloud.aktiv() && !WA.cloud.angemeldet()) {
       renderLogin(WA.cloud.fehler() ? String(WA.cloud.fehler()) : null);
       return;
