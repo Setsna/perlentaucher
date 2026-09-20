@@ -329,7 +329,7 @@
       h += '<div class="show">' + (q.show.emoji ? '<div class="emoji">' + q.show.emoji + '</div>' : '') +
         (q.show.text ? '<div class="bigword">' + (txt === null ? sylHtml(w) : esc(txt)) + '</div>' : '') + '</div>';
     }
-    if (q.hint) h += '<div class="hint">' + esc(q.hint) + '</div>';
+    if (q.hint && C.hinweise !== false) h += '<div class="hint">' + esc(q.hint) + '</div>';
     if (q.sentence) {
       var fill = L.answered ? '<span class="gapword ' + (L.res.ok ? 'ok' : 'no') + '">' + esc(getWord(q.correct).wort) + '</span>' : '<span class="gapword">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>';
       h += '<div class="sentence">' + esc(q.sentence[0]) + fill + esc(q.sentence[1]) + '</div>';

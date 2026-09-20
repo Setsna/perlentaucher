@@ -7,7 +7,8 @@ window.WA = window.WA || {};
 
 (function () {
   'use strict';
-  var C = WA.config, W = WA.words;
+  var C = WA.config;
+  function W() { return WA.words || []; }   // wird zur Laufzeit gelesen
 
   // ---------- Hilfsfunktionen ----------
   function rnd(n) { return Math.floor(Math.random() * n); }
@@ -26,7 +27,7 @@ window.WA = window.WA || {};
   function sample(a, n) { return shuffle(a).slice(0, n); }
   function full(w) { return (w.artikel ? w.artikel + ' ' : '') + w.wort; }
   function chars(s) { return Array.from(s); }
-  function others(w, f) { return W.filter(function (x) { return x.id !== w.id && (!f || f(x)); }); }
+  function others(w, f) { return W().filter(function (x) { return x.id !== w.id && (!f || f(x)); }); }
   function emojiSet(b) {
     return b ? chars(b).filter(function (c) { var p = c.codePointAt(0); return p > 0x2000 && p !== 0xFE0F && p !== 0x200D; }) : [];
   }
@@ -264,7 +265,7 @@ window.WA = window.WA || {};
 
   function eligibleWords(catId) {
     var types = typesOf(catId);
-    return W.filter(function (w) { return types.some(function (t) { return T[t].applies(w); }); });
+    return W().filter(function (w) { return types.some(function (t) { return T[t].applies(w); }); });
   }
 
   function weightOf(w, apps) {
@@ -279,10 +280,21 @@ window.WA = window.WA || {};
   // onlyIds (optional): nur aus diesen Wörtern eine Lektion bauen
   function buildLesson(worldId, onlyIds) {
     var types = typesOf(worldId), qs = [], used = {}, counts = {};
-    var pool = onlyIds && onlyIds.length
-      ? W.filter(function (w) { return onlyIds.indexOf(w.id) >= 0; })
-      : W;
+    var alle = onlyIds && onlyIds.length
+      ? W().filter(function (w) { return onlyIds.indexOf(w.id) >= 0; })
+      : W();
+
+    // Schwerpunkt auf der aktiven Liste, ein Teil zur Wiederholung aus früheren
+    var aktiv = alle, alt = [];
+    if (C.aktiveListe && !onlyIds) {
+      aktiv = alle.filter(function (w) { return w.liste === C.aktiveListe; });
+      alt   = alle.filter(function (w) { return w.liste !== C.aktiveListe; });
+      if (!aktiv.length) { aktiv = alle; alt = []; }
+    }
+
     for (var k = 0; k < C.lessonLength; k++) {
+      var ausAlt = alt.length && Math.random() < (C.wiederholungAnteil || 0);
+      var pool = ausAlt ? alt : aktiv;
       var cands = [];
       pool.forEach(function (w) {
         var apps = types.filter(function (t) { return T[t].applies(w); });

@@ -6,26 +6,55 @@
 <title>WortAbenteuer – Lehrerbereich</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-  .lehrer { max-width: 920px; margin: 0 auto; padding-bottom: 40px; }
-  .lhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0; flex-wrap: wrap; }
+  body { -webkit-user-select: text; user-select: text; }
+  .lehrer { max-width: 1100px; margin: 0 auto; padding-bottom: 60px; }
+  .lhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 10px; flex-wrap: wrap; }
   .lhead h1 { font-size: 26px; }
-  .tabelle { width: 100%; border-collapse: collapse; font-size: 17px; }
-  .tabelle th { text-align: left; font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--muted); padding: 8px 10px; border-bottom: 2px solid var(--line); }
-  .tabelle td { padding: 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .lhead .rechts { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  .reiter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .reiter button { padding: 12px 20px; border-radius: 14px 14px 0 0; background: #fff; border: 2px solid var(--line);
+    border-bottom: none; font-weight: 800; font-size: 17px; color: var(--muted); min-height: 52px; }
+  .reiter button.an { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+  .tabelle { width: 100%; border-collapse: collapse; font-size: 16px; }
+  .tabelle th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); padding: 8px 10px; border-bottom: 2px solid var(--line); white-space: nowrap; }
+  .tabelle td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
   .tabelle tr:last-child td { border-bottom: 0; }
-  .tabelle .code { font-family: ui-monospace, Menlo, monospace; color: var(--muted); font-size: 15px; }
+  .tabelle .code { font-family: ui-monospace, Menlo, monospace; color: var(--muted); font-size: 14px; white-space: nowrap; }
   .tabwrap { overflow-x: auto; }
-  textarea { width: 100%; min-height: 160px; border: 2px solid var(--line); border-radius: 14px; padding: 12px;
-    font-family: ui-monospace, Menlo, monospace; font-size: 14px; color: var(--ink); background: #fff; resize: vertical; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+
+  input[type=text], input[type=number], select, textarea {
+    border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; font: inherit;
+    font-size: 16px; color: var(--ink); background: #fff; max-width: 100%; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--brand); }
+  textarea { width: 100%; min-height: 150px; font-family: ui-monospace, Menlo, monospace; font-size: 14px; resize: vertical; }
+  label.feld { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .raster { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+  .klein { padding: 8px 10px; font-size: 15px; min-height: 44px; border-radius: 10px; }
+
+  .btn.mini { min-height: 44px; padding: 8px 16px; font-size: 16px; border-bottom-width: 4px; min-width: 0; }
+  .knopfreihe { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+
   .hinweis { background: var(--sand); color: var(--sand-ink); border-radius: 14px; padding: 12px 16px;
-    font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    font-size: 15px; font-weight: 600; margin-bottom: 14px; }
   .melden { border-radius: 14px; padding: 12px 16px; font-weight: 700; margin-top: 12px; }
   .melden.ok { background: var(--good-bg); color: var(--good-d); }
   .melden.fehler { background: var(--bad-bg); color: var(--bad-d); }
-  .knopfreihe { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
-  .zahl { font-size: 34px; font-weight: 900; }
-  body { -webkit-user-select: text; user-select: text; }
+  .zahl { font-size: 32px; font-weight: 900; }
+
+  .typen { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+  .typen label { display: flex; align-items: center; gap: 10px; background: #F4FAFD; border: 2px solid var(--line);
+    border-radius: 12px; padding: 12px 14px; font-weight: 700; cursor: pointer; }
+  .typen input { width: 22px; height: 22px; accent-color: var(--brand); }
+
+  .merker { padding: 18px 0 8px; }
+  .chip { display: inline-block; background: #E4F1F7; color: var(--brand-d); border-radius: 99px;
+    padding: 4px 12px; font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .chip.aktiv { background: var(--good-bg); color: var(--good-d); }
 </style>
 </head>
 <body>
@@ -41,23 +70,34 @@
 <script src="js/cloud.js"></script>
 <script>
 /* ==========================================================
-   Lehrerbereich – Kinder freischalten und Fortschritt ansehen
-   Anmeldung mit Google. Wer nicht in den Firestore-Regeln als
+   Lehrerbereich
+   Reiter: Fortschritt | Lernwörter | Einstellungen | Kinder
+   Anmeldung mit Google. Wer in den Firestore-Regeln nicht als
    Lehrkraft eingetragen ist, sieht hier nichts.
    ========================================================== */
 (function () {
   'use strict';
   var $app = document.getElementById('app');
-  var auth, db, nutzer = null, kinder = [], staende = {}, klassenPerlen = null;
+  var auth, db, nutzer = null;
+  var kinder = [], staende = {}, woerter = [], einst = {}, klassenPerlen = null;
+  var reiter = 'fortschritt', filterListe = '', meldung = null;
+
+  var TYPNAMEN = {
+    buchstaben: 'Buchstaben ordnen', luecke: 'Fehlende Buchstaben', fehler: 'Richtige Schreibweise',
+    artikel: 'Artikel zuordnen', silben_zaehlen: 'Silben zählen', silben_ordnen: 'Silben ordnen',
+    trennen: 'Silben trennen', bild: 'Wort zum Bild', bedeutung: 'Bedeutung wählen', satz: 'Lückensatz'
+  };
+  var SPALTEN = ['wort', 'artikel', 'silben', 'wortart', 'gruppe', 'bild', 'bedeutung', 'satz', 'liste'];
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function ico(k) { return (WA.icons && WA.icons[k]) || ''; }
   function fmtCode(c) { return c.slice(0, 4).toUpperCase() + '-' + c.slice(4).toUpperCase(); }
+  function el(id) { return document.getElementById(id); }
+  function melde(text, art) { meldung = { text: text, art: art || 'ok' }; }
 
   if (typeof firebase === 'undefined') {
     $app.innerHTML = '<div class="lehrer"><div class="melden fehler" style="margin:40px 16px">' +
-      'Firebase konnte nicht geladen werden. Bitte Internetverbindung prüfen.</div></div>';
+      'Firebase konnte nicht geladen werden. Bitte die Internetverbindung prüfen.</div></div>';
     return;
   }
 
@@ -71,62 +111,121 @@
     laden();
   });
 
-  // ---------- Anmeldung ----------
+  // ==========================================================
+  //  Anmeldung
+  // ==========================================================
   function zeigeAnmeldung() {
     $app.innerHTML = '<div class="center"><div class="cardbig">' + WA.mascot('think', 130) +
       '<h1>Lehrerbereich</h1>' +
-      '<p>Melde dich mit dem Google-Konto an, das du bei Firebase benutzt.</p>' +
+      '<p>Melde dich mit dem Google-Konto an, das in den Firestore-Regeln eingetragen ist.</p>' +
       '<button class="btn big" id="google">Mit Google anmelden</button>' +
       '<a class="btn ghost big" href="index.html" style="text-decoration:none">Zurück zur App</a>' +
       '</div></div>';
-    document.getElementById('google').onclick = function () {
+    el('google').onclick = function () {
       auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
         .catch(function (e) { alert('Anmeldung nicht möglich: ' + (e && e.message)); });
     };
   }
 
-  // ---------- Daten laden ----------
+  // ==========================================================
+  //  Laden
+  // ==========================================================
   function laden() {
     $app.innerHTML = '<div class="lehrer"><p style="padding:40px 16px">Daten werden geladen …</p></div>';
-    db.collection('kinder').get().then(function (snap) {
+    Promise.all([
+      db.collection('kinder').get(),
+      db.collection('lernwoerter').get(),
+      db.collection('einstellungen').doc('klasse').get(),
+      db.collection('klassenwochen').doc(WA.cloud.wochenSchluessel()).get().catch(function () { return null; })
+    ]).then(function (r) {
       kinder = [];
-      snap.forEach(function (d) { kinder.push(Object.assign({ id: d.id }, d.data())); });
+      r[0].forEach(function (d) { kinder.push(Object.assign({ id: d.id }, d.data())); });
       kinder.sort(function (a, b) { return String(a.vorname).localeCompare(String(b.vorname), 'de'); });
+
+      woerter = [];
+      r[1].forEach(function (d) { woerter.push(Object.assign({ id: d.id }, d.data())); });
+      woerter.sort(function (a, b) { return String(a.wort).localeCompare(String(b.wort), 'de'); });
+
+      einst = (r[2] && r[2].exists) ? r[2].data() : {};
+      klassenPerlen = (r[3] && r[3].exists) ? (r[3].data().perlen || 0) : 0;
+
       return Promise.all(kinder.map(function (k) {
         return db.collection('fortschritt').doc(k.id).get()
           .then(function (f) { staende[k.id] = f.exists ? f.data() : null; })
           .catch(function () { staende[k.id] = null; });
       }));
-    }).then(function () {
-      return db.collection('klassenwochen').doc(WA.cloud.wochenSchluessel()).get()
-        .then(function (d) { klassenPerlen = d.exists ? (d.data().perlen || 0) : 0; })
-        .catch(function () { klassenPerlen = null; });
-    }).then(zeichnen)
-      .catch(function (e) {
-        var keinZugriff = e && (e.code === 'permission-denied');
-        $app.innerHTML = '<div class="lehrer"><div class="lhead"><h1>Lehrerbereich</h1>' +
-          '<button class="btn ghost" id="abmelden">Abmelden</button></div>' +
-          '<div class="melden fehler">' + (keinZugriff
-            ? 'Dieses Konto (' + esc(nutzer.email) + ') ist in den Firestore-Regeln nicht als Lehrkraft eingetragen. ' +
-              'Trag die Adresse in der Funktion istLehrer() ein und veröffentliche die Regeln erneut.'
-            : 'Fehler beim Laden: ' + esc(e && e.message)) + '</div></div>';
-        bindeAbmelden();
-      });
+    }).then(zeichnen).catch(zeigeFehler);
   }
 
-  function bindeAbmelden() {
-    var b = document.getElementById('abmelden');
+  function zeigeFehler(e) {
+    var keinZugriff = e && e.code === 'permission-denied';
+    $app.innerHTML = '<div class="lehrer"><div class="lhead"><h1>Lehrerbereich</h1>' +
+      '<button class="btn ghost" id="abmelden">Abmelden</button></div>' +
+      '<div class="melden fehler">' + (keinZugriff
+        ? 'Das Konto <b>' + esc(nutzer && nutzer.email) + '</b> ist in den Firestore-Regeln nicht als Lehrkraft ' +
+          'eingetragen. Trag die Adresse in der Funktion istLehrer() ein und veröffentliche die Regeln erneut.'
+        : 'Fehler beim Laden: ' + esc(e && e.message)) + '</div></div>';
+    bindeKopf();
+  }
+
+  // ==========================================================
+  //  Rahmen
+  // ==========================================================
+  function listenNamen() {
+    var s = {};
+    woerter.forEach(function (w) { if (w.liste) s[w.liste] = (s[w.liste] || 0) + 1; });
+    return Object.keys(s).sort(function (a, b) { return a.localeCompare(b, 'de'); })
+      .map(function (n) { return { name: n, anzahl: s[n] }; });
+  }
+
+  function zeichnen() {
+    var inhalt = reiter === 'woerter' ? tabWoerter()
+      : reiter === 'einstellungen' ? tabEinstellungen()
+      : reiter === 'kinder' ? tabKinder()
+      : tabFortschritt();
+
+    var m = meldung ? '<div class="melden ' + meldung.art + '">' + meldung.text + '</div>' : '';
+    meldung = null;
+
+    $app.innerHTML = '<div class="lehrer">' +
+      '<div class="lhead"><h1>Lehrerbereich</h1><div class="rechts">' +
+      '<span class="muted">' + esc(nutzer.email) + '</span>' +
+      '<a class="btn ghost mini" href="index.html" style="text-decoration:none">Zur App</a>' +
+      '<button class="btn ghost mini" id="abmelden">Abmelden</button></div></div>' +
+      '<div class="reiter">' +
+      knopf('fortschritt', 'Fortschritt') + knopf('woerter', 'Lernwörter (' + woerter.length + ')') +
+      knopf('einstellungen', 'Einstellungen') + knopf('kinder', 'Kinder (' + kinder.length + ')') +
+      '</div>' + m + inhalt + '</div>';
+
+    bindeKopf();
+    document.querySelectorAll('[data-reiter]').forEach(function (b) {
+      b.onclick = function () { reiter = b.getAttribute('data-reiter'); zeichnen(); };
+    });
+    if (reiter === 'woerter') bindeWoerter();
+    if (reiter === 'einstellungen') bindeEinstellungen();
+    if (reiter === 'kinder') bindeKinder();
+    if (reiter === 'fortschritt') bindeFortschritt();
+  }
+
+  function knopf(id, text) {
+    return '<button data-reiter="' + id + '"' + (reiter === id ? ' class="an"' : '') + '>' + text + '</button>';
+  }
+  function bindeKopf() {
+    var b = el('abmelden');
     if (b) b.onclick = function () { auth.signOut(); };
   }
 
-  // ---------- Anzeige ----------
-  function zeichnen() {
-    var K = WA.config.klasse, ziel = K.kinder * K.wochenzielProKind;
+  // ==========================================================
+  //  Reiter 1: Fortschritt
+  // ==========================================================
+  function tabFortschritt() {
+    var K = WA.config.klasse;
+    var ziel = (einst.kinder || K.kinder) * (einst.wochenzielProKind || K.wochenzielProKind);
     var geuebt = kinder.filter(function (k) { return staende[k.id]; }).length;
+    var listen = listenNamen();
 
     var zeilen = kinder.map(function (k) {
-      var f = staende[k.id];
-      var ok = 0, wr = 0, sicher = 0;
+      var f = staende[k.id], ok = 0, wr = 0, sicher = 0;
       if (f && f.words) {
         Object.keys(f.words).forEach(function (id) {
           var w = f.words[id]; ok += w.ok || 0; wr += w.wr || 0;
@@ -136,58 +235,431 @@
       var quote = (ok + wr) ? Math.round(ok / (ok + wr) * 100) + ' %' : '–';
       return '<tr><td><b>' + esc(k.vorname) + '</b></td>' +
         '<td class="code">' + esc(fmtCode(k.id)) + '</td>' +
-        '<td>' + (f ? (f.xp || 0) : '–') + '</td>' +
-        '<td>' + (f ? (f.lessons || 0) : '–') + '</td>' +
-        '<td>' + quote + '</td>' +
-        '<td>' + (f ? sicher + ' / ' + WA.words.length : '–') + '</td>' +
+        '<td class="num">' + (f ? (f.xp || 0) : '–') + '</td>' +
+        '<td class="num">' + (f ? (f.lessons || 0) : '–') + '</td>' +
+        '<td class="num">' + quote + '</td>' +
+        '<td class="num">' + (f ? sicher : '–') + '</td>' +
+        '<td>' + stufenWahl(k) + '</td>' +
+        '<td>' + listenWahl(k, listen) + '</td>' +
         '<td>' + (f && f.updatedAt ? new Date(f.updatedAt).toLocaleDateString('de-DE') : 'noch nie') + '</td></tr>';
     }).join('');
 
-    $app.innerHTML = '<div class="lehrer">' +
-      '<div class="lhead"><h1>Lehrerbereich</h1>' +
-      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
-      '<span class="muted">' + esc(nutzer.email) + '</span>' +
-      '<a class="btn ghost" href="index.html" style="text-decoration:none">Zur App</a>' +
-      '<button class="btn ghost" id="abmelden">Abmelden</button></div></div>' +
-
-      '<section class="stats">' +
+    return '<section class="stats">' +
       '<div class="card stat"><h3>Kinder freigeschaltet</h3><div class="zahl">' + kinder.length + '</div></div>' +
       '<div class="card stat"><h3>Davon schon geübt</h3><div class="zahl">' + geuebt + '</div></div>' +
-      '<div class="card stat"><h3>Klassenziel diese Woche</h3><div class="zahl">' +
-        (klassenPerlen === null ? '–' : klassenPerlen) + ' <small style="font-size:15px">/ ' + ziel + '</small></div></div>' +
-      '</section>' +
+      '<div class="card stat"><h3>Klassenziel diese Woche</h3><div class="zahl">' + klassenPerlen +
+      ' <small style="font-size:15px;color:var(--muted)">/ ' + ziel + '</small></div></div></section>' +
 
       '<h2 class="sec">Fortschritt der Klasse</h2>' +
+      '<div class="hinweis">Stufe und Liste gelten pro Kind. „wie Klasse“ bedeutet: die Einstellung ' +
+      'aus dem Reiter Einstellungen. Änderungen wirken, sobald das Kind die App neu lädt.</div>' +
       '<section class="card"><div class="tabwrap"><table class="tabelle"><thead><tr>' +
-      '<th>Vorname</th><th>Code</th><th>Perlen</th><th>Tauchgänge</th><th>Richtig</th><th>Sicher</th><th>Zuletzt</th>' +
-      '</tr></thead><tbody>' +
-      (zeilen || '<tr><td colspan="7" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
-      '</tbody></table></div></section>' +
-
-      '<h2 class="sec">Kinder freischalten</h2>' +
-      '<section class="card">' +
-      '<div class="hinweis">Hier fügst du den Inhalt der Datei <b>kinder.json</b> ein, die zusammen mit dem ' +
-      'Aufkleberbogen erzeugt wurde. Vorhandene Kinder werden nicht doppelt angelegt, ' +
-      'ihr Spielstand bleibt erhalten.</div>' +
-      '<textarea id="json" spellcheck="false" placeholder=\'[{"vorname": "Lina", "code": "K7PM4XRT"}]\'></textarea>' +
-      '<div class="knopfreihe"><button class="btn" id="importieren">Kinder freischalten</button></div>' +
-      '<div id="ergebnis"></div>' +
-      '</section></div>';
-
-    bindeAbmelden();
-    document.getElementById('importieren').onclick = importieren;
+      '<th>Vorname</th><th>Code</th><th>Perlen</th><th>Tauchgänge</th><th>Richtig</th><th>Sicher</th>' +
+      '<th>Stufe</th><th>Liste</th><th>Zuletzt</th></tr></thead><tbody>' +
+      (zeilen || '<tr><td colspan="9" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
+      '</tbody></table></div></section>';
   }
 
-  // ---------- Import ----------
-  function importieren() {
-    var el = document.getElementById('ergebnis');
-    var txt = document.getElementById('json').value.trim();
-    var liste;
+  function stufenWahl(k) {
+    var opt = ['<option value="">wie Klasse</option>'].concat(
+      Object.keys(WA.config.stufen).map(function (s) {
+        return '<option value="' + s + '"' + (k.stufe === s ? ' selected' : '') + '>' + s + '</option>';
+      })).join('');
+    return '<select class="klein" data-kind="' + esc(k.id) + '" data-feld="stufe">' + opt + '</select>';
+  }
+
+  function listenWahl(k, listen) {
+    var opt = ['<option value="">wie Klasse</option>'].concat(
+      listen.map(function (l) {
+        return '<option value="' + esc(l.name) + '"' + (k.liste === l.name ? ' selected' : '') +
+          '>' + esc(l.name) + '</option>';
+      })).join('');
+    return '<select class="klein" data-kind="' + esc(k.id) + '" data-feld="liste">' + opt + '</select>';
+  }
+
+  function bindeFortschritt() {
+    document.querySelectorAll('[data-kind]').forEach(function (s) {
+      s.onchange = function () {
+        var id = s.getAttribute('data-kind'), feld = s.getAttribute('data-feld');
+        var daten = {}; daten[feld] = s.value || null;
+        s.disabled = true;
+        db.collection('kinder').doc(id).set(daten, { merge: true })
+          .then(function () {
+            var k = kinder.filter(function (x) { return x.id === id; })[0];
+            if (k) k[feld] = s.value || null;
+            s.disabled = false;
+          })
+          .catch(function (e) { alert('Speichern fehlgeschlagen: ' + e.message); s.disabled = false; });
+      };
+    });
+  }
+
+  // ==========================================================
+  //  Reiter 2: Lernwörter
+  // ==========================================================
+  function tabWoerter() {
+    var listen = listenNamen();
+    if (!woerter.length) {
+      return '<section class="card"><h2 style="margin-bottom:10px">Noch keine Lernwörter in der Datenbank</h2>' +
+        '<p class="muted" style="margin-bottom:14px">Die App benutzt gerade die ' + WA.words.length +
+        ' mitgelieferten Merkwörter aus der Datei. Übernimm sie einmalig in die Datenbank, ' +
+        'danach kannst du sie hier bearbeiten.</p>' +
+        '<button class="btn" id="uebernehmen">Die ' + WA.words.length + ' Wörter übernehmen</button></section>';
+    }
+
+    var sichtbar = woerter.filter(function (w) { return !filterListe || w.liste === filterListe; });
+    var zeilen = sichtbar.map(function (w, i) {
+      return '<tr data-id="' + esc(w.id) + '">' +
+        '<td>' + (w.bild ? '<span style="font-size:22px">' + esc(w.bild) + '</span>' : '') + '</td>' +
+        '<td><b>' + esc((w.artikel ? w.artikel + ' ' : '') + w.wort) + '</b></td>' +
+        '<td class="muted">' + esc(w.silben) + '</td>' +
+        '<td class="muted">' + esc(w.wortart) + '</td>' +
+        '<td><span class="chip' + (w.liste === einst.aktiveListe ? ' aktiv' : '') + '">' + esc(w.liste || '–') + '</span></td>' +
+        '<td style="white-space:nowrap">' +
+        '<button class="btn ghost mini" data-bearbeiten="' + esc(w.id) + '">Ändern</button> ' +
+        '<button class="btn ghost mini danger" data-loeschen="' + esc(w.id) + '">Löschen</button></td></tr>';
+    }).join('');
+
+    var filter = '<select class="klein" id="filter"><option value="">alle Listen (' + woerter.length + ')</option>' +
+      listen.map(function (l) {
+        return '<option value="' + esc(l.name) + '"' + (filterListe === l.name ? ' selected' : '') +
+          '>' + esc(l.name) + ' (' + l.anzahl + ')</option>';
+      }).join('') + '</select>';
+
+    return '<section class="card">' +
+      '<div class="knopfreihe" style="margin:0 0 14px">' + filter +
+      '<button class="btn mini" id="neu">Neues Wort</button>' +
+      '<button class="btn ghost mini" id="csvexport">Als CSV sichern</button>' +
+      '<button class="btn ghost mini" id="csvimport">CSV einfügen</button></div>' +
+      '<div class="tabwrap"><table class="tabelle"><thead><tr>' +
+      '<th></th><th>Wort</th><th>Silben</th><th>Wortart</th><th>Liste</th><th></th>' +
+      '</tr></thead><tbody>' + (zeilen ||
+        '<tr><td colspan="6" class="muted">Keine Wörter in dieser Liste.</td></tr>') +
+      '</tbody></table></div></section>' +
+      '<div id="formular"></div>';
+  }
+
+  function bindeWoerter() {
+    if (el('uebernehmen')) {
+      el('uebernehmen').onclick = function () {
+        this.disabled = true; this.textContent = 'Wird übernommen …';
+        var batch = db.batch();
+        WA.words.forEach(function (w) {
+          batch.set(db.collection('lernwoerter').doc(w.id), {
+            wort: w.wort, artikel: w.artikel || null, silben: w.silben.join('-'),
+            wortart: w.wortart || '', gruppe: w.gruppe || '', bild: w.bild || null,
+            bedeutung: w.bedeutung || '', satz: w.satz || '', liste: w.liste || 'Merkwörter 1'
+          });
+        });
+        batch.commit().then(function () {
+          melde(WA.words.length + ' Wörter übernommen.'); laden();
+        }).catch(function (e) { alert('Fehler: ' + e.message); });
+      };
+      return;
+    }
+
+    el('filter').onchange = function () { filterListe = this.value; zeichnen(); };
+    el('neu').onclick = function () { formular(null); };
+    el('csvexport').onclick = csvExport;
+    el('csvimport').onclick = csvImportFormular;
+
+    document.querySelectorAll('[data-bearbeiten]').forEach(function (b) {
+      b.onclick = function () { formular(b.getAttribute('data-bearbeiten')); };
+    });
+    document.querySelectorAll('[data-loeschen]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-loeschen');
+        var w = woerter.filter(function (x) { return x.id === id; })[0];
+        if (!confirm('„' + w.wort + '“ wirklich löschen?\n\nDer Übungsfortschritt der Kinder zu diesem Wort bleibt gespeichert.')) return;
+        db.collection('lernwoerter').doc(id).delete()
+          .then(function () { melde('„' + esc(w.wort) + '“ gelöscht.'); laden(); })
+          .catch(function (e) { alert('Fehler: ' + e.message); });
+      };
+    });
+  }
+
+  function formular(id) {
+    var w = id ? woerter.filter(function (x) { return x.id === id; })[0] : null;
+    var listen = listenNamen().map(function (l) { return l.name; });
+    var f = el('formular');
+    f.innerHTML = '<h2 class="sec">' + (w ? 'Wort ändern' : 'Neues Wort') + '</h2><section class="card">' +
+      '<div class="raster">' +
+      feld('f_wort', 'Wort', w ? w.wort : '') +
+      feld('f_artikel', 'Artikel (leer bei Verben)', w ? (w.artikel || '') : '') +
+      feld('f_silben', 'Silben mit Bindestrich', w ? w.silben : '') +
+      feld('f_wortart', 'Wortart', w ? w.wortart : '') +
+      feld('f_gruppe', 'Gruppe', w ? w.gruppe : '') +
+      feld('f_bild', 'Bild (Emoji, optional)', w ? (w.bild || '') : '') +
+      '<label class="feld">Liste<input type="text" id="f_liste" list="listen" value="' +
+        esc(w ? w.liste : (filterListe || einst.aktiveListe || 'Merkwörter 1')) + '">' +
+        '<datalist id="listen">' + listen.map(function (n) { return '<option value="' + esc(n) + '">'; }).join('') +
+        '</datalist></label>' +
+      '</div><div class="raster" style="margin-top:14px">' +
+      feld('f_bedeutung', 'Bedeutung', w ? (w.bedeutung || '') : '') +
+      feld('f_satz', 'Beispielsatz (muss das Wort enthalten)', w ? (w.satz || '') : '') +
+      '</div>' +
+      '<div class="knopfreihe"><button class="btn" id="speichern">Speichern</button>' +
+      '<button class="btn ghost" id="abbrechen">Abbrechen</button></div>' +
+      '<div id="formfehler"></div></section>';
+    f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el('abbrechen').onclick = function () { f.innerHTML = ''; };
+    el('speichern').onclick = function () { speichereWort(id); };
+  }
+
+  function feld(id, label, wert) {
+    return '<label class="feld">' + esc(label) + '<input type="text" id="' + id + '" value="' + esc(wert) + '"></label>';
+  }
+
+  function speichereWort(id) {
+    var v = {}, fehler = [];
+    SPALTEN.forEach(function (k) { var e = el('f_' + k); if (e) v[k] = e.value.trim(); });
+
+    if (!v.wort) fehler.push('Das Wort fehlt.');
+    if (v.artikel && ['der', 'die', 'das'].indexOf(v.artikel) < 0) fehler.push('Der Artikel muss der, die oder das sein.');
+    if (!v.silben) v.silben = v.wort;
+    if (v.silben.replace(/-/g, '') !== v.wort) fehler.push('Die Silben ergeben zusammen nicht das Wort. „' +
+      v.silben.replace(/-/g, '') + '“ statt „' + v.wort + '“.');
+    if (v.satz && v.satz.indexOf(v.wort) < 0) fehler.push('Das Wort kommt im Beispielsatz nicht genau so vor.');
+    if (!v.liste) fehler.push('Die Liste fehlt.');
+
+    var neueId = v.wort.toLowerCase();
+    if (!id && woerter.some(function (x) { return x.id === neueId; })) fehler.push('Dieses Wort gibt es schon.');
+
+    if (fehler.length) {
+      el('formfehler').innerHTML = '<div class="melden fehler">' + fehler.map(esc).join('<br>') + '</div>';
+      return;
+    }
+
+    var daten = { wort: v.wort, artikel: v.artikel || null, silben: v.silben, wortart: v.wortart,
+                  gruppe: v.gruppe, bild: v.bild || null, bedeutung: v.bedeutung, satz: v.satz, liste: v.liste };
+    var ziel = id || neueId;
+    var p = db.collection('lernwoerter').doc(ziel).set(daten);
+    if (id && id !== neueId) p = p.then(function () { return db.collection('lernwoerter').doc(id).delete(); });
+    p.then(function () { melde('„' + esc(v.wort) + '“ gespeichert.'); laden(); })
+     .catch(function (e) { el('formfehler').innerHTML = '<div class="melden fehler">' + esc(e.message) + '</div>'; });
+  }
+
+  // ---------- CSV ----------
+  function csvExport() {
+    var zeilen = [SPALTEN.join(';')].concat(woerter.map(function (w) {
+      return SPALTEN.map(function (k) {
+        var t = String(w[k] == null ? '' : w[k]);
+        return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+      }).join(';');
+    }));
+    el('formular').innerHTML = '<h2 class="sec">CSV zum Sichern</h2><section class="card">' +
+      '<div class="hinweis">Markieren, kopieren und in eine Textdatei oder Tabelle einfügen. ' +
+      'Dieselbe Form kannst du über „CSV einfügen“ wieder zurückspielen.</div>' +
+      '<textarea id="csvout" spellcheck="false" style="min-height:260px"></textarea>' +
+      '<div class="knopfreihe"><button class="btn ghost" id="zu">Schließen</button></div></section>';
+    el('csvout').value = zeilen.join('\n');
+    el('csvout').select();
+    el('zu').onclick = function () { el('formular').innerHTML = ''; };
+  }
+
+  function csvImportFormular() {
+    el('formular').innerHTML = '<h2 class="sec">CSV einfügen</h2><section class="card">' +
+      '<div class="hinweis">Erste Zeile sind die Spaltennamen, getrennt mit Semikolon:<br>' +
+      '<b>' + SPALTEN.join(';') + '</b><br>' +
+      'Vorhandene Wörter werden überschrieben, neue kommen dazu. Nichts wird gelöscht.</div>' +
+      '<textarea id="csvin" spellcheck="false" placeholder="' + SPALTEN.join(';') + '&#10;Klee;der;Klee;Nomen;pflanze;🍀;eine Wiesenpflanze …;Im Gras wächst Klee.;Woche 5"></textarea>' +
+      '<div class="knopfreihe"><button class="btn" id="csvgo">Einlesen</button>' +
+      '<button class="btn ghost" id="zu">Abbrechen</button></div><div id="csvfehler"></div></section>';
+    el('zu').onclick = function () { el('formular').innerHTML = ''; };
+    el('csvgo').onclick = csvEinlesen;
+  }
+
+  function teileZeile(z) {
+    var out = [], akt = '', inQ = false;
+    for (var i = 0; i < z.length; i++) {
+      var c = z[i];
+      if (inQ) {
+        if (c === '"' && z[i + 1] === '"') { akt += '"'; i++; }
+        else if (c === '"') inQ = false;
+        else akt += c;
+      } else if (c === '"') inQ = true;
+      else if (c === ';') { out.push(akt); akt = ''; }
+      else akt += c;
+    }
+    out.push(akt);
+    return out.map(function (t) { return t.trim(); });
+  }
+
+  function csvEinlesen() {
+    var txt = el('csvin').value.replace(/\r/g, '').trim();
+    var zeilen = txt.split('\n').filter(function (z) { return z.trim(); });
+    if (zeilen.length < 2) { csvFehler(['Es fehlen Datenzeilen.']); return; }
+
+    var kopf = teileZeile(zeilen[0]).map(function (t) { return t.toLowerCase(); });
+    if (kopf.indexOf('wort') < 0) { csvFehler(['In der ersten Zeile fehlt die Spalte „wort“.']); return; }
+
+    var gut = [], fehler = [];
+    zeilen.slice(1).forEach(function (z, n) {
+      var t = teileZeile(z), o = {};
+      kopf.forEach(function (k, i) { if (SPALTEN.indexOf(k) >= 0) o[k] = t[i] || ''; });
+      var zeile = 'Zeile ' + (n + 2) + ': ';
+      if (!o.wort) { fehler.push(zeile + 'kein Wort'); return; }
+      if (o.artikel && ['der', 'die', 'das'].indexOf(o.artikel) < 0) { fehler.push(zeile + 'Artikel „' + o.artikel + '“ ist ungültig'); return; }
+      if (!o.silben) o.silben = o.wort;
+      if (o.silben.replace(/-/g, '') !== o.wort) { fehler.push(zeile + 'Silben ergeben nicht „' + o.wort + '“'); return; }
+      if (o.satz && o.satz.indexOf(o.wort) < 0) { fehler.push(zeile + 'Beispielsatz enthält „' + o.wort + '“ nicht'); return; }
+      if (!o.liste) o.liste = einst.aktiveListe || 'Merkwörter 1';
+      gut.push(o);
+    });
+
+    if (fehler.length) { csvFehler(fehler.concat(['', 'Es wurde nichts gespeichert.'])); return; }
+    if (!gut.length) { csvFehler(['Keine gültigen Zeilen gefunden.']); return; }
+
+    var batch = db.batch();
+    gut.forEach(function (o) {
+      batch.set(db.collection('lernwoerter').doc(o.wort.toLowerCase()), {
+        wort: o.wort, artikel: o.artikel || null, silben: o.silben, wortart: o.wortart || '',
+        gruppe: o.gruppe || '', bild: o.bild || null, bedeutung: o.bedeutung || '',
+        satz: o.satz || '', liste: o.liste
+      }, { merge: true });
+    });
+    batch.commit().then(function () { melde(gut.length + ' Wörter eingelesen.'); laden(); })
+      .catch(function (e) { csvFehler([e.message]); });
+  }
+
+  function csvFehler(liste) {
+    el('csvfehler').innerHTML = '<div class="melden fehler">' + liste.map(esc).join('<br>') + '</div>';
+  }
+
+  // ==========================================================
+  //  Reiter 3: Einstellungen
+  // ==========================================================
+  function tabEinstellungen() {
+    var K = WA.config.klasse, listen = listenNamen();
+    var typen = einst.typen || {};
+    var stufe = einst.stufe || WA.config.stufe;
+
+    var typHtml = Object.keys(WA.config.types).map(function (t) {
+      var an = typen[t] !== false;
+      return '<label><input type="checkbox" data-typ="' + t + '"' + (an ? ' checked' : '') + '>' +
+        esc(TYPNAMEN[t] || t) + '</label>';
+    }).join('');
+
+    var stufenHtml = Object.keys(WA.config.stufen).map(function (s) {
+      var d = WA.config.stufen[s];
+      return '<option value="' + s + '"' + (stufe === s ? ' selected' : '') + '>' + s +
+        ' (' + d.luftblasen + ' Luftblasen, ' + d.aufgaben + ' Aufgaben' +
+        (d.hinweise ? ', mit Tipp' : ', ohne Tipp') + ')</option>';
+    }).join('');
+
+    return '<h2 class="sec">Wortliste der Woche</h2><section class="card">' +
+      '<div class="hinweis">Die aktive Liste bildet den Schwerpunkt. Ein Teil der Aufgaben kommt aus ' +
+      'früheren Listen, damit Gelerntes nicht verloren geht.</div>' +
+      '<div class="raster">' +
+      '<label class="feld">Aktive Liste<select id="e_liste"><option value="">alle Wörter gleichmäßig</option>' +
+      listen.map(function (l) {
+        return '<option value="' + esc(l.name) + '"' + (einst.aktiveListe === l.name ? ' selected' : '') +
+          '>' + esc(l.name) + ' (' + l.anzahl + (l.anzahl === 1 ? ' Wort' : ' Wörter') + ')</option>';
+      }).join('') + '</select></label>' +
+      '<label class="feld">Anteil Wiederholung<select id="e_wdh">' +
+      [0, 0.15, 0.25, 0.4, 0.5].map(function (p) {
+        var akt = (einst.wiederholungAnteil == null ? 0.25 : einst.wiederholungAnteil) === p;
+        return '<option value="' + p + '"' + (akt ? ' selected' : '') + '>' + Math.round(p * 100) + ' %</option>';
+      }).join('') + '</select></label>' +
+      '</div></section>' +
+
+      '<h2 class="sec">Schwierigkeit</h2><section class="card">' +
+      '<div class="raster" style="margin-bottom:16px">' +
+      '<label class="feld">Stufe der Klasse<select id="e_stufe">' + stufenHtml + '</select></label>' +
+      '<label class="feld">Tagesziel in Perlen<input type="number" id="e_tagesziel" min="20" max="1000" step="10" value="' +
+        (einst.dailyGoalXp || WA.config.dailyGoalXp) + '"></label>' +
+      '</div>' +
+      '<h3 style="font-size:15px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px">Übungstypen</h3>' +
+      '<div class="typen">' + typHtml + '</div>' +
+      '<p class="muted" style="margin-top:12px;font-size:15px">Abgeschaltete Typen kommen in keinem Tauchgang vor. ' +
+      'Ein Tauchrevier ohne aktive Typen zeigt keine Aufgaben mehr.</p></section>' +
+
+      '<h2 class="sec">Klassenziel</h2><section class="card"><div class="raster">' +
+      '<label class="feld">Anzahl Kinder<input type="number" id="e_kinder" min="1" max="40" value="' +
+        (einst.kinder || K.kinder) + '"></label>' +
+      '<label class="feld">Wochenziel je Kind<input type="number" id="e_proKind" min="10" max="2000" step="10" value="' +
+        (einst.wochenzielProKind || K.wochenzielProKind) + '"></label>' +
+      '<label class="feld">Ergibt zusammen<input type="text" id="e_summe" value="" readonly></label>' +
+      '</div></section>' +
+
+      '<div class="merker"><button class="btn big" id="e_speichern">Einstellungen speichern</button></div>';
+  }
+
+  function bindeEinstellungen() {
+    function summe() {
+      el('e_summe').value = ((+el('e_kinder').value || 0) * (+el('e_proKind').value || 0)) + ' Perlen pro Woche';
+    }
+    el('e_kinder').oninput = summe;
+    el('e_proKind').oninput = summe;
+    summe();
+
+    el('e_speichern').onclick = function () {
+      var typen = {};
+      document.querySelectorAll('[data-typ]').forEach(function (c) { typen[c.getAttribute('data-typ')] = c.checked; });
+      if (!Object.keys(typen).some(function (k) { return typen[k]; })) {
+        melde('Mindestens ein Übungstyp muss aktiv bleiben.', 'fehler'); zeichnen(); return;
+      }
+      var daten = {
+        aktiveListe: el('e_liste').value || null,
+        wiederholungAnteil: parseFloat(el('e_wdh').value),
+        stufe: el('e_stufe').value,
+        typen: typen,
+        dailyGoalXp: Math.max(20, +el('e_tagesziel').value || 100),
+        kinder: Math.max(1, +el('e_kinder').value || 22),
+        wochenzielProKind: Math.max(10, +el('e_proKind').value || 150)
+      };
+      this.disabled = true; this.textContent = 'Wird gespeichert …';
+      db.collection('einstellungen').doc('klasse').set(daten, { merge: true })
+        .then(function () { melde('Einstellungen gespeichert.'); laden(); })
+        .catch(function (e) { melde('Speichern fehlgeschlagen: ' + esc(e.message), 'fehler'); zeichnen(); });
+    };
+  }
+
+  // ==========================================================
+  //  Reiter 4: Kinder
+  // ==========================================================
+  function tabKinder() {
+    var zeilen = kinder.map(function (k) {
+      return '<tr><td><b>' + esc(k.vorname) + '</b></td><td class="code">' + esc(fmtCode(k.id)) + '</td>' +
+        '<td>' + (staende[k.id] ? 'hat geübt' : 'noch nie angemeldet') + '</td>' +
+        '<td><button class="btn ghost mini danger" data-kindweg="' + esc(k.id) + '">Sperren</button></td></tr>';
+    }).join('');
+
+    return '<h2 class="sec">Freigeschaltete Kinder</h2><section class="card"><div class="tabwrap">' +
+      '<table class="tabelle"><thead><tr><th>Vorname</th><th>Code</th><th>Status</th><th></th></tr></thead><tbody>' +
+      (zeilen || '<tr><td colspan="4" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
+      '</tbody></table></div></section>' +
+
+      '<h2 class="sec">Kinder freischalten</h2><section class="card">' +
+      '<div class="hinweis">Hier fügst du den Inhalt der Datei <b>kinder.json</b> ein, die zusammen mit dem ' +
+      'Aufkleberbogen erzeugt wurde. Vorhandene Kinder werden nicht doppelt angelegt, ihr Spielstand bleibt erhalten.</div>' +
+      '<textarea id="json" spellcheck="false" placeholder=\'[{"vorname": "Lina", "code": "K7PM4XRT"}]\'></textarea>' +
+      '<div class="knopfreihe"><button class="btn" id="importieren">Kinder freischalten</button></div>' +
+      '<div id="ergebnis"></div></section>';
+  }
+
+  function bindeKinder() {
+    el('importieren').onclick = importiereKinder;
+    document.querySelectorAll('[data-kindweg]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-kindweg');
+        var k = kinder.filter(function (x) { return x.id === id; })[0];
+        if (!confirm('Zugang von ' + k.vorname + ' sperren?\n\nDer Aufkleber funktioniert danach nicht mehr. ' +
+          'Der Spielstand bleibt gespeichert und kommt zurück, wenn du denselben Code erneut freischaltest.')) return;
+        db.collection('kinder').doc(id).delete()
+          .then(function () { melde('Zugang von ' + esc(k.vorname) + ' gesperrt.'); laden(); })
+          .catch(function (e) { alert('Fehler: ' + e.message); });
+      };
+    });
+  }
+
+  function importiereKinder() {
+    var erg = el('ergebnis'), txt = el('json').value.trim(), liste;
     try {
       liste = JSON.parse(txt);
       if (!Array.isArray(liste)) throw new Error('Es wird eine Liste erwartet.');
     } catch (e) {
-      el.innerHTML = '<div class="melden fehler">Die Datei konnte nicht gelesen werden: ' + esc(e.message) + '</div>';
+      erg.innerHTML = '<div class="melden fehler">Die Datei konnte nicht gelesen werden: ' + esc(e.message) + '</div>';
       return;
     }
 
@@ -200,23 +672,18 @@
     });
 
     if (schlecht.length) {
-      el.innerHTML = '<div class="melden fehler">Fehlerhafte Einträge an Position ' + schlecht.join(', ') +
+      erg.innerHTML = '<div class="melden fehler">Fehlerhafte Einträge an Position ' + schlecht.join(', ') +
         '. Es wurde nichts gespeichert.</div>';
       return;
     }
 
-    el.innerHTML = '<div class="melden">Wird gespeichert …</div>';
+    erg.innerHTML = '<div class="melden">Wird gespeichert …</div>';
     var batch = db.batch();
     gut.forEach(function (k) {
-      batch.set(db.collection('kinder').doc(k.id),
-        { vorname: k.vorname, angelegt: Date.now() }, { merge: true });
+      batch.set(db.collection('kinder').doc(k.id), { vorname: k.vorname, angelegt: Date.now() }, { merge: true });
     });
-    batch.commit().then(function () {
-      el.innerHTML = '<div class="melden ok">' + gut.length + ' Kinder freigeschaltet.</div>';
-      setTimeout(laden, 900);
-    }).catch(function (e) {
-      el.innerHTML = '<div class="melden fehler">Speichern fehlgeschlagen: ' + esc(e.message) + '</div>';
-    });
+    batch.commit().then(function () { melde(gut.length + ' Kinder freigeschaltet.'); laden(); })
+      .catch(function (e) { erg.innerHTML = '<div class="melden fehler">Speichern fehlgeschlagen: ' + esc(e.message) + '</div>'; });
   }
 })();
 </script>

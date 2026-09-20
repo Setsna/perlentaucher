@@ -25,6 +25,20 @@ WA.config = {
     perfectLessonBonus: 10     // Zusatzbonus für einen Tauchgang ohne Fehler
   },
 
+  // --- Schwierigkeitsstufen ------------------------------------
+  // Werden im Lehrerbereich gewählt, für die Klasse oder je Kind.
+  stufen: {
+    leicht: { luftblasen: 7, aufgaben: 6,  hinweise: true  },
+    mittel: { luftblasen: 5, aufgaben: 8,  hinweise: true  },
+    schwer: { luftblasen: 3, aufgaben: 10, hinweise: false }
+  },
+  stufe: 'mittel',
+
+  // --- Wortlisten ----------------------------------------------
+  aktiveListe: null,           // null = alle Wörter üben
+  wiederholungAnteil: 0.25,    // Anteil der Aufgaben aus früheren Listen
+  hinweise: true,              // Bedeutung als Tipp einblenden
+
   lessonLength: 8,             // Aufgaben pro Tauchgang
   dailyGoalXp: 100,            // Tagesziel in Perlen
   masteryTarget: 2,            // So oft richtig = Wort gilt im Bereich als "gelernt"
@@ -73,4 +87,47 @@ WA.config = {
     gemischt:     { title: 'Tiefsee-Mix',       sub: 'Gemischte Wiederholung', icon: 'anglerfisch', color: '#AC3670', enabled: true,
                     types: ['buchstaben', 'luecke', 'fehler', 'artikel', 'silben_zaehlen', 'silben_ordnen', 'trennen', 'bild', 'bedeutung', 'satz'] }
   }
+};
+
+/* ==========================================================
+   Einstellungen aus der Datenbank übernehmen.
+   Reihenfolge im Betrieb: erst die Klasse, dann das einzelne Kind.
+   ========================================================== */
+WA.applySettings = function (e) {
+  var C = WA.config;
+  if (!e) return;
+
+  if (e.stufe && C.stufen[e.stufe]) {
+    var st = C.stufen[e.stufe];
+    C.stufe = e.stufe;
+    C.hearts.max = st.luftblasen;
+    C.lessonLength = st.aufgaben;
+    C.hinweise = st.hinweise;
+  }
+  if (e.typen) {
+    Object.keys(e.typen).forEach(function (k) {
+      if (C.types[k]) C.types[k].enabled = !!e.typen[k];
+    });
+  }
+  if (e.aktiveListe !== undefined) C.aktiveListe = e.aktiveListe || null;
+  if (typeof e.wiederholungAnteil === 'number') C.wiederholungAnteil = e.wiederholungAnteil;
+  if (typeof e.dailyGoalXp === 'number') C.dailyGoalXp = e.dailyGoalXp;
+  if (typeof e.kinder === 'number') C.klasse.kinder = e.kinder;
+  if (typeof e.wochenzielProKind === 'number') C.klasse.wochenzielProKind = e.wochenzielProKind;
+};
+
+/* Ein Wort aus einem Datenbankeintrag bauen */
+WA.wortAusDoc = function (id, d) {
+  return {
+    id: id,
+    wort: d.wort,
+    artikel: d.artikel || null,
+    silben: String(d.silben || d.wort).split('-'),
+    wortart: d.wortart || '',
+    gruppe: d.gruppe || '',
+    bild: d.bild || null,
+    bedeutung: d.bedeutung || null,
+    satz: d.satz || '',
+    liste: d.liste || ''
+  };
 };

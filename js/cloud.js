@@ -84,16 +84,26 @@ WA.firebaseConfig = {
     }
 
     var code = codeAusAdresse();
+    var inArbeit = false;
 
+    // Firebase meldet den Anmeldezustand mehrfach. Wir arbeiten ihn
+    // genau einmal ab und rufen danach immer die Oberfläche auf.
     auth.onAuthStateChanged(function (user) {
+      if (bereit) { onReady(); return; }
+      if (inArbeit) return;
+      inArbeit = true;
+
+      var p;
       if (user && user.email && user.email.indexOf('@') > 0) {
-        var c = user.email.split('@')[0].toUpperCase();
-        nachAnmeldung(c).then(onReady, function (f) { fehlerMelden(f); onReady(); });
+        p = nachAnmeldung(user.email.split('@')[0].toUpperCase());
       } else if (code) {
-        anmelden(code).then(function () { adresseSaeubern(); }, function (f) { fehlerMelden(f); onReady(); });
+        p = anmelden(code).then(adresseSaeubern);
       } else {
-        onReady();
+        p = Promise.resolve();
       }
+
+      p.then(function () { inArbeit = false; onReady(); },
+             function (f) { inArbeit = false; fehlerMelden(f); onReady(); });
     });
   }
 
@@ -130,7 +140,41 @@ WA.firebaseConfig = {
       });
   }
 
-  // Nach erfolgreicher Anmeldung: Kind prüfen und Spielstand laden
+  // Lernwörter und Einstellungen aus der Datenbank holen.
+  // Schlägt das fehl, bleiben die mitgelieferten Werte aus js/words.js
+  // und js/config.js in Kraft.
+  function stammdatenLaden(kindDaten) {
+    return Promise.all([
+      db.collection('lernwoerter').get().catch(function () { return null; }),
+      db.collection('einstellungen').doc('klasse').get().catch(function () { return null; })
+    ]).then(function (r) {
+      var woerter = r[0], einst = r[1];
+
+      if (woerter && woerter.size) {
+        var liste = [];
+        woerter.forEach(function (d) {
+          var w = d.data();
+          if (w && w.wort) liste.push(WA.wortAusDoc(d.id, w));
+        });
+        if (liste.length) {
+          liste.sort(function (a, b) { return a.wort.localeCompare(b.wort, 'de'); });
+          WA.words = liste;
+        }
+      }
+
+      // Erst die Einstellungen der Klasse, dann die des Kindes.
+      if (einst && einst.exists) WA.applySettings(einst.data());
+      if (kindDaten) {
+        WA.applySettings({
+          stufe: kindDaten.stufe || undefined,
+          aktiveListe: kindDaten.liste !== undefined && kindDaten.liste !== null
+            ? kindDaten.liste : undefined
+        });
+      }
+    });
+  }
+
+  // Nach erfolgreicher Anmeldung: Kind prüfen, Stammdaten und Spielstand laden
   function nachAnmeldung(code) {
     var id = code.toLowerCase();
     return db.collection('kinder').doc(id).get()
@@ -140,10 +184,12 @@ WA.firebaseConfig = {
             throw 'Dieser Code ist noch nicht freigeschaltet. Bitte sag deiner Lehrkraft Bescheid.';
           });
         }
-        kind = { code: code, vorname: snap.data().vorname || 'Taucher' };
+        var d = snap.data();
+        kind = { code: code, vorname: d.vorname || 'Taucher' };
         WA.store.useProfile(id);
-        return db.collection('fortschritt').doc(id).get();
+        return stammdatenLaden(d);
       })
+      .then(function () { return db.collection('fortschritt').doc(kind.code.toLowerCase()).get(); })
       .then(function (snap) {
         var lokal = WA.store.snapshot();
         if (snap.exists) {

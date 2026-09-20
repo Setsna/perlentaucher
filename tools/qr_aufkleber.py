@@ -52,12 +52,20 @@ def qr_matrix(text, level=cv2.QRCodeEncoder_CORRECT_LEVEL_Q):
 
 
 def qr_pruefen(matrix, text):
-    """Zeichnet die Matrix gross und liest sie wieder ein."""
+    """Zeichnet die Matrix gross und liest sie wieder ein.
+
+    Der Leser von OpenCV ist bei kleiner Aufloesung unzuverlaessig, deshalb
+    wird in mehreren Groessen geprueft. Besteht eine davon, ist der Code gut.
+    """
     img = np.where(matrix, 0, 255).astype(np.uint8)
-    big = cv2.resize(img, (img.shape[1] * 8, img.shape[0] * 8), interpolation=cv2.INTER_NEAREST)
-    big = cv2.copyMakeBorder(big, 48, 48, 48, 48, cv2.BORDER_CONSTANT, value=255)
-    gelesen, _, _ = cv2.QRCodeDetector().detectAndDecode(big)
-    return gelesen == text
+    for scale, rand in ((10, 80), (14, 112), (8, 64)):
+        gross = cv2.resize(img, (img.shape[1] * scale, img.shape[0] * scale),
+                           interpolation=cv2.INTER_NEAREST)
+        gross = cv2.copyMakeBorder(gross, rand, rand, rand, rand, cv2.BORDER_CONSTANT, value=255)
+        gelesen, _, _ = cv2.QRCodeDetector().detectAndDecode(gross)
+        if gelesen == text:
+            return True
+    return False
 
 
 def zeichne_qr(c, matrix, x, y, groesse):
