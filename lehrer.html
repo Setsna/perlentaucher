@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=3">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -72,11 +72,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=2"></script>
-<script src="js/words.js?v=2"></script>
-<script src="js/mascot.js?v=2"></script>
-<script src="js/icons.js?v=2"></script>
-<script src="js/cloud.js?v=2"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/words.js?v=3"></script>
+<script src="js/mascot.js?v=3"></script>
+<script src="js/icons.js?v=3"></script>
+<script src="js/cloud.js?v=3"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -637,12 +637,14 @@
   function tabKinder() {
     var zeilen = kinder.map(function (k) {
       return '<tr><td><b>' + esc(k.vorname) + '</b></td><td class="code">' + esc(fmtCode(k.id)) + '</td>' +
-        '<td>' + (staende[k.id] ? 'hat geübt' : 'noch nie angemeldet') + '</td>' +
-        '<td><button class="btn ghost mini danger" data-kindweg="' + esc(k.id) + '">Sperren</button></td></tr>';
+        '<td>' + (staende[k.id] ? (staende[k.id].xp || 0) + ' Perlen' : 'noch nie angemeldet') + '</td>' +
+        '<td style="white-space:nowrap">' +
+        (staende[k.id] ? '<button class="btn ghost mini" data-reset="' + esc(k.id) + '">Zurücksetzen</button> ' : '') +
+        '<button class="btn ghost mini danger" data-kindweg="' + esc(k.id) + '">Sperren</button></td></tr>';
     }).join('');
 
     return '<h2 class="sec">Freigeschaltete Kinder</h2><section class="card"><div class="tabwrap">' +
-      '<table class="tabelle"><thead><tr><th>Vorname</th><th>Code</th><th>Status</th><th></th></tr></thead><tbody>' +
+      '<table class="tabelle"><thead><tr><th>Vorname</th><th>Code</th><th>Stand</th><th></th></tr></thead><tbody>' +
       (zeilen || '<tr><td colspan="4" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
       '</tbody></table></div></section>' +
 
@@ -651,11 +653,14 @@
       'Aufkleberbogen erzeugt wurde. Vorhandene Kinder werden nicht doppelt angelegt, ihr Spielstand bleibt erhalten.</div>' +
       '<textarea id="json" spellcheck="false" placeholder=\'[{"vorname": "Lina", "code": "K7PM4XRT"}]\'></textarea>' +
       '<div class="knopfreihe"><button class="btn" id="importieren">Kinder freischalten</button></div>' +
-      '<div id="ergebnis"></div></section>';
+      '<div id="ergebnis"></div></section><div id="resetfeld"></div>';
   }
 
   function bindeKinder() {
     el('importieren').onclick = importiereKinder;
+    document.querySelectorAll('[data-reset]').forEach(function (b) {
+      b.onclick = function () { resetFragen(b.getAttribute('data-reset')); };
+    });
     document.querySelectorAll('[data-kindweg]').forEach(function (b) {
       b.onclick = function () {
         var id = b.getAttribute('data-kindweg');
@@ -667,6 +672,77 @@
           .catch(function (e) { alert('Fehler: ' + e.message); });
       };
     });
+  }
+
+  // ---------- Fortschritt zurücksetzen ----------
+  // Es wird nicht gelöscht, sondern ein leerer Stand mit aktuellem
+  // Zeitstempel geschrieben. Sonst würde das iPad des Kindes seinen
+  // zwischengespeicherten Stand beim nächsten Start zurückschreiben.
+  function wochenBeitrag(f) {
+    if (!f || !f.days) return 0;
+    var now = new Date(), dow = (now.getDay() + 6) % 7, summe = 0;
+    for (var i = 0; i <= dow; i++) {
+      var d = new Date(); d.setDate(d.getDate() - i);
+      var k = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+      summe += f.days[k] || 0;
+    }
+    return summe;
+  }
+
+  function resetFragen(id) {
+    var k = kinder.filter(function (x) { return x.id === id; })[0];
+    var f = staende[id] || {};
+    var woerter = f.words ? Object.keys(f.words).length : 0;
+    var abz = f.badges ? Object.keys(f.badges).length : 0;
+    var feld = el('resetfeld');
+    feld.innerHTML = '<h2 class="sec">' + esc(k.vorname) + ' zurücksetzen</h2><section class="card">' +
+      '<div class="hinweis">Aktueller Stand: <b>' + (f.xp || 0) + ' Perlen</b>, ' +
+      (f.lessons || 0) + ' Tauchgänge, ' + woerter + ' geübte Wörter, ' + abz + ' Abzeichen.<br>' +
+      'Davon in dieser Woche: <b>' + wochenBeitrag(f) + ' Perlen</b>. Diese werden auch vom Klassenziel abgezogen.</div>' +
+      '<div class="knopfreihe">' +
+      '<button class="btn" data-tun="perlen" data-id="' + esc(id) + '">Nur die Perlen zurücksetzen</button>' +
+      '<button class="btn bad" data-tun="alles" data-id="' + esc(id) + '">Alles zurücksetzen</button>' +
+      '<button class="btn ghost" id="resetab">Abbrechen</button></div>' +
+      '<p class="muted" style="margin-top:12px;font-size:15px">' +
+      '<b>Nur die Perlen:</b> Perlen, Tagesziele und Rekorde gehen auf null. Welche Wörter schon ' +
+      'sitzen und welche Abzeichen verdient sind, bleibt erhalten.<br>' +
+      '<b>Alles:</b> Das Kind fängt bei null an, auch die Wortstatistik und die Abzeichen sind weg.</p>' +
+      '<div id="resetmeldung"></div></section>';
+    feld.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el('resetab').onclick = function () { feld.innerHTML = ''; };
+    feld.querySelectorAll('[data-tun]').forEach(function (b) {
+      b.onclick = function () { zuruecksetzen(b.getAttribute('data-id'), b.getAttribute('data-tun') === 'alles'); };
+    });
+  }
+
+  function zuruecksetzen(id, alles) {
+    var f = staende[id] || {}, woche = wochenBeitrag(f), jetzt = Date.now();
+    var meld = el('resetmeldung');
+    meld.innerHTML = '<div class="melden">Wird zurückgesetzt …</div>';
+
+    var leer = { v: 1, hearts: WA.config.hearts.max, heartsAt: jetzt, xp: 0, xpGemeldet: 0, days: {},
+                 best: { day: 0, lesson: 0 }, words: {}, badges: {}, lessons: 0, worlds: {},
+                 lastDay: null, streakDays: 0, sound: true, updatedAt: jetzt };
+    var neu = alles ? leer : Object.assign({}, f, {
+      xp: 0, xpGemeldet: 0, days: {}, best: { day: 0, lesson: 0 }, updatedAt: jetzt });
+
+    var p = Promise.resolve();
+    if (woche > 0 && klassenPerlen !== null) {
+      p = db.collection('klassenwochen').doc(WA.cloud.wochenSchluessel())
+            .set({ perlen: Math.max(0, klassenPerlen - woche) }, { merge: true });
+    }
+    p.then(function () { return db.collection('fortschritt').doc(id).set(neu); })
+     .then(function () {
+       var k = kinder.filter(function (x) { return x.id === id; })[0];
+       melde(esc(k.vorname) + ' zurückgesetzt' + (woche > 0 ? ', ' + woche + ' Perlen vom Klassenziel abgezogen.' : '.'));
+       el('resetfeld').innerHTML = '';
+       laden();
+     })
+     .catch(function (e) {
+       meld.innerHTML = '<div class="melden fehler">Fehlgeschlagen: ' + esc(e.message) +
+         (e.code === 'permission-denied'
+           ? '<br>Wahrscheinlich sind die Firestore-Regeln noch nicht aktualisiert.' : '') + '</div>';
+     });
   }
 
   function importiereKinder() {
