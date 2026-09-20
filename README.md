@@ -1,6 +1,6 @@
 # Perlentaucher
 
-Lernplattform für die Klasse 3.
+Lernplattform für die Klasse 3 der Deutschen Sektion der Taipei European School.
 Die Kinder üben in kleinen Tauchgängen und sammeln dabei Perlen.
 Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukommen können.
 
@@ -36,6 +36,13 @@ Jedes Wort hat zwei getrennte Silbenfelder:
 Bei den meisten Wörtern sind beide gleich. Sie unterscheiden sich dort,
 wo eine Silbe nur aus einem Vokal besteht: *A-bend* hat zwei Silbenbögen,
 ist aber nach Duden nicht trennbar.
+
+## Nach einer Änderung: Versionsnummer hochzählen
+
+Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=2`.
+**Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
+Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 
 ## Technik
 
