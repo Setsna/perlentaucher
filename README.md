@@ -1,6 +1,6 @@
 # Perlentaucher
 
-Lernplattform für die Klasse 3 der Deutschen Sektion der Taipei European School.
+Lernplattform für die Klasse 3.
 Die Kinder üben in kleinen Tauchgängen und sammeln dabei Perlen.
 Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukommen können.
 
