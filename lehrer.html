@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=9">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -35,6 +35,7 @@
     background-attachment: local, local, scroll, scroll; }
   .num { font-variant-numeric: tabular-nums; text-align: right; }
 
+  input[type=file] { font: inherit; font-size: 16px; padding: 10px 0; max-width: 100%; }
   input[type=text], input[type=number], select, textarea {
     border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; font: inherit;
     font-size: 16px; color: var(--ink); background: #fff; max-width: 100%; }
@@ -85,12 +86,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=8"></script>
-<script src="js/words.js?v=8"></script>
-<script src="js/mascot.js?v=8"></script>
-<script src="js/icons.js?v=8"></script>
-<script src="js/malen.js?v=8"></script>
-<script src="js/cloud.js?v=8"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/words.js?v=9"></script>
+<script src="js/mascot.js?v=9"></script>
+<script src="js/icons.js?v=9"></script>
+<script src="js/malen.js?v=9"></script>
+<script src="js/cloud.js?v=9"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -215,6 +216,7 @@
       : reiter === 'einstellungen' ? tabEinstellungen()
       : reiter === 'kinder' ? tabKinder()
       : reiter === 'bilder' ? tabBilder()
+      : reiter === 'sicherung' ? tabSicherung()
       : tabFortschritt();
 
     var m = meldung ? '<div class="melden ' + meldung.art + '">' + meldung.text + '</div>' : '';
@@ -228,7 +230,7 @@
       '<div class="reiter">' +
       knopf('fortschritt', 'Fortschritt') + knopf('woerter', 'Lernwörter (' + woerter.length + ')') +
       knopf('einstellungen', 'Einstellungen') + knopf('kinder', 'Kinder (' + kinder.length + ')') +
-      knopf('bilder', 'Bilder') +
+      knopf('bilder', 'Bilder') + knopf('sicherung', 'Sicherung') +
       '</div>' + m + inhalt + '</div>';
 
     bindeKopf();
@@ -240,6 +242,7 @@
     if (reiter === 'kinder') bindeKinder();
     if (reiter === 'fortschritt') bindeFortschritt();
     if (reiter === 'bilder') bindeBilder();
+    if (reiter === 'sicherung') bindeSicherung();
   }
 
   function knopf(id, text) {
@@ -758,6 +761,163 @@
             ? ' Wahrscheinlich sind die Firestore-Regeln noch nicht aktualisiert.' : ''), 'fehler');
         zeichnen();
       });
+  }
+
+  // ==========================================================
+  //  Reiter: Sicherung
+  //  Firestore legt im kostenlosen Tarif keine Sicherungen an.
+  //  Hier holst du dir alles als eine Datei und kannst sie
+  //  zurückspielen. Wiederhergestellt wird nur, was in der Datei
+  //  steht – nichts wird dabei gelöscht.
+  // ==========================================================
+  var SAMMLUNGEN = ['kinder', 'lernwoerter', 'einstellungen', 'klassenwochen', 'fortschritt', 'bilder'];
+  var sicherungInhalt = null;      // eingelesene Datei, noch nicht geschrieben
+
+  function tabSicherung() {
+    var stand = sicherungInhalt;
+    var pruefung = '';
+
+    if (stand) {
+      var zeilen = SAMMLUNGEN.map(function (c) {
+        var n = (stand.daten && stand.daten[c] ? Object.keys(stand.daten[c]).length : 0);
+        return '<tr><td>' + c + '</td><td class="num">' + n + '</td></tr>';
+      }).join('');
+      pruefung = '<h2 class="sec">Gelesene Datei</h2><section class="card">' +
+        '<div class="hinweis">Gesichert am <b>' + esc(stand.erstellt || 'unbekannt') + '</b>' +
+        (stand.mitBildern ? ' – mit Bildern.' : ' – ohne Bilder.') +
+        '<br>Beim Zurückspielen werden diese Datensätze überschrieben. Datensätze, die es ' +
+        'nur in der Datenbank gibt, bleiben unberührt. <b>Vorher am besten eine frische ' +
+        'Sicherung herunterladen.</b></div>' +
+        '<div class="tabwrap"><table class="tabelle"><thead><tr><th>Sammlung</th><th>Datensätze</th></tr></thead>' +
+        '<tbody>' + zeilen + '</tbody></table></div>' +
+        '<div class="knopfreihe"><button class="btn danger" id="spieleein">Jetzt zurückspielen</button>' +
+        '<button class="btn ghost" id="verwerfen">Abbrechen</button></div>' +
+        '<div id="einspielmeldung"></div></section>';
+    }
+
+    return '<h2 class="sec">Sicherung</h2>' +
+      '<div class="hinweis">Firebase legt im kostenlosen Tarif <b>keine</b> Sicherungen an. ' +
+      'Wenn hier etwas kaputtgeht, ist es weg. Lade dir deshalb regelmäßig – zum Beispiel ' +
+      'am Ende jeder Woche – eine Sicherung herunter und leg sie zu deinen Unterlagen.</div>' +
+      '<section class="card">' +
+      '<div class="raster">' +
+      '<div><b>Freigeschaltete Kinder:</b> ' + kinder.length + '<br>' +
+      '<b>Lernwörter:</b> ' + woerter.length + '</div>' +
+      '<div class="typen"><label><input type="checkbox" id="mitbildern" checked> ' +
+      'Bilder der Kinder mitsichern</label></div>' +
+      '</div>' +
+      '<div class="knopfreihe"><button class="btn" id="sicherungab">Sicherung herunterladen</button></div>' +
+      '<div id="sicherungmeldung"></div></section>' +
+
+      '<h2 class="sec">Zurückspielen</h2><section class="card">' +
+      '<div class="hinweis">Wähle eine zuvor heruntergeladene Datei. Du siehst erst, was darin ' +
+      'steht, und entscheidest dann.</div>' +
+      '<input type="file" id="sicherungdatei" accept="application/json,.json">' +
+      '</section>' + pruefung;
+  }
+
+  function alleHolen(mitBildern) {
+    var aufgaben = SAMMLUNGEN.filter(function (c) { return c !== 'bilder' || mitBildern; })
+      .map(function (c) {
+        return db.collection(c).get().then(function (snap) {
+          var raus = {};
+          snap.forEach(function (d) { raus[d.id] = d.data(); });
+          return [c, raus];
+        });
+      });
+    return Promise.all(aufgaben).then(function (teile) {
+      var daten = {};
+      teile.forEach(function (t) { daten[t[0]] = t[1]; });
+      return daten;
+    });
+  }
+
+  function sicherungHerunterladen() {
+    var mitBildern = el('mitbildern').checked;
+    var m = el('sicherungmeldung');
+    m.innerHTML = '<div class="melden">Wird zusammengestellt …</div>';
+    alleHolen(mitBildern).then(function (daten) {
+      var jetzt = new Date();
+      var stempel = jetzt.getFullYear() + '-' + ('0' + (jetzt.getMonth() + 1)).slice(-2) +
+                    '-' + ('0' + jetzt.getDate()).slice(-2);
+      var paket = { format: 'perlentaucher-sicherung', version: 1,
+                    erstellt: jetzt.toLocaleString('de-DE'), mitBildern: mitBildern, daten: daten };
+      var text = JSON.stringify(paket);
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      a.download = 'perlentaucher-sicherung-' + stempel + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+      var anzahl = SAMMLUNGEN.reduce(function (s, c) {
+        return s + (daten[c] ? Object.keys(daten[c]).length : 0); }, 0);
+      m.innerHTML = '<div class="melden ok">Sicherung heruntergeladen: ' + anzahl +
+        ' Datensätze, ' + Math.round(text.length / 1024) + ' KB.</div>';
+    }).catch(function (e) {
+      m.innerHTML = '<div class="melden fehler">Fehlgeschlagen: ' + esc(e.message) + '</div>';
+    });
+  }
+
+  function dateiLesen(datei) {
+    var leser = new FileReader();
+    leser.onload = function () {
+      try {
+        var p = JSON.parse(leser.result);
+        if (p.format !== 'perlentaucher-sicherung') throw new Error('Das ist keine Perlentaucher-Sicherung.');
+        sicherungInhalt = p;
+        melde('Datei gelesen. Schau dir unten an, was darin steht.');
+      } catch (e) {
+        sicherungInhalt = null;
+        melde('Datei konnte nicht gelesen werden: ' + esc(e.message), 'fehler');
+      }
+      zeichnen();
+    };
+    leser.readAsText(datei);
+  }
+
+  // Firestore verkraftet 500 Schreibvorgänge je Paket.
+  function inPaketenSchreiben(liste, fertig, m) {
+    if (!liste.length) return Promise.resolve(fertig);
+    var teil = liste.slice(0, 400), rest = liste.slice(400);
+    var paket = db.batch();
+    teil.forEach(function (x) { paket.set(db.collection(x.c).doc(x.id), x.daten); });
+    return paket.commit().then(function () {
+      fertig += teil.length;
+      m.innerHTML = '<div class="melden">' + fertig + ' Datensätze geschrieben …</div>';
+      return inPaketenSchreiben(rest, fertig, m);
+    });
+  }
+
+  function zurueckspielen() {
+    var m = el('einspielmeldung');
+    var alles = [];
+    SAMMLUNGEN.forEach(function (c) {
+      var teil = sicherungInhalt.daten[c] || {};
+      Object.keys(teil).forEach(function (id) { alles.push({ c: c, id: id, daten: teil[id] }); });
+    });
+    if (!alles.length) { m.innerHTML = '<div class="melden fehler">Die Datei enthält keine Datensätze.</div>'; return; }
+    m.innerHTML = '<div class="melden">Wird zurückgespielt …</div>';
+    inPaketenSchreiben(alles, 0, m).then(function (n) {
+      sicherungInhalt = null;
+      melde(n + ' Datensätze zurückgespielt.');
+      bilderVon = {};
+      laden();
+    }).catch(function (e) {
+      m.innerHTML = '<div class="melden fehler">Abgebrochen nach einem Fehler: ' + esc(e.message) +
+        '<br>Es kann sein, dass ein Teil schon geschrieben wurde. Spiel die Datei noch einmal ein.</div>';
+    });
+  }
+
+  function bindeSicherung() {
+    el('sicherungab').onclick = sicherungHerunterladen;
+    el('sicherungdatei').onchange = function () { if (this.files[0]) dateiLesen(this.files[0]); };
+    var w = el('verwerfen');
+    if (w) w.onclick = function () { sicherungInhalt = null; zeichnen(); };
+    var s = el('spieleein');
+    if (s) s.onclick = function () {
+      if (s.getAttribute('data-sicher')) { zurueckspielen(); return; }
+      s.setAttribute('data-sicher', '1');
+      s.textContent = 'Wirklich überschreiben? Noch einmal tippen.';
+    };
   }
 
   function bindeBilder() {
