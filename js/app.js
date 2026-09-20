@@ -131,7 +131,11 @@
       weakHtml +
       '<h2 class="sec">Diese Woche</h2><section class="card week">' + weekHtml + '</section>' +
       '<h2 class="sec">Abzeichen</h2><section class="badges">' + badges + '</section>' +
-      '<footer class="foot">Prototyp – Spielstand wird nur auf diesem Gerät gespeichert.</footer></div>';
+      '<footer class="foot">' +
+      ((WA.cloud && WA.cloud.angemeldet && WA.cloud.angemeldet())
+        ? 'Dein Fortschritt wird gespeichert und ist auf jedem Gerät da.'
+        : 'Übungsmodus – der Spielstand bleibt nur auf diesem Gerät.') +
+      '<br><a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a></footer></div>';
 
     timer = setInterval(function () { var el = $('#heartchip'); if (el) el.innerHTML = heartChip(); }, 1000);
     window.scrollTo(0, 0);
@@ -151,6 +155,7 @@
       'autocomplete="off" spellcheck="false" maxlength="9" placeholder="ABCD-2345" aria-label="Zugangscode">' +
       '<button class="btn big wide" data-action="login">Los geht\'s</button>' +
       '<p class="muted klein">Du bleibst angemeldet. Den Code brauchst du nur einmal.</p>' +
+      '<a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a>' +
       '</div></div>';
     var f = $('#codefeld');
     if (f) {

@@ -95,6 +95,10 @@ h1, h2, h3, p { margin: 0; }
 .badge.got { opacity: 1; border: 2px solid #E9C36A; background: #FFF9EC; }
 .badge span { font-size: 36px; } .badge small { font-size: 13px; color: var(--muted); }
 .badge.big { max-width: 240px; margin: 8px auto; }
+.lehrerlink { display: inline-block; margin-top: 10px; color: var(--muted); font-size: 14px;
+  font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 8px 12px; }
+.lehrerlink:hover { color: var(--brand-d); }
+.foot .lehrerlink { color: var(--sand-ink); opacity: .85; }
 .foot { text-align: center; color: var(--sand-ink); font-size: 14px; margin: 30px -16px 0;
   background: linear-gradient(180deg, var(--sand), var(--sand-d)); border-radius: 28px 28px 0 0; padding: 20px 16px calc(26px + env(safe-area-inset-bottom)); }
 
