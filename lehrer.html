@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="css/style.css?v=10">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -65,6 +65,22 @@
   .namensknopf b { display: block; font-size: 16px; }
   .namensknopf .code { display: block; }
   .namensknopf:hover b { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+  .muehe { list-style: none; margin: 0; padding: 0; counter-reset: m; }
+  .muehe li { counter-increment: m; display: grid; align-items: center; gap: 6px 14px;
+    grid-template-columns: 28px minmax(140px, 1fr) minmax(90px, 2fr) 60px auto; padding: 10px 0; }
+  .muehe li + li { border-top: 1px solid var(--line); }
+  .muehe li::before { content: counter(m); width: 28px; height: 28px; border-radius: 50%;
+    background: var(--sand); color: var(--sand-ink); display: flex; align-items: center;
+    justify-content: center; font-size: 14px; font-weight: 900; }
+  .mwort { font-weight: 800; font-size: 18px; }
+  .mbar { display: block; height: 14px; background: var(--bad-bg); border-radius: 99px; overflow: hidden; }
+  .mbar i { display: block; height: 100%; background: var(--good); border-radius: 99px; }
+  .mzahl { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .chips2 { display: flex; flex-wrap: wrap; gap: 8px; }
+  @media (max-width: 720px) {
+    .muehe li { grid-template-columns: 28px 1fr; }
+    .muehe .mbar, .muehe .mzahl { grid-column: 2; }
+  }
   .malname { font-size: 19px; margin: 18px 0 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .bildgalerie { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-bottom: 8px; }
   .bildkarte { background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 10px; margin: 0;
@@ -86,12 +102,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=9"></script>
-<script src="js/words.js?v=9"></script>
-<script src="js/mascot.js?v=9"></script>
-<script src="js/icons.js?v=9"></script>
-<script src="js/malen.js?v=9"></script>
-<script src="js/cloud.js?v=9"></script>
+<script src="js/config.js?v=10"></script>
+<script src="js/words.js?v=10"></script>
+<script src="js/mascot.js?v=10"></script>
+<script src="js/icons.js?v=10"></script>
+<script src="js/malen.js?v=10"></script>
+<script src="js/cloud.js?v=10"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -215,6 +231,7 @@
     var inhalt = reiter === 'woerter' ? tabWoerter()
       : reiter === 'einstellungen' ? tabEinstellungen()
       : reiter === 'kinder' ? tabKinder()
+      : reiter === 'auswertung' ? tabAuswertung()
       : reiter === 'bilder' ? tabBilder()
       : reiter === 'sicherung' ? tabSicherung()
       : tabFortschritt();
@@ -228,7 +245,7 @@
       '<a class="btn ghost mini" href="index.html" style="text-decoration:none">Zur App</a>' +
       '<button class="btn ghost mini" id="abmelden">Abmelden</button></div></div>' +
       '<div class="reiter">' +
-      knopf('fortschritt', 'Fortschritt') + knopf('woerter', 'Lernwörter (' + woerter.length + ')') +
+      knopf('fortschritt', 'Fortschritt') + knopf('auswertung', 'Auswertung') + knopf('woerter', 'Lernwörter (' + woerter.length + ')') +
       knopf('einstellungen', 'Einstellungen') + knopf('kinder', 'Kinder (' + kinder.length + ')') +
       knopf('bilder', 'Bilder') + knopf('sicherung', 'Sicherung') +
       '</div>' + m + inhalt + '</div>';
@@ -241,6 +258,7 @@
     if (reiter === 'einstellungen') bindeEinstellungen();
     if (reiter === 'kinder') bindeKinder();
     if (reiter === 'fortschritt') bindeFortschritt();
+    if (reiter === 'auswertung') bindeAuswertung();
     if (reiter === 'bilder') bindeBilder();
     if (reiter === 'sicherung') bindeSicherung();
   }
@@ -761,6 +779,124 @@
             ? ' Wahrscheinlich sind die Firestore-Regeln noch nicht aktualisiert.' : ''), 'fehler');
         zeichnen();
       });
+  }
+
+  // ==========================================================
+  //  Reiter: Auswertung
+  //  Nicht "wer hat wie viel geübt", sondern "welche Wörter machen
+  //  der Klasse Mühe". Gerechnet wird über alle Kinder zusammen.
+  // ==========================================================
+  var auswListe = '';          // Filter auf eine Wortliste
+
+  function wortZahlen() {
+    var sicherAb = WA.config.masteredAfter || 3;
+    var proWort = {};
+    woerter.forEach(function (w) {
+      if (auswListe && w.liste !== auswListe) return;
+      proWort[w.id] = { wort: w, kinder: 0, ok: 0, wr: 0, sicher: 0, unsicher: 0 };
+    });
+    kinder.forEach(function (k) {
+      var f = staende[k.id];
+      if (!f || !f.words) return;
+      Object.keys(f.words).forEach(function (id) {
+        var z = proWort[id];
+        if (!z) return;
+        var st = f.words[id], ok = st.ok || 0, wr = st.wr || 0;
+        if (ok + wr === 0) return;
+        z.kinder++; z.ok += ok; z.wr += wr;
+        if (ok >= sicherAb) z.sicher++; else z.unsicher++;
+      });
+    });
+    return Object.keys(proWort).map(function (id) {
+      var z = proWort[id];
+      z.antworten = z.ok + z.wr;
+      z.quote = z.antworten ? z.ok / z.antworten : null;
+      return z;
+    });
+  }
+
+  function tabAuswertung() {
+    var alle = wortZahlen();
+    var geuebt = alle.filter(function (z) { return z.antworten > 0; });
+    var offen = alle.filter(function (z) { return z.antworten === 0; });
+    var listen = listenNamen();
+
+    if (!geuebt.length) {
+      return '<h2 class="sec">Auswertung</h2><section class="card"><p class="muted">' +
+        'Noch hat niemand genug geübt, um etwas auswerten zu können.</p></section>';
+    }
+
+    var gesamtOk = geuebt.reduce(function (s, z) { return s + z.ok; }, 0);
+    var gesamtWr = geuebt.reduce(function (s, z) { return s + z.wr; }, 0);
+
+    // Für die Rangliste nur Wörter mit etwas Substanz. Ein Wort, das
+    // ein einziges Kind einmal falsch hatte, sagt nichts über die Klasse.
+    var muehe = geuebt.filter(function (z) { return z.antworten >= 4 && z.kinder >= 2 && z.wr > 0; })
+      .sort(function (a, b) { return (a.quote - b.quote) || (b.wr - a.wr); })
+      .slice(0, 10);
+
+    var rang = muehe.length ? '<ol class="muehe">' + muehe.map(function (z) {
+      return '<li><span class="mwort">' + esc(z.wort.wort) + '</span>' +
+        '<span class="mbar"><i style="width:' + Math.round(z.quote * 100) + '%"></i></span>' +
+        '<span class="mzahl">' + Math.round(z.quote * 100) + ' %</span>' +
+        '<span class="muted">' + z.wr + ' Fehler bei ' + z.kinder + ' Kindern</span></li>';
+    }).join('') + '</ol>'
+      : '<p class="muted">Noch kein Wort, das mehreren Kindern Mühe macht. Das ist ein gutes Zeichen.</p>';
+
+    var zeilen = geuebt.slice().sort(function (a, b) {
+      return (a.quote - b.quote) || (b.wr - a.wr) ||
+             String(a.wort.wort).localeCompare(String(b.wort.wort), 'de');
+    }).map(function (z) {
+      return '<tr><td><b>' + esc(z.wort.wort) + '</b>' +
+        (z.wort.liste ? ' <span class="chip">' + esc(z.wort.liste) + '</span>' : '') + '</td>' +
+        '<td class="num">' + z.kinder + '</td>' +
+        '<td class="num">' + z.antworten + '</td>' +
+        '<td class="num">' + z.wr + '</td>' +
+        '<td class="num">' + Math.round(z.quote * 100) + ' %</td>' +
+        '<td class="num">' + z.sicher + '</td>' +
+        '<td class="num">' + z.unsicher + '</td></tr>';
+    }).join('');
+
+    return '<h2 class="sec">Was der Klasse Mühe macht</h2>' +
+      '<div class="hinweis">Gerechnet über alle Kinder zusammen, ohne Namen. ' +
+      'In der Rangliste stehen nur Wörter, die mindestens zwei Kinder und insgesamt ' +
+      'mindestens viermal bearbeitet haben – ein einzelner Fehltipp soll die Liste nicht verzerren. ' +
+      '<b>Sicher</b> heißt: ' + (WA.config.masteredAfter || 3) + ' mal richtig.</div>' +
+
+      '<section class="stats">' +
+      '<div class="card stat"><h3>Geübte Wörter</h3><div class="zahl">' + geuebt.length +
+      '</div><div class="sub muted">von ' + alle.length + ' in der Liste</div></div>' +
+      '<div class="card stat"><h3>Trefferquote der Klasse</h3><div class="zahl">' +
+      Math.round(gesamtOk / (gesamtOk + gesamtWr) * 100) + ' %</div>' +
+      '<div class="sub muted">' + (gesamtOk + gesamtWr) + ' Antworten</div></div>' +
+      '<div class="card stat"><h3>Noch nicht geübt</h3><div class="zahl">' + offen.length +
+      '</div><div class="sub muted">von keinem Kind angefasst</div></div>' +
+      '</section>' +
+
+      '<div class="knopfreihe"><label class="feld" style="flex-direction:row;align-items:center;gap:10px">' +
+      'Wortliste <select id="auswfilter" class="klein"><option value="">alle</option>' +
+      listen.map(function (l) {
+        return '<option value="' + esc(l.name) + '"' + (auswListe === l.name ? ' selected' : '') + '>' +
+          esc(l.name) + ' (' + l.anzahl + ')</option>';
+      }).join('') + '</select></label></div>' +
+
+      '<h2 class="sec">Die schwersten Wörter' + (muehe.length ? ' (' + muehe.length + ')' : '') +
+      '</h2><section class="card">' + rang + '</section>' +
+
+      (offen.length ? '<h2 class="sec">Noch nicht geübt</h2><section class="card"><div class="chips2">' +
+        offen.slice(0, 60).map(function (z) { return '<span class="chip">' + esc(z.wort.wort) + '</span>'; }).join('') +
+        (offen.length > 60 ? '<span class="muted"> … und ' + (offen.length - 60) + ' weitere</span>' : '') +
+        '</div></section>' : '') +
+
+      '<h2 class="sec">Alle geübten Wörter</h2><section class="card"><div class="tabwrap">' +
+      '<table class="tabelle"><thead><tr><th>Wort</th><th>Kinder</th><th>Antworten</th>' +
+      '<th>Fehler</th><th>richtig</th><th>sicher</th><th>noch nicht</th></tr></thead>' +
+      '<tbody>' + zeilen + '</tbody></table></div></section>';
+  }
+
+  function bindeAuswertung() {
+    var f = el('auswfilter');
+    if (f) f.onchange = function () { auswListe = f.value; zeichnen(); };
   }
 
   // ==========================================================
