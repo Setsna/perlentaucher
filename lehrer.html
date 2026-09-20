@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=5">
+<link rel="stylesheet" href="css/style.css?v=8">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -64,6 +64,15 @@
   .namensknopf b { display: block; font-size: 16px; }
   .namensknopf .code { display: block; }
   .namensknopf:hover b { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+  .malname { font-size: 19px; margin: 18px 0 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .bildgalerie { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-bottom: 8px; }
+  .bildkarte { background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 10px; margin: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bildkarte img { image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); }
+  .bildkarte figcaption { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .bildkarte.fertig { border-color: var(--good); }
+  @media print { .reiter, .lhead .rechts, .hinweis { display: none; } .bildkarte { break-inside: avoid; } }
+
   .merker { padding: 18px 0 8px; }
   .chip { display: inline-block; background: #E4F1F7; color: var(--brand-d); border-radius: 99px;
     padding: 4px 12px; font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -76,11 +85,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=5"></script>
-<script src="js/words.js?v=5"></script>
-<script src="js/mascot.js?v=5"></script>
-<script src="js/icons.js?v=5"></script>
-<script src="js/cloud.js?v=5"></script>
+<script src="js/config.js?v=8"></script>
+<script src="js/words.js?v=8"></script>
+<script src="js/mascot.js?v=8"></script>
+<script src="js/icons.js?v=8"></script>
+<script src="js/malen.js?v=8"></script>
+<script src="js/cloud.js?v=8"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -204,6 +214,7 @@
     var inhalt = reiter === 'woerter' ? tabWoerter()
       : reiter === 'einstellungen' ? tabEinstellungen()
       : reiter === 'kinder' ? tabKinder()
+      : reiter === 'bilder' ? tabBilder()
       : tabFortschritt();
 
     var m = meldung ? '<div class="melden ' + meldung.art + '">' + meldung.text + '</div>' : '';
@@ -217,6 +228,7 @@
       '<div class="reiter">' +
       knopf('fortschritt', 'Fortschritt') + knopf('woerter', 'Lernwörter (' + woerter.length + ')') +
       knopf('einstellungen', 'Einstellungen') + knopf('kinder', 'Kinder (' + kinder.length + ')') +
+      knopf('bilder', 'Bilder') +
       '</div>' + m + inhalt + '</div>';
 
     bindeKopf();
@@ -227,6 +239,7 @@
     if (reiter === 'einstellungen') bindeEinstellungen();
     if (reiter === 'kinder') bindeKinder();
     if (reiter === 'fortschritt') bindeFortschritt();
+    if (reiter === 'bilder') bindeBilder();
   }
 
   function knopf(id, text) {
@@ -675,6 +688,88 @@
       '<div id="ergebnis"></div></section><div id="resetfeld"></div>';
   }
 
+  // ==========================================================
+  //  Reiter: Pixelbilder
+  //  Die Bilder liegen im Fortschritt des Kindes. Sie sind nur
+  //  hier und für das Kind selbst sichtbar, nicht für die Klasse.
+  // ==========================================================
+  // Zeichnen und Speicherformat stecken in js/malen.js,
+  // damit Kinder-App und Lehrerbereich dasselbe benutzen.
+  function bildVorschau(b, px) { return WA.malen.vorschau(b, px); }
+
+  // Die Bilder liegen in einer eigenen Sammlung. Sie werden je Kind
+  // einzeln geholt, sonst würden bei 22 Kindern sehr viele Daten auf
+  // einmal geladen.
+  var bilderVon = {};        // code -> Liste von Bildern
+
+  function tabBilder() {
+    var bloecke = kinder.map(function (k) {
+      var f = staende[k.id];
+      var rest = (f && f.mal && f.mal.rest) || 0;
+      var geladen = bilderVon[k.id];
+      var inhalt;
+
+      if (!geladen) {
+        inhalt = '<button class="btn ghost mini" data-bilder="' + esc(k.id) + '">Bilder anzeigen</button>';
+      } else if (geladen === 'laedt') {
+        inhalt = '<p class="muted">Wird geladen …</p>';
+      } else if (!geladen.length) {
+        inhalt = '<p class="muted">Dieses Kind hat noch nichts gemalt.</p>';
+      } else {
+        inhalt = '<div class="bildgalerie">' + geladen.slice()
+          .sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); })
+          .map(function (b) {
+            var frei = b.art === 'frei';
+            return '<figure class="bildkarte' + (b.fertig ? ' fertig' : '') + '">' +
+              '<img src="' + bildVorschau(b, 120) + '" alt="' + (frei ? 'Zeichnung' : 'Pixelbild') + '" width="120" height="120">' +
+              '<figcaption>' + (frei ? 'gezeichnet' : 'Pixel') + ' · ' + (b.fertig ? 'fertig' : 'in Arbeit') + '</figcaption></figure>';
+          }).join('') + '</div>';
+      }
+
+      return '<h3 class="malname">' + esc(k.vorname) +
+        ' <span class="chip">' + Math.round(rest / 60) + ' Min. Malzeit übrig</span></h3>' + inhalt;
+    }).join('');
+
+    return '<h2 class="sec">Bilder der Kinder</h2>' +
+      '<div class="hinweis">Die Kinder bekommen für jedes erreichte Tagesziel ' +
+      esc(String(WA.config.malen.minutenProZiel)) + ' Minuten Malzeit, höchstens ' +
+      esc(String(WA.config.malen.maxGuthabenMinuten)) + ' Minuten Guthaben. ' +
+      'Die Bilder sehen nur das Kind selbst und du. Zum Ausdrucken erst alle Bilder ' +
+      'anzeigen lassen, dann diese Seite drucken.</div>' +
+      '<div class="knopfreihe" style="margin-bottom:10px"><button class="btn ghost mini" id="allebilder">Alle Bilder anzeigen</button></div>' +
+      (bloecke || '<section class="card"><p class="muted">Noch sind keine Kinder freigeschaltet.</p></section>');
+  }
+
+  function bilderHolen(code) {
+    if (bilderVon[code]) return Promise.resolve();
+    bilderVon[code] = 'laedt';
+    zeichnen();
+    return db.collection('bilder').where('code', '==', code).get()
+      .then(function (snap) {
+        var liste = [];
+        snap.forEach(function (d) { liste.push(d.data()); });
+        bilderVon[code] = liste;
+        zeichnen();
+      })
+      .catch(function (e) {
+        bilderVon[code] = [];
+        melde('Bilder konnten nicht geladen werden: ' + esc(e.message) +
+          (e.code === 'permission-denied'
+            ? ' Wahrscheinlich sind die Firestore-Regeln noch nicht aktualisiert.' : ''), 'fehler');
+        zeichnen();
+      });
+  }
+
+  function bindeBilder() {
+    document.querySelectorAll('[data-bilder]').forEach(function (b) {
+      b.onclick = function () { bilderHolen(b.getAttribute('data-bilder')); };
+    });
+    var alle = el('allebilder');
+    if (alle) alle.onclick = function () {
+      kinder.forEach(function (k) { if (!bilderVon[k.id]) bilderHolen(k.id); });
+    };
+  }
+
   function bindeKinder() {
     el('importieren').onclick = importiereKinder;
     document.querySelectorAll('[data-reset]').forEach(function (b) {
@@ -746,6 +841,9 @@
     var leer = { v: 1, hearts: WA.config.hearts.max, heartsAt: jetzt, xp: 0, xpGemeldet: 0, days: {},
                  best: { day: 0, lesson: 0 }, words: {}, badges: {}, lessons: 0, worlds: {},
                  lastDay: null, streakDays: 0, sound: true, updatedAt: jetzt };
+    // Die gemalten Bilder liegen in einer eigenen Sammlung und
+    // bleiben unberührt. Nur das Zeitguthaben wird auf null gesetzt.
+    if (f.mal) { leer.mal = Object.assign({}, f.mal, { rest: 0, frisch: 0 }); }
     var neu = alles ? leer : Object.assign({}, f, {
       xp: 0, xpGemeldet: 0, days: {}, best: { day: 0, lesson: 0 }, updatedAt: jetzt });
 

@@ -242,6 +242,25 @@ window.WA = window.WA || {};
     ),
 
     // Erreichtes Klassenziel
+    // Pixelraster (Auswahl beim Malen)
+    raster: svg(
+      '<rect x="14" y="14" width="72" height="72" rx="8" fill="#EDF6FA" stroke="#0C3A4A" stroke-width="5"/>' +
+      '<g fill="#F2766B"><rect x="22" y="22" width="18" height="18"/><rect x="60" y="22" width="18" height="18"/>' +
+      '<rect x="41" y="41" width="18" height="18"/></g>' +
+      '<g fill="#4FC3E8"><rect x="22" y="60" width="18" height="18"/><rect x="60" y="60" width="18" height="18"/></g>' +
+      '<g stroke="#A9CEDE" stroke-width="2.5">' +
+      '<path d="M40.5 16 V84"/><path d="M59.5 16 V84"/><path d="M16 40.5 H84"/><path d="M16 59.5 H84"/></g>'
+    ),
+
+    // Pinsel (Auswahl beim Malen)
+    stift: svg(
+      '<path d="M24 76 C 20 62, 30 52, 38 48 L 54 64 C 50 72, 38 82, 24 76 Z" fill="#F2A93B"/>' +
+      '<path d="M24 76 C 26 70, 30 66, 35 64 C 33 70, 30 74, 24 76 Z" fill="#D9861F"/>' +
+      '<rect x="44" y="26" width="24" height="30" rx="5" transform="rotate(45 56 41)" fill="#0C7A8C"/>' +
+      '<rect x="58" y="10" width="22" height="26" rx="6" transform="rotate(45 69 23)" fill="#8B5A2B"/>' +
+      '<path d="M40 50 L 66 76" stroke="#fff" stroke-width="0" fill="none"/>'
+    ),
+
     pokal: svg(
       '<path d="M26 20 H74 V40 C74 56, 64 66, 50 66 C36 66, 26 56, 26 40 Z" fill="#F2C14E"/>' +
       '<path d="M26 26 H16 a12 12 0 0 0 12 20" fill="none" stroke="#F2C14E" stroke-width="7"/>' +

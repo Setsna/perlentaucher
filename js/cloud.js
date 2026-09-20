@@ -30,6 +30,8 @@ WA.firebaseConfig = {
 
   var CODE_RE = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/;
   var app = null, auth = null, db = null;
+  var bilderGeladen = false;    // Bilder des Kindes schon aus der Datenbank geholt?
+  var letzteFassung = {};       // je Bild der zuletzt hochgeladene Stand
   var kind = null;          // { code, vorname }
   var bereit = false;       // angemeldet und Spielstand geladen
   var schreibTimer = null;
@@ -196,7 +198,12 @@ WA.firebaseConfig = {
           var fern = snap.data();
           // Der neuere Stand gewinnt. So geht nichts verloren,
           // wenn zwischendurch ohne Netz geübt wurde.
-          if ((fern.updatedAt || 0) >= (lokal.updatedAt || 0)) WA.store.hydrate(fern);
+          if ((fern.updatedAt || 0) >= (lokal.updatedAt || 0)) {
+            WA.store.hydrate(fern);
+            // Im Spielstand stehen keine Bilder mehr. Die lokal
+            // vorhandenen dürfen dabei nicht verloren gehen.
+            WA.store.malZusammenfuehren((lokal.mal && lokal.mal.bilder) || []);
+          }
         }
         bereit = true;
         WA.store.onChange(spaeterSchreiben);
@@ -208,7 +215,7 @@ WA.firebaseConfig = {
   function abmelden() {
     if (!auth) return Promise.resolve();
     return schreiben().catch(function () {}).then(function () {
-      bereit = false; kind = null;
+      bereit = false; kind = null; bilderGeladen = false; letzteFassung = {};
       return auth.signOut();
     });
   }
@@ -232,7 +239,15 @@ WA.firebaseConfig = {
     var gemeldet = s.xpGemeldet || 0;
     var neu = Math.max(0, Math.min(500, (s.xp || 0) - gemeldet));
 
-    var p = db.collection('fortschritt').doc(id).set(s);
+    // Die gemalten Bilder liegen in einer eigenen Sammlung, ein
+    // Datensatz je Bild. Im Spielstand steht nur noch das Zeitguthaben.
+    // Sonst würde der Spielstand mit jedem Bild größer, und Firestore
+    // lässt je Datensatz höchstens 1 MB zu.
+    var daten = Object.assign({}, s);
+    daten.mal = Object.assign({}, s.mal, { bilder: [] });
+
+    var p = db.collection('fortschritt').doc(id).set(daten);
+    bilderSichern();
     if (neu > 0) {
       p = p.then(function () {
         return db.collection('klassenwochen').doc(wochenSchluessel())
@@ -243,6 +258,59 @@ WA.firebaseConfig = {
       });
     }
     return p.catch(function (e) { fehlerMelden(e); });
+  }
+
+  // ==========================================================
+  //  Gemalte Bilder – eine eigene Sammlung, ein Datensatz je Bild
+  //  Kennung: <code>_<nummer>, zum Beispiel  wd3ftqrg_7
+  // ==========================================================
+  function bildSchluessel(b) { return JSON.stringify(b); }
+
+  // Bilder des Kindes holen. Wird erst aufgerufen, wenn das Kind
+  // den Malbereich öffnet – nicht schon beim Anmelden.
+  function bilderLaden() {
+    if (!bereit || !kind) return Promise.resolve(WA.store.malBilder());
+    if (bilderGeladen) return Promise.resolve(WA.store.malBilder());
+    var code = kind.code.toLowerCase();
+    return db.collection('bilder').where('code', '==', code).get()
+      .then(function (snap) {
+        var liste = [];
+        snap.forEach(function (d) {
+          var x = d.data();
+          liste.push({ id: x.id, art: x.art || 'raster', g: x.g || 16,
+                       px: x.px, striche: x.striche, fertig: !!x.fertig, ts: x.ts || 0 });
+          letzteFassung[x.id] = bildSchluessel({ id: x.id, art: x.art || 'raster', g: x.g || 16,
+                       px: x.px, striche: x.striche, fertig: !!x.fertig, ts: x.ts || 0 });
+        });
+        bilderGeladen = true;
+        WA.store.malZusammenfuehren(liste);
+        bilderSichern();                      // was nur lokal da war, hochladen
+        return WA.store.malBilder();
+      })
+      .catch(function (e) {
+        fehlerMelden(e);
+        bilderGeladen = true;                 // offline weiterarbeiten
+        return WA.store.malBilder();
+      });
+  }
+
+  // Nur die Bilder schreiben, die sich seit dem letzten Mal
+  // geändert haben. Sonst würden bei jedem Strich alle Bilder
+  // neu hochgeladen.
+  function bilderSichern() {
+    if (!bereit || !kind || !bilderGeladen) return Promise.resolve();
+    var code = kind.code.toLowerCase(), aufgaben = [];
+    WA.store.malBilder().forEach(function (b) {
+      var schluessel = bildSchluessel(b);
+      if (letzteFassung[b.id] === schluessel) return;
+      letzteFassung[b.id] = schluessel;
+      var daten = { code: code, id: b.id, art: b.art || 'raster',
+                    fertig: !!b.fertig, ts: b.ts || Date.now() };
+      if (daten.art === 'frei') daten.striche = b.striche || '';
+      else { daten.px = b.px || ''; daten.g = b.g || 16; }
+      aufgaben.push(db.collection('bilder').doc(code + '_' + b.id).set(daten));
+    });
+    return Promise.all(aufgaben).catch(function (e) { fehlerMelden(e); });
   }
 
   // Beim Verlassen der Seite noch schnell sichern
@@ -270,6 +338,8 @@ WA.firebaseConfig = {
     abmelden: abmelden,
     schreiben: schreiben,
     klassenWoche: klassenWoche,
+    bilderLaden: bilderLaden,
+    bilderSichern: bilderSichern,
     wochenSchluessel: wochenSchluessel,
     fehler: function () { return letzterFehler; }
   };

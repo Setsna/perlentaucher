@@ -19,10 +19,26 @@ window.WA = window.WA || {};
   function fresh() {
     return { v: 1, hearts: C.hearts.max, heartsAt: Date.now(), xp: 0, xpGemeldet: 0, days: {},
              best: { day: 0, lesson: 0 }, words: {}, badges: {}, lessons: 0, worlds: {},
-             lastDay: null, streakDays: 0, sound: true, updatedAt: 0 };
+             lastDay: null, streakDays: 0, sound: true, updatedAt: 0,
+             mal: frischMal() };
+  }
+  // Belohnungszeit und Pixelbilder.
+  //   rest    Guthaben in Sekunden
+  //   tage    an welchen Tagen das Tagesziel schon gutgeschrieben wurde
+  //   bilder  [{ id, g, px, fertig, ts }] – px ist eine Zeichenkette,
+  //           ein Zeichen je Feld: Ziffer/Buchstabe = Platz in der
+  //           Farbliste, Punkt = leer
+  function frischMal() {
+    return { rest: 0, tage: {}, bilder: [], aktiv: null, naechsteId: 1, frisch: 0 };
+  }
+  // Ältere Spielstände kennen den Malbereich noch nicht.
+  function sicherMal(x) {
+    x.mal = Object.assign(frischMal(), x.mal || {});
+    if (!Array.isArray(x.mal.bilder)) x.mal.bilder = [];
+    return x;
   }
   function load() {
-    try { var r = localStorage.getItem(KEY); if (r) return Object.assign(fresh(), JSON.parse(r)); } catch (e) {}
+    try { var r = localStorage.getItem(KEY); if (r) return sicherMal(Object.assign(fresh(), JSON.parse(r))); } catch (e) {}
     return fresh();
   }
   var s = load();
@@ -44,7 +60,7 @@ window.WA = window.WA || {};
 
   function hydrate(obj) {
     if (!obj) return;
-    s = Object.assign(fresh(), obj);
+    s = sicherMal(Object.assign(fresh(), obj));
     save(true);
   }
 
@@ -84,8 +100,129 @@ window.WA = window.WA || {};
     var k = dayKey();
     s.days[k] = (s.days[k] || 0) + n;
     if (s.days[k] > s.best.day) s.best.day = s.days[k];
+    pruefeTagesziel();
     save();
   }
+  // ---------- Belohnung: Malzeit und Pixelbilder ----------
+  // Wird nach jeder Perlengutschrift geprüft. Je Tag genau einmal.
+  function pruefeTagesziel() {
+    var M = C.malen;
+    if (!M || !M.enabled) return;
+    var k = dayKey();
+    if (s.mal.tage[k]) return;
+    if ((s.days[k] || 0) < C.dailyGoalXp) return;
+    s.mal.tage[k] = 1;
+    var dazu = M.minutenProZiel * 60;
+    s.mal.rest = Math.min(M.maxGuthabenMinuten * 60, s.mal.rest + dazu);
+    s.mal.frisch = dazu;          // die Oberfläche holt sich das einmal ab
+  }
+  // Gibt die eben gutgeschriebene Zeit zurück und setzt sie zurück,
+  // damit die Meldung nur ein einziges Mal erscheint.
+  function malFrisch() {
+    var n = s.mal.frisch || 0;
+    if (n) { s.mal.frisch = 0; save(true); }
+    return n;
+  }
+  function malRest() { return s.mal.rest || 0; }
+
+  function leeresBild(g) { return new Array(g * g + 1).join('.'); }
+
+  function malBild() {
+    var b = s.mal.bilder.filter(function (x) { return x.id === s.mal.aktiv && !x.fertig; })[0];
+    if (b) return b;
+    b = s.mal.bilder.filter(function (x) { return !x.fertig; })[0];
+    if (b) { s.mal.aktiv = b.id; save(true); return b; }
+    return malNeu('raster');
+  }
+  // art: 'raster' (Pixelraster) oder 'frei' (weißes Blatt)
+  function malNeu(art) {
+    art = art === 'frei' ? 'frei' : 'raster';
+    if (s.mal.bilder.length >= C.malen.maxBilder) return null;
+    if (art === 'frei' && malAnzahl('frei') >= C.malen.maxFrei) return null;
+    var g = C.malen.groesse;
+    var b = art === 'frei'
+      ? { id: s.mal.naechsteId++, art: 'frei', striche: '', fertig: false, ts: Date.now() }
+      : { id: s.mal.naechsteId++, art: 'raster', g: g, px: leeresBild(g), fertig: false, ts: Date.now() };
+    s.mal.bilder.push(b);
+    s.mal.aktiv = b.id;
+    save();
+    return b;
+  }
+  // Bilder aus der Datenbank übernehmen. Das neuere Bild gewinnt,
+  // Bilder, die es nur hier gibt, bleiben erhalten.
+  function malZusammenfuehren(fern) {
+    var nach = {};
+    s.mal.bilder.forEach(function (b) { nach[b.id] = b; });
+    (fern || []).forEach(function (b) {
+      var da = nach[b.id];
+      if (!da || (b.ts || 0) >= (da.ts || 0)) nach[b.id] = b;
+    });
+    s.mal.bilder = Object.keys(nach).map(function (k) { return nach[k]; })
+      .sort(function (a, b) { return a.id - b.id; });
+    var hoechste = s.mal.bilder.reduce(function (m, b) { return Math.max(m, b.id); }, 0);
+    if (s.mal.naechsteId <= hoechste) s.mal.naechsteId = hoechste + 1;
+    save(true);
+    return s.mal.bilder;
+  }
+
+  function malAnzahl(art) {
+    return s.mal.bilder.filter(function (b) { return (b.art || 'raster') === art; }).length;
+  }
+  function malPlatzFrei(art) {
+    if (s.mal.bilder.length >= C.malen.maxBilder) return false;
+    return art === 'frei' ? malAnzahl('frei') < C.malen.maxFrei : true;
+  }
+  function malWaehlen(id) {
+    var b = s.mal.bilder.filter(function (x) { return x.id === id; })[0];
+    if (!b || b.fertig) return null;
+    s.mal.aktiv = id; save(true); return b;
+  }
+  function malFertig(id) {
+    s.mal.bilder.forEach(function (b) { if (b.id === id) { b.fertig = true; b.ts = Date.now(); } });
+    s.mal.aktiv = null;
+    save();
+  }
+  function malLoeschen(id) {
+    s.mal.bilder = s.mal.bilder.filter(function (b) { return b.id !== id; });
+    if (s.mal.aktiv === id) s.mal.aktiv = null;
+    save();
+  }
+  // Ein Feld setzen. still = nur lokal sichern, nicht sofort in die Wolke.
+  function malSetzen(id, i, zeichen) {
+    var b = s.mal.bilder.filter(function (x) { return x.id === id; })[0];
+    if (!b || b.fertig || i < 0 || i >= b.px.length) return false;
+    if (b.px.charAt(i) === zeichen) return false;
+    b.px = b.px.substring(0, i) + zeichen + b.px.substring(i + 1);
+    b.ts = Date.now();
+    save(true);
+    return true;
+  }
+  // Einen fertigen Strich an ein freies Bild anhängen.
+  // Gibt false zurück, wenn das Bild seine Datengrenze erreicht hat.
+  function malStrich(id, text) {
+    var b = s.mal.bilder.filter(function (x) { return x.id === id; })[0];
+    if (!b || b.fertig || b.art !== 'frei') return false;
+    if ((b.striche || '').length + text.length > C.malen.maxStrichdaten) return false;
+    b.striche = (b.striche || '') + text;
+    b.ts = Date.now();
+    save(true);
+    return true;
+  }
+  function malStrichZurueck(id) {
+    var b = s.mal.bilder.filter(function (x) { return x.id === id; })[0];
+    if (!b || b.fertig || b.art !== 'frei' || !b.striche) return false;
+    b.striche = WA.malen.ohneLetztenStrich(b.striche);
+    save(true);
+    return true;
+  }
+
+  // Verbrauchte Sekunden abziehen. Gibt den Rest zurück.
+  function malVerbrauchen(sek) {
+    s.mal.rest = Math.max(0, (s.mal.rest || 0) - Math.max(0, sek));
+    save(true);
+    return s.mal.rest;
+  }
+
   function weekDays() {
     var names = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'], out = [];
     for (var i = 6; i >= 0; i--) {
@@ -200,7 +337,15 @@ window.WA = window.WA || {};
     worldProgress: worldProgress, finishLesson: finishLesson, badges: BADGES,
     useProfile: useProfile, snapshot: snapshot, hydrate: hydrate, onChange: onChange,
     setXpGemeldet: setXpGemeldet,
+    malRest: malRest, malFrisch: malFrisch, malBild: malBild, malNeu: malNeu,
+    malWaehlen: malWaehlen, malFertig: malFertig, malLoeschen: malLoeschen,
+    malSetzen: malSetzen, malVerbrauchen: malVerbrauchen,
+    malStrich: malStrich, malStrichZurueck: malStrichZurueck, malPlatzFrei: malPlatzFrei,
+    malBilder: function () { return s.mal.bilder; },
+    malZusammenfuehren: malZusammenfuehren,
     setSound: function (v) { s.sound = !!v; save(); },
-    reset: function () { s = fresh(); save(); }
+    // Die gemalten Bilder bleiben erhalten. Sie sind eine Belohnung,
+    // kein Lernfortschritt, und sollen nicht mit gelöscht werden.
+    reset: function () { var bilder = s.mal; s = fresh(); s.mal = bilder; s.mal.rest = 0; save(); }
   };
 })();

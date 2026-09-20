@@ -59,6 +59,32 @@ WA.config = {
     ]
   },
 
+  // --- Belohnung: Pixelbild ------------------------------------
+  // Wer das Tagesziel erreicht, bekommt Malzeit gutgeschrieben.
+  // Die Zeit läuft nur, solange das Malfeld wirklich offen ist.
+  malen: {
+    enabled: true,
+    groesse: 16,               // Raster: 16 × 16 Felder
+    minutenProZiel: 5,         // Gutschrift je erreichtem Tagesziel
+    maxGuthabenMinuten: 15,    // Obergrenze, damit sich nichts anstaut
+    maxBilder: 120,            // So viele Bilder darf ein Kind sammeln
+    maxFrei: 100,              // davon höchstens so viele frei gezeichnete
+    // Freies Zeichnen: Strichbreiten im internen Raster (0 … 1023).
+    // Der Radierer ist ein weißer Pinsel in der größten Breite.
+    breiten: [6, 14, 30],
+    maxStrichdaten: 16000,     // Obergrenze je Bild (die Regeln lassen 20000 zu)
+    // 23 Farben. Die Reihenfolge bestimmt die Anzeige, der Platz in
+    // dieser Liste wird im Bild gespeichert – neue Farben also IMMER
+    // hinten anhängen und nie umsortieren, sonst färben sich alte
+    // Bilder um. Höchstens 32 Farben (Speicherformat).
+    farben: ['#FFFFFF', '#000000', '#7A7A7A', '#C9C9C9',
+             '#E23B3B', '#F2766B', '#F2A93B', '#F7E04B',
+             '#5BBF4A', '#1F7A3A', '#4FC3E8', '#1F6FD0',
+             '#1B3A8C', '#9B59D0', '#8B5A2B',
+             '#F7B7D3', '#C21E7E', '#0FB5A8', '#A8E6B0',
+             '#F2C9A0', '#8A4B2A', '#A8C63A', '#5B4A9E']
+  },
+
   // --- Übungstypen (einzeln ein-/ausschaltbar) -------------------
   types: {
     buchstaben:     { difficulty: 3, enabled: true, maxLetters: 13 },
@@ -114,6 +140,9 @@ WA.applySettings = function (e) {
   if (typeof e.dailyGoalXp === 'number') C.dailyGoalXp = e.dailyGoalXp;
   if (typeof e.kinder === 'number') C.klasse.kinder = e.kinder;
   if (typeof e.wochenzielProKind === 'number') C.klasse.wochenzielProKind = e.wochenzielProKind;
+  if (typeof e.malenAn === 'boolean') C.malen.enabled = e.malenAn;
+  if (typeof e.malMinuten === 'number') C.malen.minutenProZiel = e.malMinuten;
+  if (typeof e.malMaxMinuten === 'number') C.malen.maxGuthabenMinuten = e.malMaxMinuten;
 };
 
 /* Ein Wort aus einem Datenbankeintrag bauen */

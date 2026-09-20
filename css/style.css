@@ -41,6 +41,8 @@ h1, h2, h3, p { margin: 0; }
 .btn.big { min-width: 220px; }
 .btn.wide { width: 100%; margin-top: 12px; }
 .btn.danger { color: var(--bad-d); }
+.btn.mini { min-width: 0; min-height: 48px; padding: 10px 18px; font-size: 17px; border-bottom-width: 4px; }
+.btn[disabled] { opacity: .45; }
 .icon-btn { width: 52px; height: 52px; border-radius: 16px; background: #fff; border: 2px solid var(--line); font-size: 24px; }
 
 /* ---------- Startseite ---------- */
@@ -269,3 +271,91 @@ h1, h2, h3, p { margin: 0; }
   .pname { width: auto; flex: 1; } .prow2 .pbar { flex: 0 0 100%; order: 3; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ==========================================================
+   Belohnung: Pixelbild
+   ========================================================== */
+.malcard { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.malcard.offen { border-color: var(--coral); box-shadow: 0 0 0 3px rgba(242,118,107,.18); }
+.malcard .maltext { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 2px; }
+.malcard .maltext b { font-size: 19px; }
+.malcard .maltext small { color: var(--muted); font-size: 15px; font-weight: 600; }
+.malmini { border-radius: 10px; border: 2px solid var(--line); image-rendering: pixelated; background: #EDF6FA; }
+
+.malseite .ptop { align-items: center; }
+.maluhr { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 900; font-size: 24px;
+  color: var(--coral); background: #fff; border: 2px solid var(--line); border-radius: 99px; padding: 6px 16px; }
+.malhinweis { color: var(--muted); font-weight: 600; margin: 0 0 12px; }
+
+.malfeld { display: grid; grid-template-columns: repeat(var(--g), 1fr); gap: 1px;
+  width: min(100%, 520px); aspect-ratio: 1 / 1; margin: 0 auto 16px;
+  background: #CFE4EE; border: 3px solid var(--ink); border-radius: 10px; overflow: hidden;
+  touch-action: none; -webkit-user-select: none; user-select: none; }
+.malfeld i { display: block; background: #FFFFFF; }
+.malfeld i.leer { background: #DCEAF2; }
+
+.palette { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px;
+  width: min(100%, 520px); margin: 0 auto 14px; }
+.farbknopf { aspect-ratio: 1 / 1; min-height: 44px; border-radius: 12px; border: 3px solid var(--line);
+  background: var(--f); padding: 0; }
+.farbknopf.an { border-color: var(--ink); transform: scale(1.08); box-shadow: 0 0 0 3px rgba(12,58,74,.15); }
+.farbknopf.radier { background:
+  linear-gradient(45deg, #fff 45%, var(--coral) 45% 55%, #fff 55%), #fff; }
+
+.malknoepfe { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  width: min(100%, 520px); margin: 0 auto; }
+.malzeit { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-weight: 700; margin-bottom: 16px; }
+.malzeit b { font-size: 22px; color: var(--coral); font-variant-numeric: tabular-nums; }
+
+.malgalerie { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.malkarte { background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 12px;
+  margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.malkarte img { image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); width: 96px; height: 96px; }
+.malkarte figcaption { font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.malkarte.fertig { border-color: var(--good); }
+
+.malbelohnung { background: var(--sand); color: var(--sand-ink); border-radius: 18px;
+  padding: 16px; margin: 16px 0; }
+.malbelohnung h3 { font-size: 20px; margin-bottom: 4px; }
+.malbelohnung p { margin-bottom: 12px; }
+
+@media (max-width: 720px) {
+  .palette { grid-template-columns: repeat(4, 1fr); }
+  .maluhr { font-size: 20px; }
+}
+
+/* Freies Zeichnen auf weißem Blatt */
+.malblatt { display: block; width: min(100%, 520px); aspect-ratio: 1 / 1; margin: 0 auto 12px;
+  background: #fff; border: 3px solid var(--ink); border-radius: 10px;
+  touch-action: none; -webkit-user-select: none; user-select: none; }
+.breiten { display: flex; gap: 10px; justify-content: center; width: min(100%, 520px); margin: 0 auto 12px; }
+.breitknopf { width: 60px; height: 52px; border-radius: 14px; border: 3px solid var(--line); background: #fff;
+  display: flex; align-items: center; justify-content: center; }
+.breitknopf span { display: block; border-radius: 50%; background: var(--ink); }
+.breitknopf.an { border-color: var(--ink); background: #E2F4F7; }
+.neuwahl { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.neuwahl .navbtn.aus { opacity: .4; }
+.malkarte.frei img { background: #fff; }
+@media (max-width: 720px) { .neuwahl { grid-template-columns: 1fr; } }
+.malgalerie { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.malkarte figcaption { display: flex; flex-direction: column; align-items: center; gap: 3px; line-height: 1.2; }
+.malstatus { font-size: 12px; letter-spacing: .04em; color: var(--brand-d); background: #E4F1F7;
+  border-radius: 99px; padding: 2px 10px; }
+.malkarte.fertig .malstatus { background: var(--good-bg); color: var(--good-d); }
+
+/* Malfeld und Blatt so groß wie möglich, aber Palette und Knöpfe
+   sollen auf dem Bildschirm noch sichtbar bleiben. */
+.malfeld, .malblatt { width: min(100%, 520px, 54vh); }
+@media (max-width: 720px) {
+  .palette { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .farbknopf { min-height: 40px; border-width: 2px; }
+}
+
+/* Querformat auf dem iPad: flacher Bildschirm, alles muss sichtbar bleiben */
+@media (orientation: landscape) and (max-height: 850px) {
+  .malfeld, .malblatt { width: min(100%, 520px, 44vh); }
+  .palette { grid-template-columns: repeat(12, 1fr); gap: 7px; }
+  .farbknopf { min-height: 42px; }
+  .malhinweis { margin-bottom: 8px; }
+  .breiten { margin-bottom: 8px; }
+}

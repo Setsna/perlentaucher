@@ -77,6 +77,21 @@
       (h.count < h.max ? '<small>+1 in ' + mmss(h.nextMs) + '</small>' : '');
   }
 
+  // Karte auf der Startseite: Malzeit und Zugang zur Sammlung
+  function malKarteHtml() {
+    if (!C.malen || !C.malen.enabled) return '';
+    var rest = S.malRest(), offen = S.malBilder().filter(function (b) { return !b.fertig; })[0];
+    var bild = offen ? '<img class="malmini" src="' + vorschau(offen, 64) + '" alt="" width="64" height="64">' : '';
+    return '<section class="card malcard' + (rest > 0 ? ' offen' : '') + '">' + bild +
+      '<div class="maltext"><b>' + (rest > 0 ? 'Malzeit: ' + mmss(rest * 1000) : 'Malen und Zeichnen') + '</b>' +
+      '<small>' + (rest > 0
+        ? 'Du darfst malen! Die Zeit läuft nur im Malfeld.'
+        : 'Schaffe dein Tagesziel und du bekommst ' + C.malen.minutenProZiel + ' Minuten Malzeit.') +
+      '</small></div>' +
+      '<button class="btn' + (rest > 0 ? '' : ' ghost') + ' mini" data-action="' + (rest > 0 ? 'malen' : 'malsammlung') + '">' +
+      (rest > 0 ? 'Malen' : 'Meine Bilder') + '</button></section>';
+  }
+
   function renderHome() {
     view = 'home'; L = null; clearInterval(timer); clearConfetti();
     var st = S.state, today = S.todayXp(), goal = C.dailyGoalXp, weak = S.weakWords();
@@ -121,6 +136,7 @@
       '<div class="card stat"><h3>Dein Rekord</h3><div class="big">' + ico('perle') + ' ' + st.best.day + ' <small>Perlen an einem Tag</small></div><div class="sub">Bester Tauchgang: <b>' + st.best.lesson + ' Perlen</b></div></div>' +
       '<div class="card stat"><h3>Serie</h3><div class="big">' + ico('welle') + ' ' + st.streakDays + ' <small>' + (st.streakDays === 1 ? 'Tag' : 'Tage') + ' in Folge</small></div><div class="sub">Tauchgänge gesamt: <b>' + st.lessons + '</b></div></div>' +
       '</section>' +
+      malKarteHtml() +
       '<section class="navrow">' +
       '<button class="navbtn" data-action="progress"><span class="nic">' + ico('fortschritt') + '</span>' +
       '<span class="ntext"><b>Mein Fortschritt</b><small>Wie gut sitzen deine Wörter?</small></span></button>' +
@@ -191,6 +207,309 @@
   function pageTop(title) {
     return '<header class="ptop"><button class="icon-btn" data-action="home" aria-label="Zurück">' + ico('zurueck') + '</button>' +
       '<h1>' + esc(title) + '</h1></header>';
+  }
+
+  // ==========================================================
+  //  BELOHNUNG: PIXELBILD
+  //  Wer das Tagesziel erreicht, bekommt Malzeit. Die Zeit läuft
+  //  nur, solange dieses Fenster offen und sichtbar ist.
+  // ==========================================================
+  var ZEICHEN = WA.malen.A;
+  var M = { bild: null, farbe: 4, breite: 1, radierer: false, malt: false,
+            letzter: -1, schritte: [], tickAb: 0, wolkeAb: 0,
+            strich: null, lx: 0, ly: 0, voll: false };
+
+  function farbe(zeichen) {
+    if (zeichen === '.') return null;
+    return C.malen.farben[ZEICHEN.indexOf(zeichen)] || null;
+  }
+  function vorschau(b, px) { return WA.malen.vorschau(b, px); }
+  function istFrei(b) { return b && b.art === 'frei'; }
+
+  function malZeit() { return mmss(S.malRest() * 1000); }
+
+  // Die Bilder liegen in einer eigenen Sammlung und werden erst
+  // geholt, wenn das Kind sie wirklich anschauen will.
+  var bilderDa = false;
+  function mitBildern(weiter) {
+    if (bilderDa || !(WA.cloud && WA.cloud.angemeldet && WA.cloud.angemeldet())) { bilderDa = true; weiter(); return; }
+    clearInterval(timer); clearConfetti();
+    $app.innerHTML = '<div class="center"><div class="cardbig">' + WA.mascot('think', 120) +
+      '<h1>Deine Bilder werden geholt …</h1></div></div>';
+    WA.cloud.bilderLaden().then(function () { bilderDa = true; weiter(); });
+  }
+
+  function gitterHtml(b) {
+    var out = '', i;
+    for (i = 0; i < b.px.length; i++) {
+      var f = farbe(b.px.charAt(i));
+      out += '<i data-i="' + i + '"' + (f ? ' style="background:' + f + '"' : ' class="leer"') + '></i>';
+    }
+    return '<div class="malfeld" id="malfeld" style="--g:' + b.g + '">' + out + '</div>';
+  }
+
+  function paletteHtml() {
+    return C.malen.farben.map(function (f, i) {
+      return '<button class="farbknopf' + (!M.radierer && M.farbe === i ? ' an' : '') + '" data-action="farbe" data-i="' + i +
+        '" style="--f:' + f + '" aria-label="Farbe ' + (i + 1) + '"></button>';
+    }).join('') +
+    '<button class="farbknopf radier' + (M.radierer ? ' an' : '') + '" data-action="radierer" aria-label="Radierer"></button>';
+  }
+
+  // Palette und Strichbreiten neu zeichnen, ohne die ganze Seite
+  // neu aufzubauen – sonst wäre das Bild auf dem Blatt kurz weg.
+  function neuePalette() {
+    var p = $('.palette'); if (p) p.innerHTML = paletteHtml();
+    var b = $('.breiten'); if (b) b.outerHTML = breitenHtml();
+  }
+
+  // Strichbreiten (nur beim freien Zeichnen)
+  function breitenHtml() {
+    var namen = ['dünn', 'mittel', 'dick'];
+    return '<div class="breiten">' + C.malen.breiten.map(function (w, i) {
+      return '<button class="breitknopf' + (M.breite === i ? ' an' : '') + '" data-action="breite" data-i="' + i +
+        '" aria-label="Strich ' + namen[i] + '"><span style="width:' + (w / 2) + 'px;height:' + (w / 2) + 'px"></span></button>';
+    }).join('') + '</div>';
+  }
+
+  function renderMalen() {
+    view = 'malen'; L = null; clearInterval(timer); clearConfetti();
+    if (S.malRest() <= 0) { renderSammlung(); return; }
+    M.bild = S.malBild();
+    if (!M.bild) { renderSammlung(); return; }
+    M.schritte = [];
+    M.tickAb = Date.now();
+    M.wolkeAb = Date.now();
+    M.voll = false;
+    var frei = istFrei(M.bild);
+
+    $app.innerHTML = '<div class="page malseite">' +
+      '<header class="ptop"><button class="icon-btn" data-action="malende" aria-label="Zurück">' + ico('zurueck') + '</button>' +
+      '<h1>' + (frei ? 'Dein Bild' : 'Dein Pixelbild') + '</h1>' +
+      '<div class="maluhr" id="maluhr">' + malZeit() + '</div></header>' +
+      '<p class="malhinweis" id="malhinweis">' + (frei
+        ? 'Zeichne mit dem Finger auf das weiße Blatt. Die Zeit läuft nur hier.'
+        : 'Tippe auf die Felder oder ziehe mit dem Finger. Die Zeit läuft nur hier.') + '</p>' +
+      (frei ? '<canvas class="malblatt" id="malblatt"></canvas>' : gitterHtml(M.bild)) +
+      (frei ? breitenHtml() : '') +
+      '<div class="palette">' + paletteHtml() + '</div>' +
+      '<div class="malknoepfe">' +
+      '<button class="btn ghost mini" data-action="malzurueck">Rückgängig</button>' +
+      '<button class="btn ghost mini" data-action="malsammlung">Meine Bilder</button>' +
+      '<button class="btn mini" data-action="malfertig">Bild ist fertig</button>' +
+      '</div></div>';
+
+    if (frei) bindeMalblatt(); else bindeMalfeld();
+    timer = setInterval(malTick, 1000);
+    window.scrollTo(0, 0);
+  }
+
+  // Die Uhr rechnet mit echten Zeitabständen. Wird das Gerät
+  // zwischendurch gesperrt, geht trotzdem keine Zeit verloren.
+  function malTick() {
+    if (document.visibilityState === 'hidden') { M.tickAb = Date.now(); return; }
+    var jetzt = Date.now(), weg = Math.round((jetzt - M.tickAb) / 1000);
+    if (weg <= 0) return;
+    M.tickAb = jetzt;
+    var rest = S.malVerbrauchen(weg);
+    var u = $('#maluhr'); if (u) u.textContent = malZeit();
+    if (jetzt - M.wolkeAb > 20000) { M.wolkeAb = jetzt; wolkeSichern(); }
+    if (rest <= 0) { wolkeSichern(); zeitVorbei(); }
+  }
+
+  // Zwischenstand in die Datenbank schreiben. Während des Malens
+  // nur alle 20 Sekunden, sonst wären es viel zu viele Schreibvorgänge.
+  function wolkeSichern() {
+    if (WA.cloud && WA.cloud.angemeldet && WA.cloud.angemeldet()) WA.cloud.schreiben();
+  }
+
+  function zeitVorbei() {
+    clearInterval(timer);
+    showModal('<h2>Die Zeit ist um</h2>' + WA.mascot('happy', 110) +
+      '<p>Dein Bild ist gespeichert. Beim nächsten Tagesziel geht es weiter!</p>' +
+      '<button class="btn big wide" data-action="malsammlung">Meine Bilder</button>' +
+      '<button class="btn ghost big wide" data-action="home">Zur Startseite</button>');
+  }
+
+  function setzeFeld(i) {
+    if (i < 0 || i === M.letzter) return;
+    var z = M.radierer ? '.' : ZEICHEN.charAt(M.farbe);
+    var vorher = M.bild.px.charAt(i);
+    if (!S.malSetzen(M.bild.id, i, z)) { M.letzter = i; return; }
+    M.letzter = i;
+    if (M.schritte.length > 200) M.schritte.shift();
+    M.schritte.push({ i: i, z: vorher });
+    var zelle = document.querySelector('#malfeld i[data-i="' + i + '"]');
+    if (zelle) {
+      var f = farbe(z);
+      zelle.className = f ? '' : 'leer';
+      zelle.style.background = f || '';
+    }
+  }
+
+  function feldUnter(x, y) {
+    var el = document.elementFromPoint(x, y);
+    if (!el || el.tagName !== 'I' || !el.parentNode || el.parentNode.id !== 'malfeld') return -1;
+    return parseInt(el.getAttribute('data-i'), 10);
+  }
+
+  function bindeMalfeld() {
+    var feld = $('#malfeld');
+    if (!feld) return;
+    feld.addEventListener('pointerdown', function (e) {
+      M.malt = true; M.letzter = -1;
+      feld.setPointerCapture(e.pointerId);
+      setzeFeld(feldUnter(e.clientX, e.clientY));
+      e.preventDefault();
+    });
+    feld.addEventListener('pointermove', function (e) {
+      if (!M.malt) return;
+      setzeFeld(feldUnter(e.clientX, e.clientY));
+      e.preventDefault();
+    });
+    function los() { M.malt = false; M.letzter = -1; }
+    feld.addEventListener('pointerup', los);
+    feld.addEventListener('pointercancel', los);
+    feld.addEventListener('pointerleave', los);
+  }
+
+  // ---------- Freies Zeichnen auf weißem Blatt ----------
+  // Die Striche werden in einem eigenen Raster von 0 bis 1023
+  // gespeichert. Dadurch sieht das Bild auf jedem Gerät gleich aus,
+  // egal wie groß das Blatt auf dem Bildschirm gerade ist.
+  var blattCtx = null, blattPx = 0;
+
+  function blattAufbauen() {
+    var cv = $('#malblatt');
+    if (!cv) return null;
+    var breite = Math.round(cv.getBoundingClientRect().width);
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(breite * dpr);
+    cv.height = cv.width;
+    blattPx = cv.width;
+    blattCtx = cv.getContext('2d');
+    WA.malen.freiAuf(blattCtx, M.bild, blattPx);
+    return cv;
+  }
+
+  function blattPunkt(cv, x, y) {
+    var r = cv.getBoundingClientRect();
+    var R = WA.malen.RAUM;
+    return [Math.max(0, Math.min(R - 1, (x - r.left) / r.width * R)),
+            Math.max(0, Math.min(R - 1, (y - r.top) / r.height * R))];
+  }
+
+  function strichMalen(p1, p2, farbeIdx, breiteIdx) {
+    if (!blattCtx) return;
+    var k = blattPx / WA.malen.RAUM;
+    blattCtx.strokeStyle = WA.malen.farbwert(farbeIdx);
+    blattCtx.lineWidth = Math.max(1, C.malen.breiten[breiteIdx] * k);
+    blattCtx.lineCap = 'round'; blattCtx.lineJoin = 'round';
+    blattCtx.beginPath();
+    blattCtx.moveTo(p1[0] * k, p1[1] * k);
+    blattCtx.lineTo(p2[0] * k, p2[1] * k);
+    blattCtx.stroke();
+  }
+
+  function aktFarbe() { return M.radierer ? 0 : M.farbe; }       // Radierer = weißer Pinsel
+  function aktBreite() { return M.radierer ? C.malen.breiten.length - 1 : M.breite; }
+
+  function bindeMalblatt() {
+    var cv = blattAufbauen();
+    if (!cv) return;
+
+    cv.addEventListener('pointerdown', function (e) {
+      if (M.voll) return;
+      M.malt = true;
+      cv.setPointerCapture(e.pointerId);
+      var p = blattPunkt(cv, e.clientX, e.clientY);
+      M.strich = WA.malen.strichAnfang(aktFarbe(), aktBreite()) + WA.malen.punkt(p[0], p[1]);
+      M.lx = p[0]; M.ly = p[1];
+      strichMalen(p, p, aktFarbe(), aktBreite());
+      e.preventDefault();
+    });
+
+    cv.addEventListener('pointermove', function (e) {
+      if (!M.malt) return;
+      var p = blattPunkt(cv, e.clientX, e.clientY);
+      // Nur merken, wenn der Finger ein Stück weitergewandert ist.
+      // Das hält die gespeicherte Datenmenge klein.
+      if (Math.abs(p[0] - M.lx) + Math.abs(p[1] - M.ly) < 5) return;
+      strichMalen([M.lx, M.ly], p, aktFarbe(), aktBreite());
+      M.strich += WA.malen.punkt(p[0], p[1]);
+      M.lx = p[0]; M.ly = p[1];
+      e.preventDefault();
+    });
+
+    function fertig() {
+      if (!M.malt) return;
+      M.malt = false;
+      if (M.strich && !S.malStrich(M.bild.id, M.strich)) blattVoll();
+      M.strich = null;
+    }
+    cv.addEventListener('pointerup', fertig);
+    cv.addEventListener('pointercancel', fertig);
+    cv.addEventListener('pointerleave', fertig);
+  }
+
+  function blattVoll() {
+    M.voll = true;
+    var h = $('#malhinweis');
+    if (h) h.innerHTML = '<b>Dieses Blatt ist voll.</b> Speichere es als fertig und fang ein neues an.';
+  }
+
+  function malZurueck() {
+    if (istFrei(M.bild)) {
+      if (S.malStrichZurueck(M.bild.id)) { M.voll = false; blattAufbauen(); }
+      return;
+    }
+    var sch = M.schritte.pop();
+    if (!sch) return;
+    S.malSetzen(M.bild.id, sch.i, sch.z);
+    var zelle = document.querySelector('#malfeld i[data-i="' + sch.i + '"]');
+    if (zelle) {
+      var f = farbe(sch.z);
+      zelle.className = f ? '' : 'leer';
+      zelle.style.background = f || '';
+    }
+  }
+
+  function renderSammlung() {
+    view = 'sammlung'; L = null; clearInterval(timer); clearConfetti();
+    closeModal();
+    var bilder = S.malBilder().slice().sort(function (a, b) { return b.ts - a.ts; });
+    var rest = S.malRest();
+
+    var karten = bilder.length ? bilder.map(function (b) {
+      return '<figure class="malkarte' + (b.fertig ? ' fertig' : '') + (istFrei(b) ? ' frei' : '') + '">' +
+        '<img src="' + vorschau(b) + '" alt="' + (istFrei(b) ? 'Zeichnung' : 'Pixelbild') + '" width="96" height="96">' +
+        '<figcaption>' + (istFrei(b) ? 'Gezeichnet' : 'Pixel') +
+        '<span class="malstatus">' + (b.fertig ? 'fertig' : 'in Arbeit') + '</span></figcaption>' +
+        (b.fertig ? '' : '<button class="btn mini" data-action="malweiter" data-id="' + b.id + '"' +
+          (rest > 0 ? '' : ' disabled') + '>Weitermalen</button>') +
+        '</figure>';
+    }).join('') : '<p class="muted">Noch kein Bild. Erreiche dein Tagesziel, dann darfst du malen!</p>';
+
+    $app.innerHTML = '<div class="page">' + pageTop('Meine Bilder') +
+      '<section class="card malzeit">' +
+      (rest > 0
+        ? '<b>' + mmss(rest * 1000) + '</b> Malzeit übrig ' +
+          '<button class="btn mini" data-action="malen">Weitermalen</button>'
+        : 'Keine Malzeit übrig. Erreiche dein Tagesziel, dann bekommst du ' +
+          C.malen.minutenProZiel + ' Minuten dazu.') +
+      '</section>' +
+      '<section class="malgalerie">' + karten + '</section>' +
+      (rest > 0 ? '<h2 class="sec">Neu anfangen</h2><section class="neuwahl">' +
+        '<button class="navbtn' + (S.malPlatzFrei('raster') ? '' : ' aus') + '" data-action="malneu" data-art="raster"' +
+        (S.malPlatzFrei('raster') ? '' : ' disabled') + '>' +
+        '<span class="nic">' + ico('raster') + '</span><span class="ntext"><b>Pixelbild</b>' +
+        '<small>16 × 16 Felder anmalen</small></span></button>' +
+        '<button class="navbtn' + (S.malPlatzFrei('frei') ? '' : ' aus') + '" data-action="malneu" data-art="frei"' +
+        (S.malPlatzFrei('frei') ? '' : ' disabled') + '>' +
+        '<span class="nic">' + ico('stift') + '</span><span class="ntext"><b>Frei zeichnen</b>' +
+        '<small>weißes Blatt und Pinsel</small></span></button></section>' : '') +
+      '</div>';
+    window.scrollTo(0, 0);
   }
 
   function renderProgress() {
@@ -458,6 +777,7 @@
       S.addXp(bonus); L.xp += bonus; L.bonus = bonus;
     }
     var fresh = S.finishLesson({ world: L.world, xp: L.xp, perfect: perfect, maxStreak: L.maxStreak, practice: L.practice });
+    var malzeit = S.malFrisch();        // eben freigeschaltete Malzeit
     view = 'result'; clearInterval(timer);
     var total = L.correct + L.wrong, acc = total ? Math.round(L.correct / total * 100) : 0;
     $app.innerHTML = '<div class="center"><div class="cardbig">' + WA.mascot(acc >= 60 ? 'cheer' : 'happy', 150) +
@@ -465,6 +785,9 @@
       '<div class="res"><div><b>+' + L.xp + '</b><small>Perlen</small></div><div><b>' + acc + '%</b><small>richtig</small></div><div><b>' + L.maxStreak + '</b><small>längste Serie</small></div></div>' +
       (L.practice ? '<p class="muted">Im Übungsmodus gibt es keine Perlen.</p>' : '') +
       (fresh.length ? '<div class="newbadges"><h3>Neues Abzeichen!</h3>' + fresh.map(function (b) { return '<div class="badge got big"><span>' + ico(b.icon) + '</span><b>' + esc(b.title) + '</b><small>' + esc(b.desc) + '</small></div>'; }).join('') + '</div>' : '') +
+      (malzeit ? '<div class="malbelohnung"><h3>Tagesziel geschafft!</h3>' +
+        '<p>Du hast <b>' + Math.round(malzeit / 60) + ' Minuten</b> Malzeit bekommen. Du darfst malen oder zeichnen.</p>' +
+        '<button class="btn big wide" data-action="malen">Jetzt malen</button></div>' : '') +
       '<button class="btn big" data-action="again" data-w="' + L.world + '">Nochmal tauchen</button>' +
       '<button class="btn ghost big" data-action="home">Zur Startseite</button></div></div>';
     if (acc >= 60) { confetti(); sfx.win(); }
@@ -493,6 +816,24 @@
       case 'start': startLesson(w); break;
       case 'progress': renderProgress(); break;
       case 'login': login(); break;
+      case 'malen': closeModal(); mitBildern(renderMalen); break;
+      case 'malsammlung': wolkeSichern(); mitBildern(renderSammlung); break;
+      case 'malende': wolkeSichern(); renderHome(); break;
+      case 'malneu': if (S.malNeu(t.getAttribute('data-art'))) renderMalen(); break;
+      case 'breite': M.breite = i; M.radierer = false; neuePalette(); break;
+      case 'malweiter': if (S.malWaehlen(parseInt(t.getAttribute('data-id'), 10))) renderMalen(); break;
+      case 'malzurueck': malZurueck(); break;
+      case 'malfertig':
+        showModal('<h2>Bild fertig?</h2><p>Fertige Bilder kommen in deine Sammlung. ' +
+          'Danach kannst du sie nicht mehr verändern.</p>' +
+          '<button class="btn big wide" data-action="malfertigja">Ja, fertig</button>' +
+          '<button class="btn ghost big wide" data-action="close">Weitermalen</button>');
+        break;
+      case 'malfertigja':
+        S.malFertig(M.bild.id); closeModal(); wolkeSichern(); renderSammlung();
+        break;
+      case 'farbe': M.farbe = i; M.radierer = false; neuePalette(); break;
+      case 'radierer': M.radierer = true; neuePalette(); break;
       case 'logout':
         closeModal();
         WA.cloud.abmelden().then(function () { location.reload(); });
