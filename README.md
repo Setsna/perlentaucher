@@ -1,19 +1,20 @@
-# WortAbenteuer
+# Perlentaucher
 
-Lernwort-Plattform für die Klasse 3 der Deutschen Sektion der Taipei European School.
-Die Kinder üben ihre Merkwörter in kleinen Tauchgängen und sammeln dabei Perlen.
+Lernplattform für die Klasse 3.
+Die Kinder üben in kleinen Tauchgängen und sammeln dabei Perlen.
+Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukommen können.
 
-**Adresse:** https://setsna.github.io/wortabenteuer/
-**Lehrerbereich:** https://setsna.github.io/wortabenteuer/lehrer.html
+**Adresse:** https://setsna.github.io/perlentaucher/
+**Lehrerbereich:** https://setsna.github.io/perlentaucher/lehrer.html
 
 ## Was liegt wo?
 
 | Datei | Inhalt |
 |---|---|
 | `index.html` | Die App für die Kinder |
-| `lehrer.html` | Lehrerbereich: Kinder freischalten, Fortschritt ansehen |
-| `js/config.js` | **Alle Einstellungen**: Luftblasen, Perlen, Tagesziel, Klassenziel, Übungstypen |
-| `js/words.js` | **Die Lernwörter** mit Artikel, Silben, Bedeutung und Beispielsatz |
+| `lehrer.html` | Lehrerbereich: Inhalte pflegen, Kinder freischalten, Fortschritt ansehen |
+| `js/config.js` | **Alle Einstellungen**: Luftblasen, Perlen, Stufen, Tagesziel, Klassenziel, Übungstypen |
+| `js/words.js` | Die mitgelieferten Lernwörter als Rückfallebene, falls die Datenbank nicht erreichbar ist |
 | `js/exercises.js` | Die zehn Aufgabentypen |
 | `js/store.js` | Spielstand |
 | `js/cloud.js` | Anmeldung und Speicherung in Firebase |
@@ -21,23 +22,20 @@ Die Kinder üben ihre Merkwörter in kleinen Tauchgängen und sammeln dabei Perl
 | `js/mascot.js` | Otti, der Oktopus |
 | `css/style.css` | Das gesamte Aussehen |
 | `tools/qr_aufkleber.py` | Erzeugt den Druckbogen mit den QR-Zugangsaufklebern |
+| `tools/silben.py` | Sprechsilben und Worttrennung nach Duden |
 
-## Lernwörter ändern
+## Inhalte pflegen
 
-In `js/words.js` steht eine Zeile je Wort:
+Im laufenden Betrieb über den Lehrerbereich, nicht über diese Dateien.
+Dort legst du Wörter an, ordnest sie Listen zu, wählst die aktive Liste,
+stellst die Schwierigkeit ein und schaltest Übungstypen ab.
 
-```
-['Kompott', 'das', 'Kom-pott', 'Nomen', 'essen', '🍑', 'gekochtes Obst …', 'Zum Nachtisch gibt es Kompott.'],
-```
-
-Die Reihenfolge ist: Wort, Artikel, Silben mit Bindestrichen, Wortart, Gruppe, Bild, Bedeutung, Beispielsatz.
-Bei Verben und Adjektiven steht beim Artikel `null`. Das Wort muss im Beispielsatz genau so vorkommen,
-weil daraus die Lückenaufgabe gebaut wird.
-
-## Spielregeln ändern
-
-Alles in `js/config.js`, zum Beispiel wie schnell sich Luftblasen auffüllen,
-wie viele Perlen eine richtige Antwort gibt oder wie hoch das Wochenziel der Klasse liegt.
+Jedes Wort hat zwei getrennte Silbenfelder:
+**Sprechsilben** (Silbenbögen, für das Zählen und Ordnen) und
+**Worttrennung** nach Duden (für das Trennen am Zeilenende).
+Bei den meisten Wörtern sind beide gleich. Sie unterscheiden sich dort,
+wo eine Silbe nur aus einem Vokal besteht: *A-bend* hat zwei Silbenbögen,
+ist aber nach Duden nicht trennbar.
 
 ## Technik
 

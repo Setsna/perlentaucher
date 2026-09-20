@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WortAbenteuer – Druckbogen mit QR-Zugangsaufklebern
+Perlentaucher – Druckbogen mit QR-Zugangsaufklebern
 
 Erzeugt aus einer Namensliste:
   1. aufkleber.pdf      A4-Schneidebogen, 3 x 8 = 24 Aufkleber je Seite
@@ -96,7 +96,7 @@ def zeichne_aufkleber(c, x, y, br, ho, vorname, code, url, muster):
     tx = qx + qr_gr + 3.5 * mm
     c.setFillColor(TEAL)
     c.setFont("Helvetica-Bold", 6.5)
-    c.drawString(tx, y + ho - pad - 5, "W O R T A B E N T E U E R")
+    c.drawString(tx, y + ho - pad - 5, "P E R L E N T A U C H E R")
     c.setStrokeColor(CORAL); c.setLineWidth(1.2)
     c.line(tx, y + ho - pad - 8.5, tx + 16 * mm, y + ho - pad - 8.5)
 
@@ -137,7 +137,7 @@ def bogen(pfad, kinder, basis_url, muster=False, spalten=3, zeilen=8):
             c.setFillColor(GREY); c.setFont("Helvetica", 7)
             c.drawCentredString(seite_br / 2, 8 * mm,
                 ("MUSTERBOGEN – Beispieldaten, nicht austeilen. " if muster else "") +
-                "WortAbenteuer · Zugangsaufkleber · an den grauen Linien schneiden")
+                "Perlentaucher · Zugangsaufkleber · an den grauen Linien schneiden")
 
         k = i % pro_seite
         sp, ze = k % spalten, k // spalten
@@ -150,10 +150,11 @@ def bogen(pfad, kinder, basis_url, muster=False, spalten=3, zeilen=8):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--url", required=True, help="Basisadresse, z. B. https://benutzer.github.io/wortabenteuer/")
+    ap.add_argument("--url", required=True, help="Basisadresse, z. B. https://benutzer.github.io/perlentaucher/")
     ap.add_argument("--namen", required=True, help="Textdatei, ein Vorname pro Zeile")
     ap.add_argument("--out", default=".", help="Ausgabeordner")
     ap.add_argument("--muster", action="store_true", help="Als Musterbogen kennzeichnen")
+    ap.add_argument("--codes", help="Vorhandene zugangscodes.csv weiterverwenden, statt neue Codes zu würfeln")
     a = ap.parse_args()
 
     basis = a.url if a.url.endswith("/") else a.url + "/"
@@ -161,10 +162,22 @@ def main():
     if not namen:
         sys.exit("Keine Namen gefunden.")
 
-    vergeben, kinder = set(), []
+    alt = {}
+    if a.codes:
+        with open(a.codes, encoding="utf-8-sig") as f:
+            for r in csv.DictReader(f, delimiter=";"):
+                alt[r["Vorname"]] = r["Code"].replace("-", "").upper()
+
+    vergeben, kinder, fehlend = set(alt.values()), [], []
     for n in namen:
-        code = neuer_code(vergeben)
+        code = alt.get(n)
+        if not code:
+            if a.codes:
+                fehlend.append(n)
+            code = neuer_code(vergeben)
         kinder.append({"vorname": n, "code": code, "url": basis + "#c=" + code})
+    if fehlend:
+        print("Neue Codes vergeben für:", ", ".join(fehlend))
 
     # Jeden QR-Code gegenlesen
     fehler = [k["vorname"] for k in kinder if not qr_pruefen(qr_matrix(k["url"]), k["url"])]

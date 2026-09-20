@@ -7,6 +7,8 @@ window.WA = window.WA || {};
 
 (function () {
   'use strict';
+  // Der Speicherschlüssel behält den alten Namen. Würde er sich ändern,
+  // wären lokal gespeicherte Spielstände beim ersten Start verschwunden.
   var C = WA.config, BASIS = 'wortabenteuer.v1', KEY = BASIS;
   var lauscher = [];          // werden nach jedem Speichern benachrichtigt (Cloud)
 

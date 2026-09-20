@@ -1,5 +1,5 @@
 /* ==========================================================
-   WortAbenteuer – Oberfläche (Startseite, Tauchgang, Ergebnis)
+   Perlentaucher – Oberfläche (Startseite, Tauchgang, Ergebnis)
    ========================================================== */
 (function () {
   'use strict';
@@ -111,7 +111,7 @@
 
     $app.innerHTML =
       '<div class="home">' +
-      '<header class="top"><div class="brand">' + WA.mascot('happy', 48) + '<span>Wort<b>Abenteuer</b></span></div>' +
+      '<header class="top"><div class="brand">' + WA.mascot('happy', 48) + '<span>Perlen<b>taucher</b></span></div>' +
       '<div class="tools"><div class="pill heartpill" id="heartchip">' + heartChip() + '</div>' +
       '<div class="pill xppill"><span class="pearl"></span> <b>' + st.xp + '</b> Perlen</div>' +
       '<button class="icon-btn" data-action="settings" aria-label="Einstellungen">' + ico('zahnrad') + '</button></div></header>' +
@@ -144,7 +144,7 @@
     view = 'login'; clearInterval(timer); clearConfetti();
     $app.innerHTML = '<div class="center"><div class="cardbig login">' +
       WA.mascot(meldung ? 'sad' : 'happy', 140) +
-      '<h1>Willkommen bei WortAbenteuer</h1>' +
+      '<h1>Willkommen beim Perlentaucher</h1>' +
       '<p>Scanne den QR-Code in deinem Hausaufgabenheft. Oder tippe den Code darunter ein.</p>' +
       (meldung ? '<div class="loginfehler">' + esc(meldung) + '</div>' : '') +
       '<input id="codefeld" class="codefeld" type="text" inputmode="text" autocapitalize="characters" ' +

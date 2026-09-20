@@ -1,5 +1,5 @@
 /* ==========================================================
-   WortAbenteuer – Einstellungen
+   Perlentaucher – Einstellungen
    Hier kannst du die Spielregeln ändern (später auch im Lehrer-Dashboard).
    Hinweis: Im Code heißen die Luftblasen weiterhin "hearts" und die
    Perlen weiterhin "xp". Nur die Anzeige für die Kinder ist anders.

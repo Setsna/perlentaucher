@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>WortAbenteuer – Lehrerbereich</title>
+<title>Perlentaucher – Lehrerbereich</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
   body { -webkit-user-select: text; user-select: text; }
-  .lehrer { max-width: 1100px; margin: 0 auto; padding-bottom: 60px; }
+  /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
+     braucht mehr Platz, sonst werden die Tabellen abgeschnitten. */
+  #app { max-width: 1280px; }
+  .lehrer { max-width: 1280px; margin: 0 auto; padding-bottom: 60px; }
   .lhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 10px; flex-wrap: wrap; }
   .lhead h1 { font-size: 26px; }
   .lhead .rechts { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -23,7 +26,13 @@
   .tabelle td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
   .tabelle tr:last-child td { border-bottom: 0; }
   .tabelle .code { font-family: ui-monospace, Menlo, monospace; color: var(--muted); font-size: 14px; white-space: nowrap; }
-  .tabwrap { overflow-x: auto; }
+  .tabwrap { overflow-x: auto; -webkit-overflow-scrolling: touch;
+    background:
+      linear-gradient(90deg, #fff 30%, rgba(255,255,255,0)) left / 40px 100% no-repeat,
+      linear-gradient(90deg, rgba(255,255,255,0), #fff 70%) right / 40px 100% no-repeat,
+      radial-gradient(farthest-side at 0 50%, rgba(12,58,74,.14), transparent) left / 14px 100% no-repeat,
+      radial-gradient(farthest-side at 100% 50%, rgba(12,58,74,.14), transparent) right / 14px 100% no-repeat;
+    background-attachment: local, local, scroll, scroll; }
   .num { font-variant-numeric: tabular-nums; text-align: right; }
 
   input[type=text], input[type=number], select, textarea {
@@ -34,7 +43,7 @@
   label.feld { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 800;
     text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
   .raster { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
-  .klein { padding: 8px 10px; font-size: 15px; min-height: 44px; border-radius: 10px; }
+  .klein { padding: 8px 8px; font-size: 15px; min-height: 44px; border-radius: 10px; max-width: 150px; }
 
   .btn.mini { min-height: 44px; padding: 8px 16px; font-size: 16px; border-bottom-width: 4px; min-width: 0; }
   .knopfreihe { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
@@ -233,8 +242,7 @@
         });
       }
       var quote = (ok + wr) ? Math.round(ok / (ok + wr) * 100) + ' %' : '–';
-      return '<tr><td><b>' + esc(k.vorname) + '</b></td>' +
-        '<td class="code">' + esc(fmtCode(k.id)) + '</td>' +
+      return '<tr><td><b>' + esc(k.vorname) + '</b><br><span class="code">' + esc(fmtCode(k.id)) + '</span></td>' +
         '<td class="num">' + (f ? (f.xp || 0) : '–') + '</td>' +
         '<td class="num">' + (f ? (f.lessons || 0) : '–') + '</td>' +
         '<td class="num">' + quote + '</td>' +
@@ -254,9 +262,9 @@
       '<div class="hinweis">Stufe und Liste gelten pro Kind. „wie Klasse“ bedeutet: die Einstellung ' +
       'aus dem Reiter Einstellungen. Änderungen wirken, sobald das Kind die App neu lädt.</div>' +
       '<section class="card"><div class="tabwrap"><table class="tabelle"><thead><tr>' +
-      '<th>Vorname</th><th>Code</th><th>Perlen</th><th>Tauchgänge</th><th>Richtig</th><th>Sicher</th>' +
+      '<th>Kind</th><th>Perlen</th><th>Tauch&shy;gänge</th><th>Richtig</th><th>Sicher</th>' +
       '<th>Stufe</th><th>Liste</th><th>Zuletzt</th></tr></thead><tbody>' +
-      (zeilen || '<tr><td colspan="9" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
+      (zeilen || '<tr><td colspan="8" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
       '</tbody></table></div></section>';
   }
 

@@ -1,5 +1,5 @@
 /* ==========================================================
-   WortAbenteuer – Anmeldung und Speicherung in Firebase
+   Perlentaucher – Anmeldung und Speicherung in Firebase
 
    Ablauf:
    1. Kind scannt den QR-Code im Hausaufgabenheft.
@@ -110,7 +110,7 @@ WA.firebaseConfig = {
   var letzterFehler = null;
   function fehlerMelden(f) {
     letzterFehler = f;
-    console.warn('WortAbenteuer:', f);
+    console.warn('Perlentaucher:', f);
   }
 
   // ==========================================================
