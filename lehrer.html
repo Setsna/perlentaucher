@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WortAbenteuer – Lehrerbereich</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .lehrer { max-width: 920px; margin: 0 auto; padding-bottom: 40px; }
+  .lhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0; flex-wrap: wrap; }
+  .lhead h1 { font-size: 26px; }
+  .tabelle { width: 100%; border-collapse: collapse; font-size: 17px; }
+  .tabelle th { text-align: left; font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); padding: 8px 10px; border-bottom: 2px solid var(--line); }
+  .tabelle td { padding: 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .tabelle tr:last-child td { border-bottom: 0; }
+  .tabelle .code { font-family: ui-monospace, Menlo, monospace; color: var(--muted); font-size: 15px; }
+  .tabwrap { overflow-x: auto; }
+  textarea { width: 100%; min-height: 160px; border: 2px solid var(--line); border-radius: 14px; padding: 12px;
+    font-family: ui-monospace, Menlo, monospace; font-size: 14px; color: var(--ink); background: #fff; resize: vertical; }
+  .hinweis { background: var(--sand); color: var(--sand-ink); border-radius: 14px; padding: 12px 16px;
+    font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+  .melden { border-radius: 14px; padding: 12px 16px; font-weight: 700; margin-top: 12px; }
+  .melden.ok { background: var(--good-bg); color: var(--good-d); }
+  .melden.fehler { background: var(--bad-bg); color: var(--bad-d); }
+  .knopfreihe { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .zahl { font-size: 34px; font-weight: 900; }
+  body { -webkit-user-select: text; user-select: text; }
+</style>
+</head>
+<body>
+<div id="app"><div class="lehrer"><p style="padding:40px 16px">Wird geladen …</p></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/words.js"></script>
+<script src="js/mascot.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/cloud.js"></script>
+<script>
+/* ==========================================================
+   Lehrerbereich – Kinder freischalten und Fortschritt ansehen
+   Anmeldung mit Google. Wer nicht in den Firestore-Regeln als
+   Lehrkraft eingetragen ist, sieht hier nichts.
+   ========================================================== */
+(function () {
+  'use strict';
+  var $app = document.getElementById('app');
+  var auth, db, nutzer = null, kinder = [], staende = {}, klassenPerlen = null;
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function ico(k) { return (WA.icons && WA.icons[k]) || ''; }
+  function fmtCode(c) { return c.slice(0, 4).toUpperCase() + '-' + c.slice(4).toUpperCase(); }
+
+  if (typeof firebase === 'undefined') {
+    $app.innerHTML = '<div class="lehrer"><div class="melden fehler" style="margin:40px 16px">' +
+      'Firebase konnte nicht geladen werden. Bitte Internetverbindung prüfen.</div></div>';
+    return;
+  }
+
+  firebase.initializeApp(WA.firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+
+  auth.onAuthStateChanged(function (u) {
+    nutzer = u;
+    if (!u) { zeigeAnmeldung(); return; }
+    laden();
+  });
+
+  // ---------- Anmeldung ----------
+  function zeigeAnmeldung() {
+    $app.innerHTML = '<div class="center"><div class="cardbig">' + WA.mascot('think', 130) +
+      '<h1>Lehrerbereich</h1>' +
+      '<p>Melde dich mit dem Google-Konto an, das du bei Firebase benutzt.</p>' +
+      '<button class="btn big" id="google">Mit Google anmelden</button>' +
+      '<a class="btn ghost big" href="index.html" style="text-decoration:none">Zurück zur App</a>' +
+      '</div></div>';
+    document.getElementById('google').onclick = function () {
+      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+        .catch(function (e) { alert('Anmeldung nicht möglich: ' + (e && e.message)); });
+    };
+  }
+
+  // ---------- Daten laden ----------
+  function laden() {
+    $app.innerHTML = '<div class="lehrer"><p style="padding:40px 16px">Daten werden geladen …</p></div>';
+    db.collection('kinder').get().then(function (snap) {
+      kinder = [];
+      snap.forEach(function (d) { kinder.push(Object.assign({ id: d.id }, d.data())); });
+      kinder.sort(function (a, b) { return String(a.vorname).localeCompare(String(b.vorname), 'de'); });
+      return Promise.all(kinder.map(function (k) {
+        return db.collection('fortschritt').doc(k.id).get()
+          .then(function (f) { staende[k.id] = f.exists ? f.data() : null; })
+          .catch(function () { staende[k.id] = null; });
+      }));
+    }).then(function () {
+      return db.collection('klassenwochen').doc(WA.cloud.wochenSchluessel()).get()
+        .then(function (d) { klassenPerlen = d.exists ? (d.data().perlen || 0) : 0; })
+        .catch(function () { klassenPerlen = null; });
+    }).then(zeichnen)
+      .catch(function (e) {
+        var keinZugriff = e && (e.code === 'permission-denied');
+        $app.innerHTML = '<div class="lehrer"><div class="lhead"><h1>Lehrerbereich</h1>' +
+          '<button class="btn ghost" id="abmelden">Abmelden</button></div>' +
+          '<div class="melden fehler">' + (keinZugriff
+            ? 'Dieses Konto (' + esc(nutzer.email) + ') ist in den Firestore-Regeln nicht als Lehrkraft eingetragen. ' +
+              'Trag die Adresse in der Funktion istLehrer() ein und veröffentliche die Regeln erneut.'
+            : 'Fehler beim Laden: ' + esc(e && e.message)) + '</div></div>';
+        bindeAbmelden();
+      });
+  }
+
+  function bindeAbmelden() {
+    var b = document.getElementById('abmelden');
+    if (b) b.onclick = function () { auth.signOut(); };
+  }
+
+  // ---------- Anzeige ----------
+  function zeichnen() {
+    var K = WA.config.klasse, ziel = K.kinder * K.wochenzielProKind;
+    var geuebt = kinder.filter(function (k) { return staende[k.id]; }).length;
+
+    var zeilen = kinder.map(function (k) {
+      var f = staende[k.id];
+      var ok = 0, wr = 0, sicher = 0;
+      if (f && f.words) {
+        Object.keys(f.words).forEach(function (id) {
+          var w = f.words[id]; ok += w.ok || 0; wr += w.wr || 0;
+          if ((w.ok || 0) >= (WA.config.masteredAfter || 3)) sicher++;
+        });
+      }
+      var quote = (ok + wr) ? Math.round(ok / (ok + wr) * 100) + ' %' : '–';
+      return '<tr><td><b>' + esc(k.vorname) + '</b></td>' +
+        '<td class="code">' + esc(fmtCode(k.id)) + '</td>' +
+        '<td>' + (f ? (f.xp || 0) : '–') + '</td>' +
+        '<td>' + (f ? (f.lessons || 0) : '–') + '</td>' +
+        '<td>' + quote + '</td>' +
+        '<td>' + (f ? sicher + ' / ' + WA.words.length : '–') + '</td>' +
+        '<td>' + (f && f.updatedAt ? new Date(f.updatedAt).toLocaleDateString('de-DE') : 'noch nie') + '</td></tr>';
+    }).join('');
+
+    $app.innerHTML = '<div class="lehrer">' +
+      '<div class="lhead"><h1>Lehrerbereich</h1>' +
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+      '<span class="muted">' + esc(nutzer.email) + '</span>' +
+      '<a class="btn ghost" href="index.html" style="text-decoration:none">Zur App</a>' +
+      '<button class="btn ghost" id="abmelden">Abmelden</button></div></div>' +
+
+      '<section class="stats">' +
+      '<div class="card stat"><h3>Kinder freigeschaltet</h3><div class="zahl">' + kinder.length + '</div></div>' +
+      '<div class="card stat"><h3>Davon schon geübt</h3><div class="zahl">' + geuebt + '</div></div>' +
+      '<div class="card stat"><h3>Klassenziel diese Woche</h3><div class="zahl">' +
+        (klassenPerlen === null ? '–' : klassenPerlen) + ' <small style="font-size:15px">/ ' + ziel + '</small></div></div>' +
+      '</section>' +
+
+      '<h2 class="sec">Fortschritt der Klasse</h2>' +
+      '<section class="card"><div class="tabwrap"><table class="tabelle"><thead><tr>' +
+      '<th>Vorname</th><th>Code</th><th>Perlen</th><th>Tauchgänge</th><th>Richtig</th><th>Sicher</th><th>Zuletzt</th>' +
+      '</tr></thead><tbody>' +
+      (zeilen || '<tr><td colspan="7" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
+      '</tbody></table></div></section>' +
+
+      '<h2 class="sec">Kinder freischalten</h2>' +
+      '<section class="card">' +
+      '<div class="hinweis">Hier fügst du den Inhalt der Datei <b>kinder.json</b> ein, die zusammen mit dem ' +
+      'Aufkleberbogen erzeugt wurde. Vorhandene Kinder werden nicht doppelt angelegt, ' +
+      'ihr Spielstand bleibt erhalten.</div>' +
+      '<textarea id="json" spellcheck="false" placeholder=\'[{"vorname": "Lina", "code": "K7PM4XRT"}]\'></textarea>' +
+      '<div class="knopfreihe"><button class="btn" id="importieren">Kinder freischalten</button></div>' +
+      '<div id="ergebnis"></div>' +
+      '</section></div>';
+
+    bindeAbmelden();
+    document.getElementById('importieren').onclick = importieren;
+  }
+
+  // ---------- Import ----------
+  function importieren() {
+    var el = document.getElementById('ergebnis');
+    var txt = document.getElementById('json').value.trim();
+    var liste;
+    try {
+      liste = JSON.parse(txt);
+      if (!Array.isArray(liste)) throw new Error('Es wird eine Liste erwartet.');
+    } catch (e) {
+      el.innerHTML = '<div class="melden fehler">Die Datei konnte nicht gelesen werden: ' + esc(e.message) + '</div>';
+      return;
+    }
+
+    var gut = [], schlecht = [];
+    liste.forEach(function (k, i) {
+      var code = String(k && k.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var name = String(k && k.vorname || '').trim();
+      if (!/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/.test(code) || !name) schlecht.push(i + 1);
+      else gut.push({ id: code.toLowerCase(), vorname: name });
+    });
+
+    if (schlecht.length) {
+      el.innerHTML = '<div class="melden fehler">Fehlerhafte Einträge an Position ' + schlecht.join(', ') +
+        '. Es wurde nichts gespeichert.</div>';
+      return;
+    }
+
+    el.innerHTML = '<div class="melden">Wird gespeichert …</div>';
+    var batch = db.batch();
+    gut.forEach(function (k) {
+      batch.set(db.collection('kinder').doc(k.id),
+        { vorname: k.vorname, angelegt: Date.now() }, { merge: true });
+    });
+    batch.commit().then(function () {
+      el.innerHTML = '<div class="melden ok">' + gut.length + ' Kinder freigeschaltet.</div>';
+      setTimeout(laden, 900);
+    }).catch(function (e) {
+      el.innerHTML = '<div class="melden fehler">Speichern fehlgeschlagen: ' + esc(e.message) + '</div>';
+    });
+  }
+})();
+</script>
+</body>
+</html>
