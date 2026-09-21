@@ -121,6 +121,12 @@ Downloads ab; alternativ kopiert „Text kopieren" den Inhalt. Formulare und
 Ausgaben erscheinen unter der Tabelle, und die Seite springt dorthin – bei
 langen Listen sah es sonst aus, als täte der Knopf nichts.
 
+Die **Gruppe** fasst Wörter zu Themenfeldern zusammen (tier, pflanze, zeit,
+person …). Zwei Wörter derselben Gruppe stehen nie gemeinsam in einer
+Aufgabe zur Auswahl – sonst wären bei 🐦 sowohl *Papageientaucher* als auch
+*Wellensittich* plausibel und das Kind könnte nur raten. Das Feld wirkt nur,
+wo es gepflegt ist; leer bleibt es folgenlos.
+
 Das **Bild** ist ein Emoji im Wortfeld. Es erscheint als Anschauung bei
 vielen Übungen und ist bei **Welches Wort passt zum Bild?** die Frage
 selbst. Deshalb gilt: lieber kein Bild als ein mehrdeutiges. Drei Fische
@@ -304,7 +310,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=21`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=22`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

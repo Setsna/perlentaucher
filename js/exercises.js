@@ -149,8 +149,16 @@ window.WA = window.WA || {};
       // sonst gäbe es zwei passende Antworten. Vorrang hat wie überall
       // die eigene Wortliste; reicht sie nicht, kommen andere dazu.
       var passt = function (x) { return emojiSet(x.bild).every(function (e) { return mine.indexOf(e) < 0; }); };
+      // Kein Wort aus derselben Wortgruppe: Bei "🐦" wären sonst
+      // Wellensittich und Papageientaucher gleichermaßen plausibel,
+      // und das Kind kann nur raten. Greift nur, wo Gruppen gepflegt
+      // sind – sonst bliebe gar kein Ablenker übrig.
+      var andereGruppe = function (x) {
+        return !w.gruppe || !x.gruppe || x.gruppe !== w.gruppe;
+      };
+      var beste = others(w, function (x) { return passt(x) && x.liste === w.liste && andereGruppe(x); });
       var eigene = others(w, function (x) { return passt(x) && x.liste === w.liste; });
-      var pool = eigene.length >= 3 ? eigene : others(w, passt);
+      var pool = beste.length >= 3 ? beste : (eigene.length >= 3 ? eigene : others(w, passt));
       var opts = sample(pool, 3).concat([w]).map(function (x) { return { label: x.wort, value: x.id }; });
       return {
         type: 'bild', cat: 'verstehen', kind: 'choice', layout: 'grid2', wordId: w.id,
