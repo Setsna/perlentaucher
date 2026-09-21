@@ -160,6 +160,21 @@ Einstellbar im Lehrerbereich unter **Einstellungen → Bedenkzeit** oder in
 `js/config.js` unter `bedenkzeit`: `vorAntwort` (Voreinstellung 5 Sekunden)
 und `vorWeiter` (3 Sekunden). **0** schaltet die jeweilige Sperre ab.
 
+## Zurücksetzen
+
+Im Lehrerbereich unter **Fortschritt** je Kind. **Nur die Perlen** nullt
+Perlen, Tagesziele und Rekorde; Wortstatistik und Abzeichen bleiben.
+**Alles** setzt zusätzlich Wörter, Abzeichen, Tauchgänge und Reviere auf
+null. In beiden Fällen werden die Perlen dieser Woche vom Klassenziel
+abgezogen, und die gemalten Bilder bleiben erhalten.
+
+Das zurückgesetzte Dokument trägt eine Marke (`resetAt`). Sie ist nötig,
+weil das Gerät des Kindes seinen Stand sonst per Dreiwege-Vergleich
+zurückspielen würde: Abzeichen werden dort vereinigt und Rekorde sind das
+Maximum, also kämen genau diese beiden Werte wieder. Sieht ein Gerät eine
+neue Marke, übernimmt es den zurückgesetzten Stand vollständig, statt ihn
+zu verrechnen – beim nächsten Speichern wie beim nächsten Start der App.
+
 ## Belohnung: Malen und Zeichnen
 
 Wer das Tagesziel erreicht, bekommt Malzeit gutgeschrieben. Das Kind wählt
@@ -326,7 +341,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=24`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=25`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

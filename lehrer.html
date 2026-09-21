@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=24">
+<link rel="stylesheet" href="css/style.css?v=25">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -118,15 +118,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=24"></script>
-<script src="js/words.js?v=24"></script>
-<script src="js/bilder.js?v=24"></script>
-<script src="js/quiz.js?v=24"></script>
-<script src="js/mascot.js?v=24"></script>
-<script src="js/icons.js?v=24"></script>
-<script src="js/malen.js?v=24"></script>
-<script src="js/merge.js?v=24"></script>
-<script src="js/cloud.js?v=24"></script>
+<script src="js/config.js?v=25"></script>
+<script src="js/words.js?v=25"></script>
+<script src="js/bilder.js?v=25"></script>
+<script src="js/quiz.js?v=25"></script>
+<script src="js/mascot.js?v=25"></script>
+<script src="js/icons.js?v=25"></script>
+<script src="js/malen.js?v=25"></script>
+<script src="js/merge.js?v=25"></script>
+<script src="js/cloud.js?v=25"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -1694,14 +1694,18 @@
     var meld = el('resetmeldung');
     meld.innerHTML = '<div class="melden">Wird zurückgesetzt …</div>';
 
+    // resetAt sagt dem Gerät des Kindes: Das hier ist kein normaler
+    // Abgleich, sondern ein gewolltes Zurücksetzen. Ohne diese Marke
+    // holt der Dreiwege-Vergleich Abzeichen und Rekorde zurück.
     var leer = { v: 1, hearts: WA.config.hearts.max, heartsAt: jetzt, xp: 0, xpGemeldet: 0, days: {},
                  best: { day: 0, lesson: 0 }, words: {}, badges: {}, lessons: 0, worlds: {},
-                 lastDay: null, streakDays: 0, sound: true, updatedAt: jetzt };
+                 lastDay: null, streakDays: 0, sound: true, resetAt: jetzt, updatedAt: jetzt };
     // Die gemalten Bilder liegen in einer eigenen Sammlung und
     // bleiben unberührt. Nur das Zeitguthaben wird auf null gesetzt.
     if (f.mal) { leer.mal = Object.assign({}, f.mal, { rest: 0, frisch: 0 }); }
     var neu = alles ? leer : Object.assign({}, f, {
-      xp: 0, xpGemeldet: 0, days: {}, best: { day: 0, lesson: 0 }, updatedAt: jetzt });
+      xp: 0, xpGemeldet: 0, days: {}, best: { day: 0, lesson: 0 },
+      resetAt: jetzt, updatedAt: jetzt });
 
     var p = Promise.resolve();
     if (woche > 0 && klassenPerlen !== null) {

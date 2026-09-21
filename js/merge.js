@@ -108,6 +108,17 @@ window.WA = window.WA || {};
     lokal = lokal || {};
     if (!fern) return Object.assign({}, lokal);
 
+    // Ein Zurücksetzen durch die Lehrkraft ist ein GEWOLLTER Verlust.
+    // Der Dreiwege-Vergleich würde ihn rückgängig machen: Abzeichen
+    // werden vereinigt und Rekorde sind das Maximum, also kämen sie
+    // vom Gerät des Kindes zurück. Trägt der ferne Stand eine neue
+    // Reset-Marke, gilt er deshalb vollständig.
+    if (fern.resetAt && fern.resetAt !== basis.resetAt) {
+      var frisch = Object.assign({}, fern);
+      frisch.updatedAt = Date.now();
+      return frisch;
+    }
+
     var lokalNeuer = zahl(lokal.updatedAt) >= zahl(fern.updatedAt);
     var juenger = lokalNeuer ? lokal : fern;          // für Werte ohne Zählcharakter
 
@@ -140,6 +151,8 @@ window.WA = window.WA || {};
 
       sound: juenger.sound !== false,
       mal: malen(basis.mal, lokal.mal, fern.mal),
+      // Die Marke mitführen, sonst greift derselbe Reset immer wieder.
+      resetAt: fern.resetAt || lokal.resetAt || null,
       updatedAt: Date.now()
     };
   }
