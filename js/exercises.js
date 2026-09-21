@@ -37,13 +37,22 @@ window.WA = window.WA || {};
   // "taugt" grenzt zusätzlich ein – zum Beispiel auf Wörter, die überhaupt
   // eine Bedeutung haben. Ohne diese Schranke landen Wörter ohne Bedeutung
   // als Antwort im Tauchgang und die Kinder lesen dort "null".
+  // Vorrang hat die eigene Wortliste: Sonst steht neben "Schwimmbecken"
+  // die Bedeutung eines Wortes aus einer ganz anderen Einheit, und die
+  // Kinder erkennen die richtige Antwort am Thema statt am Wort. Die
+  // letzten beiden Töpfe greifen nur, wenn die Liste zu klein ist.
   function distractors(w, n, preferArticle, taugt) {
     var ok = function (x) { return !taugt || taugt(x); };
-    var p1 = others(w, function (x) { return ok(x) && x.gruppe !== w.gruppe && x.wortart === w.wortart; });
-    var p2 = others(w, function (x) { return ok(x) && x.wortart === w.wortart; });
-    var p3 = others(w, ok);
+    var liste = function (x) { return x.liste === w.liste; };
+    var pools = [
+      others(w, function (x) { return ok(x) && liste(x) && x.gruppe !== w.gruppe && x.wortart === w.wortart; }),
+      others(w, function (x) { return ok(x) && liste(x) && x.wortart === w.wortart; }),
+      others(w, function (x) { return ok(x) && liste(x); }),
+      others(w, function (x) { return ok(x) && x.wortart === w.wortart; }),
+      others(w, ok)
+    ];
     var out = [];
-    [p1, p2, p3].forEach(function (pool) {
+    pools.forEach(function (pool) {
       var s = shuffle(pool);
       if (preferArticle) s.sort(function (a, b) { return (b.artikel === w.artikel) - (a.artikel === w.artikel); });
       s.forEach(function (x) { if (out.length < n && out.indexOf(x) < 0) out.push(x); });

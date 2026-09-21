@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=18">
+<link rel="stylesheet" href="css/style.css?v=19">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -107,15 +107,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=18"></script>
-<script src="js/words.js?v=18"></script>
-<script src="js/bilder.js?v=18"></script>
-<script src="js/quiz.js?v=18"></script>
-<script src="js/mascot.js?v=18"></script>
-<script src="js/icons.js?v=18"></script>
-<script src="js/malen.js?v=18"></script>
-<script src="js/merge.js?v=18"></script>
-<script src="js/cloud.js?v=18"></script>
+<script src="js/config.js?v=19"></script>
+<script src="js/words.js?v=19"></script>
+<script src="js/bilder.js?v=19"></script>
+<script src="js/quiz.js?v=19"></script>
+<script src="js/mascot.js?v=19"></script>
+<script src="js/icons.js?v=19"></script>
+<script src="js/malen.js?v=19"></script>
+<script src="js/merge.js?v=19"></script>
+<script src="js/cloud.js?v=19"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -151,6 +151,38 @@
     return t[2].replace(/^0/, '') + '.' + t[1].replace(/^0/, '') + '.' + t[0];
   }
   function melde(text, art) { meldung = { text: text, art: art || 'ok' }; }
+
+  /* Formulare und Ausgaben stehen unter der Tabelle. Bei langen Listen
+     liegen sie weit außerhalb des Bildschirms – ohne diesen Sprung sieht
+     es aus, als würde der Knopf nichts tun. */
+  function hinspringen(id) {
+    var e = el(id);
+    if (!e) return;
+    setTimeout(function () {
+      try { e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      catch (x) { e.scrollIntoView(); }
+    }, 30);
+  }
+
+  /* Text als Datei anbieten. Auf dem iPad landet sie in "Dateien". */
+  function alsDateiSichern(name, text) {
+    try {
+      // Das Steuerzeichen am Anfang sorgt dafür, dass Excel die Umlaute
+      // richtig liest.
+      var blob = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function heuteFuerDateiname() {
+    var d = new Date(), z = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
+  }
 
   if (typeof firebase === 'undefined') {
     $app.innerHTML = '<div class="lehrer"><div class="melden fehler" style="margin:40px 16px">' +
@@ -503,7 +535,7 @@
       '<div class="knopfreihe"><button class="btn" id="speichern">Speichern</button>' +
       '<button class="btn ghost" id="abbrechen">Abbrechen</button></div>' +
       '<div id="formfehler"></div></section>';
-    f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    hinspringen('formular');
     el('abbrechen').onclick = function () { f.innerHTML = ''; };
     el('speichern').onclick = function () { speichereWort(id); };
   }
@@ -552,14 +584,38 @@
         return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
       }).join(';');
     }));
+    var text = zeilen.join('\n');
     el('formular').innerHTML = '<h2 class="sec">CSV zum Sichern</h2><section class="card">' +
-      '<div class="hinweis">Markieren, kopieren und in eine Textdatei oder Tabelle einfügen. ' +
-      'Dieselbe Form kannst du über „CSV einfügen“ wieder zurückspielen.</div>' +
+      '<div class="hinweis">„Als Datei laden“ legt die Datei in deinen Downloads ab. ' +
+      'Alternativ den Text unten kopieren. Dieselbe Form kannst du über „CSV einfügen“ ' +
+      'wieder zurückspielen.</div>' +
+      '<div class="knopfreihe" style="margin:0 0 12px">' +
+      '<button class="btn mini" id="csvdatei">Als Datei laden</button>' +
+      '<button class="btn ghost mini" id="csvkopie">Text kopieren</button></div>' +
       '<textarea id="csvout" spellcheck="false" style="min-height:260px"></textarea>' +
-      '<div class="knopfreihe"><button class="btn ghost" id="zu">Schließen</button></div></section>';
-    el('csvout').value = zeilen.join('\n');
-    el('csvout').select();
+      '<div class="knopfreihe"><button class="btn ghost" id="zu">Schließen</button></div>' +
+      '<div id="csvmeldung"></div></section>';
+    el('csvout').value = text;
+    el('csvdatei').onclick = function () {
+      var ok = alsDateiSichern('lernwoerter-' + heuteFuerDateiname() + '.csv', text);
+      el('csvmeldung').innerHTML = '<div class="melden' + (ok ? '' : ' fehler') + '">' +
+        (ok ? 'Datei wurde erzeugt. Schau in deine Downloads.'
+            : 'Das hat nicht geklappt – kopiere stattdessen den Text unten.') + '</div>';
+    };
+    el('csvkopie').onclick = function () {
+      var fertig = function (ok) {
+        el('csvmeldung').innerHTML = '<div class="melden' + (ok ? '' : ' fehler') + '">' +
+          (ok ? (zeilen.length - 1) + ' Wörter kopiert.'
+              : 'Kopieren ging nicht – markiere den Text unten von Hand.') + '</div>';
+      };
+      el('csvout').focus(); el('csvout').select();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { fertig(true); },
+                                                 function () { fertig(false); });
+      } else { fertig(false); }
+    };
     el('zu').onclick = function () { el('formular').innerHTML = ''; };
+    hinspringen('formular');
   }
 
   function csvImportFormular() {
@@ -572,6 +628,7 @@
       '<button class="btn ghost" id="zu">Abbrechen</button></div><div id="csvfehler"></div></section>';
     el('zu').onclick = function () { el('formular').innerHTML = ''; };
     el('csvgo').onclick = csvEinlesen;
+    hinspringen('formular');
   }
 
   function teileZeile(z) {
@@ -1055,6 +1112,7 @@
       grafikVorschau();
     }
     el('f_frage').focus();
+    hinspringen('fformular');
   }
 
   function frageSpeichern(id) {
@@ -1187,6 +1245,7 @@
     el('fcsv').value = zeilen.join('\n');
     el('fcsv').select();
     el('fzu2').onclick = function () { el('fformular').innerHTML = ''; };
+    hinspringen('fformular');
   }
 
   function bindeThemen() {

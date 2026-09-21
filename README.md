@@ -116,6 +116,11 @@ Im laufenden Betrieb über den Lehrerbereich, nicht über diese Dateien.
 Dort legst du Wörter an, ordnest sie Listen zu, wählst die aktive Liste,
 stellst die Schwierigkeit ein und schaltest Übungstypen ab.
 
+**Als CSV sichern** legt die Datei über „Als Datei laden" in deinen
+Downloads ab; alternativ kopiert „Text kopieren" den Inhalt. Formulare und
+Ausgaben erscheinen unter der Tabelle, und die Seite springt dorthin – bei
+langen Listen sah es sonst aus, als täte der Knopf nichts.
+
 Die Wortliste zeigt unter jedem Wort, was ihm fehlt – Bedeutung,
 Beispielsatz oder Bild. Fehlt eines davon, entfällt für dieses Wort der
 passende Übungstyp. Die Übung **Was bedeutet das Wort?** braucht außerdem
@@ -280,7 +285,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=18`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=19`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 
