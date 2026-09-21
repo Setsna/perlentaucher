@@ -33,11 +33,15 @@ window.WA = window.WA || {};
   }
   function tdiff(type) { return C.types[type].difficulty; }
 
-  // Ablenker-Auswahl: erst andere Gruppe + gleiche Wortart, dann gleiche Wortart, dann alle
-  function distractors(w, n, preferArticle) {
-    var p1 = others(w, function (x) { return x.gruppe !== w.gruppe && x.wortart === w.wortart; });
-    var p2 = others(w, function (x) { return x.wortart === w.wortart; });
-    var p3 = others(w);
+  // Ablenker-Auswahl: erst andere Gruppe + gleiche Wortart, dann gleiche Wortart, dann alle.
+  // "taugt" grenzt zusätzlich ein – zum Beispiel auf Wörter, die überhaupt
+  // eine Bedeutung haben. Ohne diese Schranke landen Wörter ohne Bedeutung
+  // als Antwort im Tauchgang und die Kinder lesen dort "null".
+  function distractors(w, n, preferArticle, taugt) {
+    var ok = function (x) { return !taugt || taugt(x); };
+    var p1 = others(w, function (x) { return ok(x) && x.gruppe !== w.gruppe && x.wortart === w.wortart; });
+    var p2 = others(w, function (x) { return ok(x) && x.wortart === w.wortart; });
+    var p3 = others(w, ok);
     var out = [];
     [p1, p2, p3].forEach(function (pool) {
       var s = shuffle(pool);
@@ -143,11 +147,19 @@ window.WA = window.WA || {};
     }
   };
 
+  function hatBedeutung(x) { return !!(x.bedeutung && String(x.bedeutung).trim()); }
+
   T.bedeutung = {
     cat: 'verstehen',
-    applies: function (w) { return !!w.bedeutung; },
+    // Es braucht nicht nur eine eigene Bedeutung, sondern auch zwei andere
+    // Wörter mit Bedeutung – sonst gäbe es nichts zum Auswählen.
+    applies: function (w) {
+      return hatBedeutung(w) && others(w, hatBedeutung).length >= 2;
+    },
     make: function (w) {
-      var opts = distractors(w, 2).concat([w]).map(function (x) { return { label: x.bedeutung, value: x.id }; });
+      var opts = distractors(w, 2, false, hatBedeutung).concat([w])
+        .filter(hatBedeutung)
+        .map(function (x) { return { label: x.bedeutung, value: x.id }; });
       return {
         type: 'bedeutung', cat: 'verstehen', kind: 'choice', layout: 'list', wordId: w.id,
         prompt: 'Was bedeutet das Wort?',

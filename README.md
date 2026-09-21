@@ -116,6 +116,13 @@ Im laufenden Betrieb über den Lehrerbereich, nicht über diese Dateien.
 Dort legst du Wörter an, ordnest sie Listen zu, wählst die aktive Liste,
 stellst die Schwierigkeit ein und schaltest Übungstypen ab.
 
+Die Wortliste zeigt unter jedem Wort, was ihm fehlt – Bedeutung,
+Beispielsatz oder Bild. Fehlt eines davon, entfällt für dieses Wort der
+passende Übungstyp. Die Übung **Was bedeutet das Wort?** braucht außerdem
+mindestens drei Wörter mit Bedeutung, weil sie drei Antworten zur Auswahl
+stellt; darunter entfällt sie ganz. Über der Liste steht, wie viele Wörter
+ohne Bedeutung sind.
+
 Jedes Wort hat zwei getrennte Silbenfelder:
 **Sprechsilben** (Silbenbögen, für das Zählen und Ordnen) und
 **Worttrennung** nach Duden (für das Trennen am Zeilenende).
@@ -273,7 +280,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=17`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=18`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

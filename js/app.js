@@ -7,7 +7,9 @@
   var $app = document.getElementById('app'), $modal = document.getElementById('modal');
   var L = null, view = 'home', timer = null;
 
-  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // s == null wird zu '' – sonst steht bei einem fehlenden Feld wörtlich
+  // "null" auf dem Bildschirm der Kinder.
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function $(sel, root) { return (root || document).querySelector(sel); }
   function pct(x) { return Math.round(x * 100); }
   function mmss(ms) { var t = Math.ceil(ms / 1000), m = Math.floor(t / 60), s = t % 60; return m + ':' + ('0' + s).slice(-2); }

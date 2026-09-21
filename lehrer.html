@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=17">
+<link rel="stylesheet" href="css/style.css?v=18">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -107,15 +107,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=17"></script>
-<script src="js/words.js?v=17"></script>
-<script src="js/bilder.js?v=17"></script>
-<script src="js/quiz.js?v=17"></script>
-<script src="js/mascot.js?v=17"></script>
-<script src="js/icons.js?v=17"></script>
-<script src="js/malen.js?v=17"></script>
-<script src="js/merge.js?v=17"></script>
-<script src="js/cloud.js?v=17"></script>
+<script src="js/config.js?v=18"></script>
+<script src="js/words.js?v=18"></script>
+<script src="js/bilder.js?v=18"></script>
+<script src="js/quiz.js?v=18"></script>
+<script src="js/mascot.js?v=18"></script>
+<script src="js/icons.js?v=18"></script>
+<script src="js/malen.js?v=18"></script>
+<script src="js/merge.js?v=18"></script>
+<script src="js/cloud.js?v=18"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -388,9 +388,16 @@
 
     var sichtbar = woerter.filter(function (w) { return !filterListe || w.liste === filterListe; });
     var zeilen = sichtbar.map(function (w, i) {
+      // Ohne Bedeutung, Beispielsatz oder Bild entfallen einzelne
+      // Übungstypen für dieses Wort – das steht sonst nirgends.
+      var fehlt = [];
+      if (!(w.bedeutung && String(w.bedeutung).trim())) fehlt.push('Bedeutung');
+      if (!(w.satz && String(w.satz).indexOf(w.wort) >= 0)) fehlt.push('Beispielsatz');
+      if (!w.bild) fehlt.push('Bild');
       return '<tr data-id="' + esc(w.id) + '">' +
         '<td>' + (w.bild ? '<span style="font-size:22px">' + esc(w.bild) + '</span>' : '') + '</td>' +
-        '<td><b>' + esc((w.artikel ? w.artikel + ' ' : '') + w.wort) + '</b></td>' +
+        '<td><b>' + esc((w.artikel ? w.artikel + ' ' : '') + w.wort) + '</b>' +
+        (fehlt.length ? '<div class="muted" style="font-size:13px">ohne ' + fehlt.join(', ') + '</div>' : '') + '</td>' +
         '<td class="muted">' + esc(w.silben) + '</td>' +
         '<td class="muted">' + esc(w.trennung || w.silben) + '</td>' +
         '<td class="muted">' + esc(w.wortart) + '</td>' +
@@ -406,7 +413,20 @@
           '>' + esc(l.name) + ' (' + l.anzahl + ')</option>';
       }).join('') + '</select>';
 
-    return '<section class="card">' +
+    var ohneBedeutung = sichtbar.filter(function (w) {
+      return !(w.bedeutung && String(w.bedeutung).trim());
+    }).length;
+    var warnung = '';
+    if (ohneBedeutung) {
+      var mit = sichtbar.length - ohneBedeutung;
+      warnung = '<div class="hinweis">Bei <b>' + ohneBedeutung + ' von ' + sichtbar.length +
+        '</b> Wörtern fehlt die Bedeutung. Für diese Wörter entfällt die Übung ' +
+        '<b>Was bedeutet das Wort?</b>' +
+        (mit < 3 ? ' – und weil es weniger als drei Wörter <i>mit</i> Bedeutung gibt, entfällt sie ganz, ' +
+          'denn es braucht drei zur Auswahl.' : '.') +
+        ' In der Tabelle steht unter dem Wort, was fehlt.</div>';
+    }
+    return warnung + '<section class="card">' +
       '<div class="knopfreihe" style="margin:0 0 14px">' + filter +
       '<button class="btn mini" id="neu">Neues Wort</button>' +
       '<button class="btn ghost mini" id="csvexport">Als CSV sichern</button>' +
