@@ -115,6 +115,9 @@ window.WA = window.WA || {};
     // Reset-Marke, gilt er deshalb vollständig.
     if (fern.resetAt && fern.resetAt !== basis.resetAt) {
       var frisch = Object.assign({}, fern);
+      // Quittung: Der Lehrerbereich sieht daran, dass dieses Gerät den
+      // Reset wirklich übernommen hat und nichts mehr nachträgt.
+      frisch.resetGesehen = fern.resetAt;
       frisch.updatedAt = Date.now();
       return frisch;
     }
@@ -153,6 +156,7 @@ window.WA = window.WA || {};
       mal: malen(basis.mal, lokal.mal, fern.mal),
       // Die Marke mitführen, sonst greift derselbe Reset immer wieder.
       resetAt: fern.resetAt || lokal.resetAt || null,
+      resetGesehen: lokal.resetGesehen || fern.resetGesehen || null,
       updatedAt: Date.now()
     };
   }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=26">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -88,6 +88,8 @@
   .bildkarte img { image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); }
   .bildkarte figcaption { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
   .bildkarte.fertig { border-color: var(--good); }
+  .resetoffen { margin-top: 4px; font-size: 13px; font-weight: 700; color: #8A6A38;
+    background: var(--sand); border-radius: 8px; padding: 3px 8px; display: inline-block; }
   .bildgross { display: block; padding: 0; border: 0; background: none; border-radius: 8px; cursor: zoom-in; }
   .bildgross:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
   .bildgross img { display: block; }
@@ -118,15 +120,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=25"></script>
-<script src="js/words.js?v=25"></script>
-<script src="js/bilder.js?v=25"></script>
-<script src="js/quiz.js?v=25"></script>
-<script src="js/mascot.js?v=25"></script>
-<script src="js/icons.js?v=25"></script>
-<script src="js/malen.js?v=25"></script>
-<script src="js/merge.js?v=25"></script>
-<script src="js/cloud.js?v=25"></script>
+<script src="js/config.js?v=26"></script>
+<script src="js/words.js?v=26"></script>
+<script src="js/bilder.js?v=26"></script>
+<script src="js/quiz.js?v=26"></script>
+<script src="js/mascot.js?v=26"></script>
+<script src="js/icons.js?v=26"></script>
+<script src="js/malen.js?v=26"></script>
+<script src="js/merge.js?v=26"></script>
+<script src="js/cloud.js?v=26"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -155,6 +157,12 @@
   // Der letzte echte Übungstag steht in lastDay als "2026-09-20".
   // Nicht updatedAt nehmen: das ist nur der Zeitpunkt der letzten
   // Änderung am Datensatz und ändert sich auch beim Zurücksetzen.
+  // Hat das Gerät des Kindes ein Zurücksetzen schon übernommen?
+  // Solange nicht, kann es alte Abzeichen und Rekorde nachtragen.
+  function resetOffen(f) {
+    return !!(f && f.resetAt && f.resetGesehen !== f.resetAt);
+  }
+
   function letzterTag(f) {
     if (!f || !f.lastDay) return 'noch nie';
     var t = String(f.lastDay).split('-');
@@ -360,7 +368,10 @@
       var quote = (ok + wr) ? Math.round(ok / (ok + wr) * 100) + ' %' : '–';
       return '<tr><td><button class="namensknopf" data-reset="' + esc(k.id) + '" ' +
         'title="Fortschritt von ' + esc(k.vorname) + ' zurücksetzen"><b>' + esc(k.vorname) + '</b>' +
-        '<span class="code">' + esc(fmtCode(k.id)) + '</span></button></td>' +
+        '<span class="code">' + esc(fmtCode(k.id)) + '</span></button>' +
+        (resetOffen(f) ? '<div class="resetoffen" title="Das Gerät des Kindes hat das ' +
+          'Zurücksetzen noch nicht übernommen. Es geschieht, sobald die App dort das nächste ' +
+          'Mal geöffnet wird oder speichert.">zurückgesetzt – Gerät noch nicht</div>' : '') + '</td>' +
         '<td class="num">' + (f ? (f.xp || 0) : '–') + '</td>' +
         '<td class="num">' + (f ? (f.lessons || 0) : '–') + '</td>' +
         '<td class="num">' + quote + '</td>' +
@@ -1715,7 +1726,9 @@
     p.then(function () { return db.collection('fortschritt').doc(id).set(neu); })
      .then(function () {
        var k = kinder.filter(function (x) { return x.id === id; })[0];
-       melde(esc(k.vorname) + ' zurückgesetzt' + (woche > 0 ? ', ' + woche + ' Perlen vom Klassenziel abgezogen.' : '.'));
+       melde(esc(k.vorname) + ' zurückgesetzt' + (woche > 0 ? ', ' + woche + ' Perlen vom Klassenziel abgezogen.' : '.') +
+             ' Das Gerät des Kindes übernimmt es, sobald die App dort geöffnet wird oder speichert – ' +
+             'solange steht in der Tabelle „Gerät noch nicht".');
        el('resetfeld').innerHTML = '';
        laden();
      })

@@ -168,6 +168,12 @@ Perlen, Tagesziele und Rekorde; Wortstatistik und Abzeichen bleiben.
 null. In beiden Fällen werden die Perlen dieser Woche vom Klassenziel
 abgezogen, und die gemalten Bilder bleiben erhalten.
 
+In der Fortschrittstabelle steht unter dem Namen **„zurückgesetzt – Gerät
+noch nicht"**, solange das Gerät des Kindes das Zurücksetzen nicht
+übernommen hat. Es verschwindet, sobald die App dort geöffnet wird oder
+speichert. Bleibt es stehen, läuft auf dem Gerät noch eine alte Fassung der
+App: Dann dort einmal neu laden und danach erneut zurücksetzen.
+
 Das zurückgesetzte Dokument trägt eine Marke (`resetAt`). Sie ist nötig,
 weil das Gerät des Kindes seinen Stand sonst per Dreiwege-Vergleich
 zurückspielen würde: Abzeichen werden dort vereinigt und Rekorde sind das
@@ -341,7 +347,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=25`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=26`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 
