@@ -121,6 +121,13 @@ Downloads ab; alternativ kopiert „Text kopieren" den Inhalt. Formulare und
 Ausgaben erscheinen unter der Tabelle, und die Seite springt dorthin – bei
 langen Listen sah es sonst aus, als täte der Knopf nichts.
 
+Das **Bild** ist ein Emoji im Wortfeld. Es erscheint als Anschauung bei
+vielen Übungen und ist bei **Welches Wort passt zum Bild?** die Frage
+selbst. Deshalb gilt: lieber kein Bild als ein mehrdeutiges. Drei Fische
+brauchen nicht drei Fisch-Emojis – wo die Zuordnung nicht eindeutig ist,
+bleibt das Feld leer. Die App sorgt zusätzlich dafür, dass kein Ablenker
+ein Zeichen mit dem gezeigten Bild teilt.
+
 Die Wortliste zeigt unter jedem Wort, was ihm fehlt – Bedeutung,
 Beispielsatz oder Bild. Fehlt eines davon, entfällt für dieses Wort der
 passende Übungstyp. Die Übung **Was bedeutet das Wort?** braucht außerdem
@@ -297,7 +304,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=20`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=21`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 
