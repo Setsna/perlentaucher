@@ -16,11 +16,10 @@ window.WA = window.WA || {};
     d = d || new Date();
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
+  // Das Schema steht in js/config.js (WA.leererStand). Hier kommen nur
+  // die gemalten Bilder dazu, die es dort bewusst nicht gibt.
   function fresh() {
-    return { v: 1, hearts: C.hearts.max, heartsAt: Date.now(), xp: 0, xpGemeldet: 0, days: {},
-             best: { day: 0, lesson: 0 }, words: {}, badges: {}, lessons: 0, worlds: {},
-             lastDay: null, streakDays: 0, sound: true, updatedAt: 0,
-             mal: frischMal() };
+    return Object.assign(WA.leererStand(), { mal: frischMal() });
   }
   // Belohnungszeit und Pixelbilder.
   //   rest    Guthaben in Sekunden

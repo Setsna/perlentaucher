@@ -347,7 +347,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=27`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=28`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 
@@ -357,5 +357,10 @@ Reines HTML, CSS und JavaScript ohne Framework. Gehostet auf GitHub Pages.
 Anmeldung und Spielstände über Firebase (Authentication und Firestore, Standort europe-west).
 Die Kinder melden sich mit einem achtstelligen Code an, der als QR-Aufkleber im Hausaufgabenheft klebt.
 
-Die Firestore-Regeln liegen bewusst nicht in diesem öffentlichen Repository,
-weil darin die E-Mail-Adresse der Lehrkraft steht.
+Die einsatzfertigen Firestore-Regeln liegen bewusst nicht in diesem öffentlichen
+Repository, weil darin die E-Mail-Adresse der Lehrkraft steht. Im Repo liegt nur
+`firebase/firestore.rules.beispiel` mit einem Platzhalter. Die echte Fassung
+heißt `firebase/firestore.rules`, wird von `.gitignore` ausgeschlossen und wird
+von Hand in die Firebase-Konsole eingefügt.
+
+**Beim Hochladen also nie `firebase/firestore.rules` mitgeben.**

@@ -194,6 +194,41 @@ WA.applySettings = function (e) {
   if (typeof e.malMaxMinuten === 'number') C.malen.maxGuthabenMinuten = e.malMaxMinuten;
 };
 
+/* ==========================================================
+   Der leere Spielstand – die eine Stelle, an der das Schema steht.
+
+   Wird an zwei Stellen gebraucht: js/store.js baut daraus den
+   Spielstand eines neuen Kindes, und der Lehrerbereich schreibt ihn
+   beim Zurücksetzen mit .set() ERSETZEND nach Firestore. Früher stand
+   die Feldliste doppelt da; fehlte in der zweiten Fassung ein Feld,
+   schrieb das Zurücksetzen unbemerkt einen unvollständigen Datensatz.
+
+   Ein neues Feld also NUR hier eintragen.
+   Die gemalten Bilder (mal) gehören bewusst nicht dazu – die hängt
+   jede Seite selbst an, weil sie beim Zurücksetzen erhalten bleiben.
+   ========================================================== */
+WA.leererStand = function (jetzt) {
+  jetzt = jetzt || Date.now();
+  return {
+    v: 1,
+    hearts: WA.config.hearts.max,
+    heartsAt: jetzt,
+    xp: 0,
+    xpGemeldet: 0,       // Altlast: hat keine eigene Bedeutung mehr,
+                         // bleibt für alte Spielstände im Schema.
+    days: {},
+    best: { day: 0, lesson: 0 },
+    words: {},
+    badges: {},
+    lessons: 0,
+    worlds: {},
+    lastDay: null,
+    streakDays: 0,
+    sound: true,
+    updatedAt: 0
+  };
+};
+
 /* Ein Wort aus einem Datenbankeintrag bauen */
 WA.wortAusDoc = function (id, d) {
   return {

@@ -224,7 +224,7 @@
       inhalt = themen.length
         ? '<section class="worlds">' + themen.map(function (k) {
             var t = themaInfo(k), p = WA.quiz.fortschritt(k), n = WA.quiz.anzahl(k);
-            return '<button class="world" style="--wc:' + t.color + '" data-action="startthema" data-t="' + k + '">' +
+            return '<button class="world" style="--wc:' + t.color + '" data-action="startthema" data-t="' + esc(k) + '">' +
               '<span class="wicon">' + ico(t.icon) + '</span>' +
               '<span class="wtext"><b>' + esc(t.title) + '</b><small>' + esc(t.sub) + ' · ' + n + ' Fragen</small>' +
               '<span class="wbar"><i style="width:' + pct(p) + '%"></i></span></span>' +
@@ -851,7 +851,9 @@
     if (q.show && (q.show.emoji || q.show.text)) {
       var w = getWord(q.wordId), txt = q.show.text;
       if (L.answered && q.revealSyllables) txt = null;
-      h += '<div class="show">' + (q.show.emoji ? '<div class="emoji">' + q.show.emoji + '</div>' : '') +
+      // esc() auch beim Emoji: Das Feld kommt aus dem Lernwort-Formular
+      // bzw. aus einem CSV-Import und ist damit fremder Text.
+      h += '<div class="show">' + (q.show.emoji ? '<div class="emoji">' + esc(q.show.emoji) + '</div>' : '') +
         (q.show.text ? '<div class="bigword">' + (txt === null ? sylHtml(w) : esc(txt)) + '</div>' : '') + '</div>';
     }
     if (q.hint && C.hinweise !== false) h += '<div class="hint">' + esc(q.hint) + '</div>';
