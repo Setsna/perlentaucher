@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=23">
+<link rel="stylesheet" href="css/style.css?v=24">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -88,7 +88,18 @@
   .bildkarte img { image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); }
   .bildkarte figcaption { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
   .bildkarte.fertig { border-color: var(--good); }
-  @media print { .reiter, .lhead .rechts, .hinweis { display: none; } .bildkarte { break-inside: avoid; } }
+  .bildgross { display: block; padding: 0; border: 0; background: none; border-radius: 8px; cursor: zoom-in; }
+  .bildgross:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+  .bildgross img { display: block; }
+  .bildlupe { position: fixed; inset: 0; z-index: 50; background: rgba(12, 58, 74, .72);
+    display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .lupeinhalt { background: #fff; border-radius: 22px; padding: 18px; max-width: min(92vw, 720px);
+    display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .lupeinhalt img { image-rendering: pixelated; border-radius: 14px; border: 2px solid var(--line);
+    width: 100%; height: auto; max-height: 68vh; object-fit: contain; background: #fff; }
+  .lupetext { font-size: 17px; font-weight: 700; color: var(--muted); text-align: center; }
+  @media print { .reiter, .lhead .rechts, .hinweis, .bildlupe { display: none; }
+    .bildkarte { break-inside: avoid; } }
 
   .antw { font-size: 14px; margin-top: 4px; line-height: 1.5; }
   .antw .richtig { color: var(--good-d); }
@@ -107,15 +118,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=23"></script>
-<script src="js/words.js?v=23"></script>
-<script src="js/bilder.js?v=23"></script>
-<script src="js/quiz.js?v=23"></script>
-<script src="js/mascot.js?v=23"></script>
-<script src="js/icons.js?v=23"></script>
-<script src="js/malen.js?v=23"></script>
-<script src="js/merge.js?v=23"></script>
-<script src="js/cloud.js?v=23"></script>
+<script src="js/config.js?v=24"></script>
+<script src="js/words.js?v=24"></script>
+<script src="js/bilder.js?v=24"></script>
+<script src="js/quiz.js?v=24"></script>
+<script src="js/mascot.js?v=24"></script>
+<script src="js/icons.js?v=24"></script>
+<script src="js/malen.js?v=24"></script>
+<script src="js/merge.js?v=24"></script>
+<script src="js/cloud.js?v=24"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -151,6 +162,14 @@
     return t[2].replace(/^0/, '') + '.' + t[1].replace(/^0/, '') + '.' + t[0];
   }
   function melde(text, art) { meldung = { text: text, art: art || 'ok' }; }
+
+  // Zeitstempel eines Bildes als Datum
+  function tagVon(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
+  }
 
   /* Formulare und Ausgaben stehen unter der Tabelle. Bei langen Listen
      liegen sie weit außerhalb des Bildschirms – ohne diesen Sprung sieht
@@ -837,9 +856,7 @@
       var geladen = bilderVon[k.id];
       var inhalt;
 
-      if (!geladen) {
-        inhalt = '<button class="btn ghost mini" data-bilder="' + esc(k.id) + '">Bilder anzeigen</button>';
-      } else if (geladen === 'laedt') {
+      if (!geladen || geladen === 'laedt') {
         inhalt = '<p class="muted">Wird geladen …</p>';
       } else if (!geladen.length) {
         inhalt = '<p class="muted">Dieses Kind hat noch nichts gemalt.</p>';
@@ -849,38 +866,80 @@
           .map(function (b) {
             var frei = b.art === 'frei';
             return '<figure class="bildkarte' + (b.fertig ? ' fertig' : '') + '">' +
-              '<img src="' + bildVorschau(b, 120) + '" alt="' + (frei ? 'Zeichnung' : 'Pixelbild') + '" width="120" height="120">' +
-              '<figcaption>' + (frei ? 'gezeichnet' : 'Pixel') + ' · ' + (b.fertig ? 'fertig' : 'in Arbeit') + '</figcaption></figure>';
+              '<button class="bildgross" data-gross="' + esc(k.id) + '" data-bnr="' + esc(String(b.id)) +
+              '" aria-label="Bild von ' + esc(k.vorname) + ' groß ansehen">' +
+              '<img src="' + bildVorschau(b, 120) + '" alt="' + (frei ? 'Zeichnung' : 'Pixelbild') +
+              '" width="120" height="120" loading="lazy"></button>' +
+              '<figcaption>' + (frei ? 'gezeichnet' : 'Pixel') + ' · ' + (b.fertig ? 'fertig' : 'in Arbeit') +
+              '</figcaption></figure>';
           }).join('') + '</div>';
       }
 
       return '<h3 class="malname">' + esc(k.vorname) +
-        ' <span class="chip">' + Math.round(rest / 60) + ' Min. Malzeit übrig</span></h3>' + inhalt;
+        ' <span class="chip">' + Math.round(rest / 60) + ' Min. Malzeit übrig</span>' +
+        (Array.isArray(geladen) && geladen.length
+          ? ' <span class="muted" style="font-size:15px">' + geladen.length +
+            (geladen.length === 1 ? ' Bild' : ' Bilder') + '</span>' : '') +
+        '</h3>' + inhalt;
     }).join('');
 
     return '<h2 class="sec">Bilder der Kinder</h2>' +
       '<div class="hinweis">Die Kinder bekommen für jedes erreichte Tagesziel ' +
       esc(String(WA.config.malen.minutenProZiel)) + ' Minuten Malzeit, höchstens ' +
       esc(String(WA.config.malen.maxGuthabenMinuten)) + ' Minuten Guthaben. ' +
-      'Die Bilder sehen nur das Kind selbst und du. Zum Ausdrucken erst alle Bilder ' +
-      'anzeigen lassen, dann diese Seite drucken.</div>' +
-      '<div class="knopfreihe" style="margin-bottom:10px"><button class="btn ghost mini" id="allebilder">Alle Bilder anzeigen</button></div>' +
-      (bloecke || '<section class="card"><p class="muted">Noch sind keine Kinder freigeschaltet.</p></section>');
+      'Die Bilder sehen nur das Kind selbst und du. Tippe ein Bild an, um es groß zu sehen. ' +
+      'Zum Ausdrucken einfach diese Seite drucken.</div>' +
+      (bloecke || '<section class="card"><p class="muted">Noch sind keine Kinder freigeschaltet.</p></section>') +
+      '<div id="bildschau"></div>';
   }
 
-  function bilderHolen(code) {
-    if (bilderVon[code]) return Promise.resolve();
-    bilderVon[code] = 'laedt';
+  // Das große Bild über der Seite
+  function bildSchau(code, nr) {
+    var liste = bilderVon[code];
+    if (!Array.isArray(liste)) return;
+    var b = liste.filter(function (x) { return String(x.id) === String(nr); })[0];
+    if (!b) return;
+    var k = kinder.filter(function (x) { return x.id === code; })[0];
+    var frei = b.art === 'frei';
+    el('bildschau').innerHTML =
+      '<div class="bildlupe" id="bildlupe"><div class="lupeinhalt">' +
+      '<img src="' + bildVorschau(b, 900) + '" alt="' + (frei ? 'Zeichnung' : 'Pixelbild') + '">' +
+      '<div class="lupetext"><b>' + esc(k ? k.vorname : '') + '</b> · ' +
+      (frei ? 'gezeichnet' : 'Pixelbild') + ' · ' + (b.fertig ? 'fertig' : 'in Arbeit') +
+      (b.ts ? ' · ' + esc(tagVon(b.ts)) : '') + '</div>' +
+      '<button class="btn ghost" id="lupezu">Schließen</button>' +
+      '</div></div>';
+    el('bildlupe').onclick = function (e) {
+      if (e.target === this || e.target.id === 'lupezu') el('bildschau').innerHTML = '';
+    };
+    el('lupezu').onclick = function () { el('bildschau').innerHTML = ''; };
+  }
+
+  // Alle Bilder in einem Rutsch holen: eine Abfrage statt einer je
+  // Kind. Löschmarken (geloescht) sind keine Bilder und fliegen raus.
+  var bilderLaufen = false;
+
+  function bilderAlleHolen() {
+    if (bilderLaufen) return Promise.resolve();
+    bilderLaufen = true;
+    kinder.forEach(function (k) { if (!bilderVon[k.id]) bilderVon[k.id] = 'laedt'; });
     zeichnen();
-    return db.collection('bilder').where('code', '==', code).get()
+    return db.collection('bilder').get()
       .then(function (snap) {
-        var liste = [];
-        snap.forEach(function (d) { liste.push(d.data()); });
-        bilderVon[code] = liste;
+        var nach = {};
+        kinder.forEach(function (k) { nach[k.id] = []; });
+        snap.forEach(function (d) {
+          var x = d.data();
+          if (x.geloescht || !x.code) return;
+          if (!nach[x.code]) nach[x.code] = [];
+          nach[x.code].push(x);
+        });
+        Object.keys(nach).forEach(function (code) { bilderVon[code] = nach[code]; });
         zeichnen();
       })
       .catch(function (e) {
-        bilderVon[code] = [];
+        kinder.forEach(function (k) { if (bilderVon[k.id] === 'laedt') bilderVon[k.id] = []; });
+        bilderLaufen = false;
         melde('Bilder konnten nicht geladen werden: ' + esc(e.message) +
           (e.code === 'permission-denied'
             ? ' Wahrscheinlich sind die Firestore-Regeln noch nicht aktualisiert.' : ''), 'fehler');
@@ -1558,13 +1617,13 @@
   }
 
   function bindeBilder() {
-    document.querySelectorAll('[data-bilder]').forEach(function (b) {
-      b.onclick = function () { bilderHolen(b.getAttribute('data-bilder')); };
+    // Beim Öffnen des Reiters einmal alles holen – ohne Knopfdruck.
+    if (!bilderLaufen) { bilderAlleHolen(); return; }
+    document.querySelectorAll('[data-gross]').forEach(function (b) {
+      b.onclick = function () {
+        bildSchau(b.getAttribute('data-gross'), b.getAttribute('data-bnr'));
+      };
     });
-    var alle = el('allebilder');
-    if (alle) alle.onclick = function () {
-      kinder.forEach(function (k) { if (!bilderVon[k.id]) bilderHolen(k.id); });
-    };
   }
 
   function bindeKinder() {

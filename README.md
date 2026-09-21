@@ -1,6 +1,6 @@
 # Perlentaucher
 
-Lernplattform für die Klasse 3 der Deutschen Sektion der Taipei European School.
+Lernplattform für eine dritte Grundschulklasse.
 Die Kinder üben in kleinen Tauchgängen und sammeln dabei Perlen.
 Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukommen können.
 
@@ -177,6 +177,12 @@ Vorschau. Gelöschte Bilder merkt sich die App, damit ein zweites Gerät sie
 nicht wieder hereinholt; in der Datenbank bleibt dafür ein winziger Eintrag
 ohne Bilddaten stehen.
 
+Im Lehrerbereich zeigt der Reiter **Bilder** unter jedem Kindernamen dessen
+Bilder als Vorschau, neueste zuerst. Sie werden beim Öffnen des Reiters in
+einer einzigen Abfrage geholt, nicht mehr Kind für Kind auf Knopfdruck. Ein
+Klick auf eine Vorschau zeigt das Bild groß, mit Name, Art und Datum.
+Weggeworfene Bilder erscheinen dort nicht.
+
 Alles dazu steht in `js/config.js` unter `malen`:
 
 | Einstellung | Bedeutung |
@@ -320,7 +326,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=23`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=24`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 
