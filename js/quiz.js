@@ -3,10 +3,13 @@
 
    Aufbau einer Frage:
      [ id, thema, bereich, schwierigkeit, Frage,
-       [richtige Antwort, falsch, falsch, ...], Erklärung ]
+       [richtige Antwort, falsch, falsch, ...], Erklärung,
+       (Anzahl richtiger Antworten, wenn mehr als eine) ]
 
-   Die erste Antwort ist immer die richtige. Beim Spielen werden
-   die Antworten gemischt.
+   Die richtigen Antworten stehen vorn. Meist ist es genau eine;
+   steht am Ende eine Zahl, sind entsprechend viele der ersten
+   Antworten richtig. Beim Spielen werden die Antworten gemischt,
+   und jede richtige zählt.
 
    Die Fragen hier sind die Rückfallebene, falls die Datenbank nicht
    erreichbar ist. Im Betrieb kommen sie aus der Sammlung
@@ -137,9 +140,17 @@ window.WA = window.WA || {};
       'Menschenleben gehen immer vor. Erst danach beginnt das Löschen.'],
 
     // ---------- Notruf ----------
-    ['fe-nr-01', 'feuer', 'notruf', 1, 'Welche Nummer wählst du in Europa, um die Feuerwehr zu rufen?',
-      ['112', '110', '911', '119'],
-      'Die 112 ist in ganz Europa der Notruf für Feuerwehr und Rettungsdienst.'],
+    ['fe-nr-01', 'feuer', 'notruf', 1, 'Welche Nummer wählst du, um die Feuerwehr zu rufen?',
+      ['119', '112', '110', '911'],
+      'Beides ist richtig! In Taiwan ist die 119 die Nummer der Feuerwehr und des Rettungswagens. ' +
+      'Die 112 kannst du von jedem Handy wählen – sie wird an die Feuerwehr weitergeleitet und ' +
+      'ist in ganz Europa der Notruf. Die 110 ist die Polizei.', 2],
+    ['fe-nr-06', 'feuer', 'notruf', 2, 'Du bist in Taiwan und es brennt. Welche Nummer ist die richtige?',
+      ['119', '110', '911', '999'],
+      'In Taiwan gilt: 119 für Feuerwehr und Rettungswagen, 110 für die Polizei.'],
+    ['fe-nr-07', 'feuer', 'notruf', 2, 'Du bist in den Ferien in Deutschland und es brennt. Welche Nummer wählst du?',
+      ['112', '119', '110', '911'],
+      'In ganz Europa ist die 112 der Notruf. Die 110 ist dort die Polizei.'],
     ['fe-nr-02', 'feuer', 'notruf', 2, 'Was sagst du zuerst, wenn du den Notruf gewählt hast?',
       ['Wo es passiert ist', 'Wie alt du bist', 'Was du heute gegessen hast', 'Wie das Wetter ist'],
       'Der Ort ist das Wichtigste: Ohne ihn findet niemand den Weg zu dir.'],
@@ -178,21 +189,26 @@ window.WA = window.WA || {};
   ];
 
   WA.fragen = zeilen.map(function (r) {
+    var wieviele = r[7] || 1;
     return {
       id: r[0], thema: r[1], bereich: r[2], schwierigkeit: r[3],
-      frage: r[4], antworten: r[5], richtig: r[5][0], erklaerung: r[6]
+      frage: r[4], antworten: r[5], richtig: r[5].slice(0, wieviele),
+      erklaerung: r[6]
     };
   });
 
-  // Eine Frage aus einem Datenbankeintrag bauen
+  // Eine Frage aus einem Datenbankeintrag bauen.
+  // "richtig" darf eine einzelne Antwort oder eine Liste sein.
   WA.frageAusDoc = function (id, d) {
     var ant = Array.isArray(d.antworten) ? d.antworten
       : String(d.antworten || '').split('|').map(function (s) { return s.trim(); });
+    var rich = Array.isArray(d.richtig) ? d.richtig
+      : (d.richtig ? [d.richtig] : [ant[0]]);
     return {
       id: id, thema: d.thema || 'feuer', bereich: d.bereich || 'allgemein',
       schwierigkeit: Number(d.schwierigkeit) || 2,
       frage: d.frage, antworten: ant,
-      richtig: d.richtig || ant[0],
+      richtig: rich.filter(function (r) { return ant.indexOf(r) >= 0; }),
       erklaerung: d.erklaerung || ''
     };
   };
@@ -239,7 +255,7 @@ window.WA = window.WA || {};
       speak: f.frage,
       options: opt,
       correct: f.richtig,
-      solutionText: f.richtig,
+      solutionText: f.richtig.join(' oder '),
       erklaerung: f.erklaerung
     };
   }

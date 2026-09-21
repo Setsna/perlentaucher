@@ -34,9 +34,16 @@ Tauchrevieren mit den Lernwörtern, Sachunterricht zu den **Sachthemen**;
 das erste ist *Feuer*.
 
 Eine Sachunterrichtsfrage besteht aus der Frage, zwei bis vier Antworten,
-der Markierung welche richtig ist, und einer **Erklärung**. Die Erklärung
+den angekreuzten richtigen Antworten und einer **Erklärung**. Die Erklärung
 erscheint nach jeder Antwort – auch nach einer richtigen – und ist der
 eigentliche Lerneffekt. Die Antworten werden beim Üben gemischt.
+
+Es dürfen **mehrere Antworten richtig** sein. Das Kind wählt eine aus, und
+jede angekreuzte zählt als richtig. Gebraucht wird das zum Beispiel beim
+Notruf: In Taiwan gilt die **119** für Feuerwehr und Rettungswagen, die
+**112** funktioniert vom Handy ebenfalls und ist in Europa die Notrufnummer.
+Beide sind als richtig hinterlegt, die Erklärung ordnet sie ein. Dazu gibt
+es zwei weitere Fragen, die Taiwan und Europa gezielt auseinanderhalten.
 
 Gepflegt wird das im Lehrerbereich unter **Sachthemen**. Ein neues Thema
 entsteht dadurch, dass du Fragen mit einem neuen Themennamen anlegst; dafür
@@ -218,7 +225,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=13`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=14`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

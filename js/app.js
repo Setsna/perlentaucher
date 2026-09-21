@@ -813,7 +813,10 @@
     if (q.kind === 'choice') {
       h += '<div class="opts ' + q.layout + '">' + q.options.map(function (o, i) {
         var cls = 'opt ' + (o.cls || '') + (L.sel === i ? ' sel' : '');
-        if (L.answered) { if (o.value === q.correct) cls += ' right'; else if (L.sel === i) cls += ' wrong'; }
+        if (L.answered) {
+          var istRichtig = Array.isArray(q.correct) ? q.correct.indexOf(o.value) >= 0 : o.value === q.correct;
+          if (istRichtig) cls += ' right'; else if (L.sel === i) cls += ' wrong';
+        }
         return '<button class="' + cls + '" data-action="pick" data-i="' + i + '"' + (L.answered ? ' disabled' : '') + '>' + esc(o.label) + '</button>';
       }).join('') + '</div>';
     } else if (q.kind === 'build') {
@@ -873,7 +876,12 @@
 
   function check() {
     var q = L.q, ok;
-    if (q.kind === 'choice') ok = q.options[L.sel].value === q.correct;
+    // Manche Fragen haben mehr als eine richtige Antwort –
+    // zum Beispiel, wenn zwei Notrufnummern gelten.
+    if (q.kind === 'choice') {
+      var gewaehlt = q.options[L.sel].value;
+      ok = Array.isArray(q.correct) ? q.correct.indexOf(gewaehlt) >= 0 : gewaehlt === q.correct;
+    }
     else if (q.kind === 'build') ok = q.assemble(L.slots.map(function (i) { return q.tiles[i]; })) === q.answerWord;
     else {
       var a = Object.keys(L.cuts).map(Number).sort(function (x, y) { return x - y; }).join(',');

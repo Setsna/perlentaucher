@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=13">
+<link rel="stylesheet" href="css/style.css?v=14">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -93,7 +93,7 @@
   .antw { font-size: 14px; margin-top: 4px; line-height: 1.5; }
   .antw .richtig { color: var(--good-d); }
   .antwzeile { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .antwzeile input[type=radio] { width: 24px; height: 24px; accent-color: var(--good); flex: none; }
+  .antwzeile input[type=checkbox] { width: 24px; height: 24px; accent-color: var(--good); flex: none; }
   .antwzeile input[type=text] { flex: 1; }
   .merker { padding: 18px 0 8px; }
   .chip { display: inline-block; background: #E4F1F7; color: var(--brand-d); border-radius: 99px;
@@ -107,14 +107,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=13"></script>
-<script src="js/words.js?v=13"></script>
-<script src="js/quiz.js?v=13"></script>
-<script src="js/mascot.js?v=13"></script>
-<script src="js/icons.js?v=13"></script>
-<script src="js/malen.js?v=13"></script>
-<script src="js/merge.js?v=13"></script>
-<script src="js/cloud.js?v=13"></script>
+<script src="js/config.js?v=14"></script>
+<script src="js/words.js?v=14"></script>
+<script src="js/quiz.js?v=14"></script>
+<script src="js/mascot.js?v=14"></script>
+<script src="js/icons.js?v=14"></script>
+<script src="js/malen.js?v=14"></script>
+<script src="js/merge.js?v=14"></script>
+<script src="js/cloud.js?v=14"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -825,8 +825,11 @@
     var themen = themenNamen();
     var sichtbar = fragen.filter(function (f) { return !filterThema || f.thema === filterThema; });
     var zeilen = sichtbar.map(function (f) {
+      var richtige = Array.isArray(f.richtig) ? f.richtig : [f.richtig];
       var ant = (f.antworten || []).map(function (a) {
-        return a === f.richtig ? '<b class="richtig">' + esc(a) + '</b>' : '<span class="muted">' + esc(a) + '</span>';
+        return richtige.indexOf(a) >= 0
+          ? '<b class="richtig">' + esc(a) + '</b>'
+          : '<span class="muted">' + esc(a) + '</span>';
       }).join(' · ');
       return '<tr><td><span class="chip">' + esc(f.thema) + '</span></td>' +
         '<td class="muted">' + esc(f.bereich) + '</td>' +
@@ -861,9 +864,10 @@
 
   function frageFormular(id) {
     var f = fragen.filter(function (x) { return x.id === id; })[0] ||
-      { id: '', thema: filterThema || 'feuer', bereich: '', schwierigkeit: 2, frage: '', antworten: ['', '', ''], richtig: '', erklaerung: '' };
+      { id: '', thema: filterThema || 'feuer', bereich: '', schwierigkeit: 2, frage: '', antworten: ['', '', ''], richtig: [], erklaerung: '' };
     var neu = !id;
     var ant = f.antworten.concat(['', '', '', '']).slice(0, 4);
+    var richtige = Array.isArray(f.richtig) ? f.richtig : (f.richtig ? [f.richtig] : []);
 
     el('fformular').innerHTML = '<h2 class="sec">' + (neu ? 'Neue Frage' : 'Frage ändern') + '</h2>' +
       '<section class="card"><div class="raster">' +
@@ -875,10 +879,12 @@
       }).join('') + '</select></label>' +
       '</div>' +
       '<div style="margin-top:14px">' + feld('f_frage', 'Frage', f.frage) + '</div>' +
-      '<h3 class="merker">Antworten – die richtige auswählen</h3>' +
+      '<h3 class="merker">Antworten – alle richtigen ankreuzen</h3>' +
+      '<p class="muted" style="margin-bottom:10px;font-size:15px">Meist ist genau eine Antwort richtig. ' +
+      'Es dürfen aber mehrere sein – dann zählt jede davon als richtig.</p>' +
       ant.map(function (a, i) {
-        return '<div class="antwzeile"><input type="radio" name="f_richtig" id="f_r' + i + '" value="' + i + '"' +
-          ((a && a === f.richtig) || (neu && i === 0 && !f.richtig) ? ' checked' : '') + '>' +
+        return '<div class="antwzeile"><input type="checkbox" id="f_r' + i + '"' +
+          ((a && richtige.indexOf(a) >= 0) || (neu && i === 0 && !richtige.length) ? ' checked' : '') + '>' +
           '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" placeholder="Antwort ' + (i + 1) +
           (i > 1 ? ' (kann leer bleiben)' : '') + '"></div>';
       }).join('') +
@@ -892,21 +898,21 @@
   }
 
   function frageSpeichern(id) {
-    var ant = [], richtigIdx = 0;
+    var ant = [], richtige = [];
     for (var i = 0; i < 4; i++) {
       var v = el('f_a' + i).value.trim();
       var r = el('f_r' + i);
-      if (r && r.checked) richtigIdx = i;
       ant.push(v);
+      if (v && r && r.checked) richtige.push(v);
     }
     var frage = el('f_frage').value.trim();
-    var richtig = ant[richtigIdx];
     var gefuellt = ant.filter(function (a) { return a; });
 
     var fehler = null;
     if (!frage) fehler = 'Die Frage fehlt.';
     else if (gefuellt.length < 2) fehler = 'Es braucht mindestens zwei Antworten.';
-    else if (!richtig) fehler = 'Die als richtig markierte Antwort ist leer.';
+    else if (!richtige.length) fehler = 'Es ist keine richtige Antwort angekreuzt.';
+    else if (richtige.length === gefuellt.length) fehler = 'Es sind alle Antworten als richtig angekreuzt – dann gibt es nichts zu entscheiden.';
     else if (gefuellt.length !== gefuellt.filter(function (a, i2) { return gefuellt.indexOf(a) === i2; }).length)
       fehler = 'Zwei Antworten sind gleich.';
     if (fehler) { el('ffehler').innerHTML = '<div class="melden fehler">' + esc(fehler) + '</div>'; return; }
@@ -916,7 +922,7 @@
       thema: thema,
       bereich: (el('f_bereich').value.trim() || 'allgemein').toLowerCase(),
       schwierigkeit: Number(el('f_stufe').value) || 2,
-      frage: frage, antworten: gefuellt, richtig: richtig,
+      frage: frage, antworten: gefuellt, richtig: richtige,
       erklaerung: el('f_erklaerung').value.trim(),
       aktiv: true
     };
@@ -956,7 +962,8 @@
     var kopf = ['id', 'thema', 'bereich', 'schwierigkeit', 'frage', 'antworten (mit | getrennt)', 'richtig', 'erklaerung'];
     var zeilen = [kopf.join(';')].concat(fragen.map(function (f) {
       return [f.id, f.thema, f.bereich, f.schwierigkeit, f.frage,
-              (f.antworten || []).join('|'), f.richtig, f.erklaerung]
+              (f.antworten || []).join('|'),
+              (Array.isArray(f.richtig) ? f.richtig : [f.richtig]).join('|'), f.erklaerung]
         .map(function (x) { return String(x == null ? '' : x).replace(/;/g, ','); }).join(';');
     }));
     el('fformular').innerHTML = '<h2 class="sec">Fragen als CSV</h2><section class="card">' +
