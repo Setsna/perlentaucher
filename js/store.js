@@ -29,7 +29,7 @@ window.WA = window.WA || {};
   //           ein Zeichen je Feld: Ziffer/Buchstabe = Platz in der
   //           Farbliste, Punkt = leer
   function frischMal() {
-    return { rest: 0, tage: {}, bilder: [], aktiv: null, naechsteId: 1, frisch: 0 };
+    return { rest: 0, tage: {}, bilder: [], aktiv: null, naechsteId: 1, frisch: 0, weg: [] };
   }
   // Ältere Spielstände kennen den Malbereich noch nicht.
   function sicherMal(x) {
@@ -162,7 +162,10 @@ window.WA = window.WA || {};
     if (b) return b;
     b = s.mal.bilder.filter(function (x) { return !x.fertig; })[0];
     if (b) { s.mal.aktiv = b.id; save(true); return b; }
-    return malNeu('raster');
+    // Kein angefangenes Bild: Hier NICHT einfach ein Pixelbild anlegen.
+    // Sonst bekommt das Kind beim ersten Mal nie die Wahl zwischen
+    // Raster und weißem Blatt.
+    return null;
   }
   // art: 'raster' (Pixelraster) oder 'frei' (weißes Blatt)
   function malNeu(art) {
@@ -181,9 +184,10 @@ window.WA = window.WA || {};
   // Bilder aus der Datenbank übernehmen. Das neuere Bild gewinnt,
   // Bilder, die es nur hier gibt, bleiben erhalten.
   function malZusammenfuehren(fern) {
-    var nach = {};
-    s.mal.bilder.forEach(function (b) { nach[b.id] = b; });
+    var nach = {}, weg = s.mal.weg || [];
+    s.mal.bilder.forEach(function (b) { if (weg.indexOf(b.id) < 0) nach[b.id] = b; });
     (fern || []).forEach(function (b) {
+      if (weg.indexOf(b.id) >= 0) return;          // wurde gelöscht
       var da = nach[b.id];
       if (!da || (b.ts || 0) >= (da.ts || 0)) nach[b.id] = b;
     });
@@ -212,10 +216,22 @@ window.WA = window.WA || {};
     s.mal.aktiv = null;
     save();
   }
+  // Gelöschte Bilder werden gemerkt, sonst holt sie das nächste
+  // Zusammenführen aus der Datenbank wieder zurück.
   function malLoeschen(id) {
     s.mal.bilder = s.mal.bilder.filter(function (b) { return b.id !== id; });
     if (s.mal.aktiv === id) s.mal.aktiv = null;
+    malWegMerken([id]);
     save();
+  }
+  function malWeg() { return (s.mal.weg || []).slice(); }
+  function malWegMerken(ids) {
+    var weg = s.mal.weg || [];
+    (ids || []).forEach(function (id) {
+      if (weg.indexOf(id) < 0) weg.push(id);
+    });
+    s.mal.weg = weg.slice(-300);
+    return s.mal.weg;
   }
   // Ein Feld setzen. still = nur lokal sichern, nicht sofort in die Wolke.
   function malSetzen(id, i, zeichen) {
@@ -370,6 +386,7 @@ window.WA = window.WA || {};
     setXpGemeldet: setXpGemeldet,
     malRest: malRest, malFrisch: malFrisch, malBild: malBild, malNeu: malNeu,
     malWaehlen: malWaehlen, malFertig: malFertig, malLoeschen: malLoeschen,
+    malWeg: malWeg, malWegMerken: malWegMerken,
     malSetzen: malSetzen, malVerbrauchen: malVerbrauchen,
     malStrich: malStrich, malStrichZurueck: malStrichZurueck, malPlatzFrei: malPlatzFrei,
     malBilder: function () { return s.mal.bilder; },

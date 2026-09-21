@@ -347,15 +347,19 @@ WA.firebaseConfig = {
     var code = kind.code.toLowerCase();
     return db.collection('bilder').where('code', '==', code).get()
       .then(function (snap) {
-        var liste = [];
+        var liste = [], geloescht = [];
         snap.forEach(function (d) {
           var x = d.data();
+          // Eine Löschmarke: Das Kind hat dieses Bild weggeworfen.
+          // Sie bleibt stehen, damit kein anderes Gerät es zurückholt.
+          if (x.geloescht) { geloescht.push(x.id); letzteFassung[x.id] = 'weg'; return; }
           liste.push({ id: x.id, art: x.art || 'raster', g: x.g || 16,
                        px: x.px, striche: x.striche, fertig: !!x.fertig, ts: x.ts || 0 });
           letzteFassung[x.id] = bildSchluessel({ id: x.id, art: x.art || 'raster', g: x.g || 16,
                        px: x.px, striche: x.striche, fertig: !!x.fertig, ts: x.ts || 0 });
         });
         bilderGeladen = true;
+        if (geloescht.length) WA.store.malWegMerken(geloescht);
         WA.store.malZusammenfuehren(liste);
         bilderSichern();                      // was nur lokal da war, hochladen
         return WA.store.malBilder();
@@ -373,6 +377,13 @@ WA.firebaseConfig = {
   function bilderSichern() {
     if (!bereit || !kind || !bilderGeladen) return Promise.resolve();
     var code = kind.code.toLowerCase(), aufgaben = [];
+    // Erst die Löschmarken: ein winziges Dokument ohne Bilddaten.
+    WA.store.malWeg().forEach(function (id) {
+      if (letzteFassung[id] === 'weg') return;
+      letzteFassung[id] = 'weg';
+      aufgaben.push(db.collection('bilder').doc(code + '_' + id)
+        .set({ code: code, id: id, geloescht: true, ts: Date.now() }));
+    });
     WA.store.malBilder().forEach(function (b) {
       var schluessel = bildSchluessel(b);
       if (letzteFassung[b.id] === schluessel) return;

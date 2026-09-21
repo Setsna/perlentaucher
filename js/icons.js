@@ -282,6 +282,13 @@ window.WA = window.WA || {};
     ),
 
     // Pinsel (Auswahl beim Malen)
+    papierkorb: svg(
+      '<path d="M22 28 h56 l-5 56 a10 10 0 0 1 -10 9 H37 a10 10 0 0 1 -10 -9 Z" fill="#8FA4B0"/>' +
+      '<path d="M32 40 v42 M50 40 v42 M68 40 v42" stroke="#5E7380" stroke-width="6" stroke-linecap="round"/>' +
+      '<rect x="16" y="20" width="68" height="12" rx="6" fill="#5E7380"/>' +
+      '<path d="M38 20 v-5 a5 5 0 0 1 5 -5 h14 a5 5 0 0 1 5 5 v5" fill="none" stroke="#5E7380" stroke-width="7" stroke-linecap="round"/>'
+    ),
+
     stift: svg(
       '<path d="M24 76 C 20 62, 30 52, 38 48 L 54 64 C 50 72, 38 82, 24 76 Z" fill="#F2A93B"/>' +
       '<path d="M24 76 C 26 70, 30 66, 35 64 C 33 70, 30 74, 24 76 Z" fill="#D9861F"/>' +

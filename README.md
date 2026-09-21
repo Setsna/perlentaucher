@@ -167,6 +167,16 @@ unter **Meine Bilder**, ob es ein **Pixelbild** (16 × 16 Felder anmalen) oder
 ein **freies Bild** (weißes Blatt, Pinsel in drei Breiten) anfangen will.
 Angefangene Bilder werden beim nächsten Mal weitergemalt.
 
+Beim ersten Mal wählt das Kind selbst, womit es anfängt – die App legt
+nichts mehr von sich aus an. **Meine Bilder** ist von der Startseite aus
+immer erreichbar, auch wenn Malzeit übrig ist; vorher führte der einzige
+Knopf sofort ins angefangene Bild.
+
+Bilder lassen sich **wegwerfen**, angefangene wie fertige, mit Rückfrage und
+Vorschau. Gelöschte Bilder merkt sich die App, damit ein zweites Gerät sie
+nicht wieder hereinholt; in der Datenbank bleibt dafür ein winziger Eintrag
+ohne Bilddaten stehen.
+
 Alles dazu steht in `js/config.js` unter `malen`:
 
 | Einstellung | Bedeutung |
@@ -310,7 +320,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=22`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=23`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

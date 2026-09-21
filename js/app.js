@@ -158,8 +158,13 @@
         ? 'Du darfst malen! Die Zeit läuft nur im Malfeld.'
         : 'Schaffe dein Tagesziel und du bekommst ' + C.malen.minutenProZiel + ' Minuten Malzeit.') +
       '</small></div>' +
-      '<button class="btn' + (rest > 0 ? '' : ' ghost') + ' mini" data-action="' + (rest > 0 ? 'malen' : 'malsammlung') + '">' +
-      (rest > 0 ? 'Malen' : 'Meine Bilder') + '</button></section>';
+      // "Meine Bilder" muss immer erreichbar sein. Vorher führte der
+      // einzige Knopf bei übriger Malzeit sofort ins angefangene Bild –
+      // an die Sammlung kam das Kind dann gar nicht mehr heran.
+      '<div class="malknoepfe">' +
+      (rest > 0 && offen ? '<button class="btn mini" data-action="malen">Weitermalen</button>' : '') +
+      '<button class="btn' + (rest > 0 && !offen ? '' : ' ghost') + ' mini" data-action="malsammlung">' +
+      'Meine Bilder</button></div></section>';
   }
 
   // ---------- Fächer ----------
@@ -631,8 +636,11 @@
         '<img src="' + vorschau(b) + '" alt="' + (istFrei(b) ? 'Zeichnung' : 'Pixelbild') + '" width="96" height="96">' +
         '<figcaption>' + (istFrei(b) ? 'Gezeichnet' : 'Pixel') +
         '<span class="malstatus">' + (b.fertig ? 'fertig' : 'in Arbeit') + '</span></figcaption>' +
+        '<div class="malknoepfe">' +
         (b.fertig ? '' : '<button class="btn mini" data-action="malweiter" data-id="' + b.id + '"' +
           (rest > 0 ? '' : ' disabled') + '>Weitermalen</button>') +
+        '<button class="btn ghost mini malweg" data-action="malweg" data-id="' + b.id + '"' +
+        ' aria-label="Bild wegwerfen">' + ico('papierkorb') + '</button></div>' +
         '</figure>';
     }).join('') : '<p class="muted">Noch kein Bild. Erreiche dein Tagesziel, dann darfst du malen!</p>';
 
@@ -645,7 +653,8 @@
           C.malen.minutenProZiel + ' Minuten dazu.') +
       '</section>' +
       '<section class="malgalerie">' + karten + '</section>' +
-      (rest > 0 ? '<h2 class="sec">Neu anfangen</h2><section class="neuwahl">' +
+      (rest > 0 ? '<h2 class="sec">' + (bilder.length ? 'Neu anfangen' : 'Womit möchtest du anfangen?') +
+        '</h2><section class="neuwahl">' +
         '<button class="navbtn' + (S.malPlatzFrei('raster') ? '' : ' aus') + '" data-action="malneu" data-art="raster"' +
         (S.malPlatzFrei('raster') ? '' : ' disabled') + '>' +
         '<span class="nic">' + ico('raster') + '</span><span class="ntext"><b>Pixelbild</b>' +
@@ -1174,6 +1183,20 @@
       case 'malneu': if (S.malNeu(t.getAttribute('data-art'))) renderMalen(); break;
       case 'breite': M.breite = i; M.radierer = false; neuePalette(); break;
       case 'malweiter': if (S.malWaehlen(parseInt(t.getAttribute('data-id'), 10))) renderMalen(); break;
+      case 'malweg':
+        var wegId = parseInt(t.getAttribute('data-id'), 10);
+        var wegBild = S.malBilder().filter(function (x) { return x.id === wegId; })[0];
+        if (!wegBild) break;
+        showModal('<h2>Bild wegwerfen?</h2>' +
+          '<img class="wegbild" src="' + vorschau(wegBild) + '" alt="" width="120" height="120">' +
+          '<p>Das Bild ist dann für immer weg. Du kannst es nicht zurückholen.</p>' +
+          '<button class="btn bad big wide" data-action="malwegja" data-id="' + wegId + '">Ja, wegwerfen</button>' +
+          '<button class="btn ghost big wide" data-action="close">Behalten</button>');
+        break;
+      case 'malwegja':
+        S.malLoeschen(parseInt(t.getAttribute('data-id'), 10));
+        closeModal(); wolkeSichern(); renderSammlung();
+        break;
       case 'malzurueck': malZurueck(); break;
       case 'malfertig':
         showModal('<h2>Bild fertig?</h2><p>Fertige Bilder kommen in deine Sammlung. ' +
