@@ -8,8 +8,11 @@
      wenn er unten auf die Firebase-Skripte stoesst. -->
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<!-- Geschlossene Schulanwendung. Sie soll nicht in Suchergebnissen
+     auftauchen; die Adresse gibt es nur auf dem Aufkleber. -->
+<meta name="robots" content="noindex, nofollow">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=30">
+<link rel="stylesheet" href="css/style.css?v=31">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -47,6 +50,9 @@
   input:focus, select:focus, textarea:focus { border-color: var(--brand); }
   /* Sichtbarer Fokusring fuer Tastaturbedienung, siehe css/style.css */
   :focus-visible { outline: 3px solid #0B3B57; outline-offset: 3px; border-radius: 6px; }
+  /* Nur fuer Screenreader: im Textfluss, aber nicht zu sehen. */
+  .nurvorlesen { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    border: 0; overflow: hidden; white-space: nowrap; clip: rect(0 0 0 0); clip-path: inset(50%); }
   textarea { width: 100%; min-height: 150px; font-family: ui-monospace, Menlo, monospace; font-size: 14px; resize: vertical; }
   label.feld { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 800;
     text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
@@ -115,6 +121,8 @@
   .antwzeile { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .antwzeile input[type=checkbox] { width: 24px; height: 24px; accent-color: var(--good); flex: none; }
   .antwzeile input[type=text] { flex: 1; }
+  /* Kaestchen und Text bilden ein Klickziel; siehe f_stellen. */
+  .antwlabel { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; min-height: 44px; }
   .merker { padding: 18px 0 8px; }
   .chip { display: inline-block; background: #E4F1F7; color: var(--brand-d); border-radius: 99px;
     padding: 4px 12px; font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -127,14 +135,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=30"></script>
-<script src="js/words.js?v=30"></script>
-<script src="js/bilder.js?v=30"></script>
-<script src="js/quiz.js?v=30"></script>
-<script src="js/mascot.js?v=30"></script>
-<script src="js/malen.js?v=30"></script>
-<script src="js/merge.js?v=30"></script>
-<script src="js/cloud.js?v=30"></script>
+<script src="js/config.js?v=31"></script>
+<script src="js/words.js?v=31"></script>
+<script src="js/bilder.js?v=31"></script>
+<script src="js/quiz.js?v=31"></script>
+<script src="js/mascot.js?v=31"></script>
+<script src="js/malen.js?v=31"></script>
+<script src="js/merge.js?v=31"></script>
+<script src="js/cloud.js?v=31"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -387,7 +395,8 @@
         '<td>' + letzterTag(f) + '</td></tr>';
     }).join('');
 
-    return '<section class="stats">' +
+    return '<h2 class="nurvorlesen">Überblick</h2>' +
+      '<section class="stats">' +
       '<div class="card stat"><h3>Kinder freigeschaltet</h3><div class="zahl">' + kinder.length + '</div></div>' +
       '<div class="card stat"><h3>Davon schon geübt</h3><div class="zahl">' + geuebt + '</div></div>' +
       '<div class="card stat"><h3>Klassenziel diese Woche</h3><div class="zahl">' + klassenPerlen +
@@ -409,7 +418,8 @@
       Object.keys(WA.config.stufen).map(function (s) {
         return '<option value="' + s + '"' + (k.stufe === s ? ' selected' : '') + '>' + s + '</option>';
       })).join('');
-    return '<select class="klein" data-kind="' + esc(k.id) + '" data-feld="stufe">' + opt + '</select>';
+    return '<select class="klein" data-kind="' + esc(k.id) + '" data-feld="stufe"' +
+      ' aria-label="Schwierigkeit für ' + esc(k.vorname) + '">' + opt + '</select>';
   }
 
   function listenWahl(k, listen) {
@@ -418,7 +428,8 @@
         return '<option value="' + esc(l.name) + '"' + (k.liste === l.name ? ' selected' : '') +
           '>' + esc(l.name) + '</option>';
       })).join('');
-    return '<select class="klein" data-kind="' + esc(k.id) + '" data-feld="liste">' + opt + '</select>';
+    return '<select class="klein" data-kind="' + esc(k.id) + '" data-feld="liste"' +
+      ' aria-label="Wortliste für ' + esc(k.vorname) + '">' + opt + '</select>';
   }
 
   function bindeFortschritt() {
@@ -475,7 +486,7 @@
         '<button class="btn ghost mini danger" data-loeschen="' + esc(w.id) + '">Löschen</button></td></tr>';
     }).join('');
 
-    var filter = '<select class="klein" id="filter"><option value="">alle Listen (' + woerter.length + ')</option>' +
+    var filter = '<select class="klein" id="filter" aria-label="Nach Wortliste filtern"><option value="">alle Listen (' + woerter.length + ')</option>' +
       listen.map(function (l) {
         return '<option value="' + esc(l.name) + '"' + (filterListe === l.name ? ' selected' : '') +
           '>' + esc(l.name) + ' (' + l.anzahl + ')</option>';
@@ -628,7 +639,7 @@
       '<div class="knopfreihe" style="margin:0 0 12px">' +
       '<button class="btn mini" id="csvdatei">Als Datei laden</button>' +
       '<button class="btn ghost mini" id="csvkopie">Text kopieren</button></div>' +
-      '<textarea id="csvout" spellcheck="false" style="min-height:260px"></textarea>' +
+      '<textarea id="csvout" spellcheck="false" aria-label="Wörter als CSV" style="min-height:260px"></textarea>' +
       '<div class="knopfreihe"><button class="btn ghost" id="zu">Schließen</button></div>' +
       '<div id="csvmeldung"></div></section>';
     el('csvout').value = text;
@@ -659,7 +670,7 @@
       '<div class="hinweis">Erste Zeile sind die Spaltennamen, getrennt mit Semikolon:<br>' +
       '<b>' + SPALTEN.join(';') + '</b><br>' +
       'Vorhandene Wörter werden überschrieben, neue kommen dazu. Nichts wird gelöscht.</div>' +
-      '<textarea id="csvin" spellcheck="false" placeholder="' + SPALTEN.join(';') + '&#10;Klee;der;Klee;Nomen;pflanze;🍀;eine Wiesenpflanze …;Im Gras wächst Klee.;Woche 5"></textarea>' +
+      '<textarea id="csvin" spellcheck="false" aria-label="CSV zum Einlesen" placeholder="' + SPALTEN.join(';') + '&#10;Klee;der;Klee;Nomen;pflanze;🍀;eine Wiesenpflanze …;Im Gras wächst Klee.;Woche 5"></textarea>' +
       '<div class="knopfreihe"><button class="btn" id="csvgo">Einlesen</button>' +
       '<button class="btn ghost" id="zu">Abbrechen</button></div><div id="csvfehler"></div></section>';
     el('zu').onclick = function () { el('formular').innerHTML = ''; };
@@ -847,7 +858,7 @@
       '<h2 class="sec">Kinder freischalten</h2><section class="card">' +
       '<div class="hinweis">Hier fügst du den Inhalt der Datei <b>kinder.json</b> ein, die zusammen mit dem ' +
       'Aufkleberbogen erzeugt wurde. Vorhandene Kinder werden nicht doppelt angelegt, ihr Spielstand bleibt erhalten.</div>' +
-      '<textarea id="json" spellcheck="false" placeholder=\'[{"vorname": "Lina", "code": "K7PM4XRT"}]\'></textarea>' +
+      '<textarea id="json" spellcheck="false" aria-label="Kinderliste als JSON" placeholder=\'[{"vorname": "Lina", "code": "K7PM4XRT"}]\'></textarea>' +
       '<div class="knopfreihe"><button class="btn" id="importieren">Kinder freischalten</button></div>' +
       '<div id="ergebnis"></div></section><div id="resetfeld"></div>';
   }
@@ -1038,7 +1049,7 @@
         '<button class="btn ghost mini danger" data-floeschen="' + esc(f.id) + '">Löschen</button></td></tr>';
     }).join('');
 
-    var filter = '<select class="klein" id="fthema"><option value="">alle Themen (' + fragen.length + ')</option>' +
+    var filter = '<select class="klein" id="fthema" aria-label="Nach Thema filtern"><option value="">alle Themen (' + fragen.length + ')</option>' +
       themen.map(function (t) {
         return '<option value="' + esc(t.name) + '"' + (filterThema === t.name ? ' selected' : '') +
           '>' + esc(t.name) + ' (' + t.anzahl + ')</option>';
@@ -1148,8 +1159,12 @@
         }).join('') + '</select></label>' +
         '<div id="f_stellen">' + WA.grafiken[key].punkte.map(function (p) {
           var an = !gewaehlt.length || gewaehlt.indexOf(p.id) >= 0;
-          return '<div class="antwzeile"><input type="checkbox" data-punkt="' + esc(p.id) + '"' +
-            (an ? ' checked' : '') + '><span>' + esc(p.label) + '</span></div>';
+          // Der Text steht im <label>, nicht daneben. Sonst hat das
+          // Kaestchen keinen Namen, und ein Klick auf den Text schaltet
+          // es nicht mit - bei 24 Pixeln ein unnoetig kleines Ziel.
+          return '<div class="antwzeile"><label class="antwlabel">' +
+            '<input type="checkbox" data-punkt="' + esc(p.id) + '"' +
+            (an ? ' checked' : '') + '><span>' + esc(p.label) + '</span></label></div>';
         }).join('') + '</div>' +
         '<div id="f_vorschau" style="margin-top:12px;max-width:280px"></div>';
     } else if (art === 'merken') {
@@ -1161,8 +1176,9 @@
         '<p class="muted" style="margin-bottom:10px;font-size:15px">' + esc(ARTEN.reihenfolge.hilfe) +
         ' Beim Üben werden sie gemischt.</p>' +
         ant.map(function (a, i) {
-          return '<div class="antwzeile"><span class="chip">' + (i + 1) + '</span>' +
-            '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" placeholder="Schritt ' + (i + 1) +
+          return '<div class="antwzeile"><span class="chip" aria-hidden="true">' + (i + 1) + '</span>' +
+            '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" aria-label="Schritt ' + (i + 1) +
+            '" placeholder="Schritt ' + (i + 1) +
             (i > 2 ? ' (kann leer bleiben)' : '') + '"></div>';
         }).join('');
     } else {
@@ -1171,8 +1187,10 @@
         'Es dürfen aber mehrere sein – dann zählt jede davon als richtig.</p>' +
         ant.map(function (a, i) {
           return '<div class="antwzeile"><input type="checkbox" id="f_r' + i + '"' +
+            ' aria-label="Antwort ' + (i + 1) + ' ist richtig"' +
             ((a && richtige.indexOf(a) >= 0) || (neu && i === 0 && !richtige.length) ? ' checked' : '') + '>' +
-            '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" placeholder="Antwort ' + (i + 1) +
+            '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" aria-label="Antwort ' + (i + 1) +
+            '" placeholder="Antwort ' + (i + 1) +
             (i > 1 ? ' (kann leer bleiben)' : '') + '"></div>';
         }).join('');
     }
@@ -1349,7 +1367,7 @@
     }));
     el('fformular').innerHTML = '<h2 class="sec">Fragen als CSV</h2><section class="card">' +
       '<div class="hinweis">Zum Sichern oder zum Weiterarbeiten in einer Tabelle.</div>' +
-      '<textarea id="fcsv" spellcheck="false" style="min-height:260px"></textarea>' +
+      '<textarea id="fcsv" spellcheck="false" aria-label="Fragen als CSV" style="min-height:260px"></textarea>' +
       '<div class="knopfreihe"><button class="btn ghost" id="fzu2">Schließen</button></div></section>';
     el('fcsv').value = zeilen.join('\n');
     el('fcsv').select();
@@ -1546,6 +1564,7 @@
       '<h2 class="sec">Zurückspielen</h2><section class="card">' +
       '<div class="hinweis">Wähle eine zuvor heruntergeladene Datei. Du siehst erst, was darin ' +
       'steht, und entscheidest dann.</div>' +
+      '<label class="nurvorlesen" for="sicherungdatei">Sicherungsdatei wählen</label>' +
       '<input type="file" id="sicherungdatei" accept="application/json,.json">' +
       '</section>' + pruefung;
   }

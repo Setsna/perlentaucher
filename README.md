@@ -369,6 +369,23 @@ auf den Weiter-Knopf.
 Fokusringe kommen aus einer `:focus-visible`-Regel und erscheinen nur bei
 Tastaturbedienung. `outline: none` gehört nirgendwo hin.
 
+Dialoge sind echte Dialoge: Der Fokus springt beim Öffnen hinein, der
+Tabulator läuft darin im Kreis, Escape schließt, und danach kehrt der Fokus
+auf den Knopf zurück, der den Dialog geöffnet hat. Die erste Überschrift im
+Dialog wird automatisch zu seinem Namen – jeder Dialog sollte deshalb mit
+einer beginnen.
+
+Die Gliederung: genau ein `h1` je Ansicht, darunter `h2`, darunter `h3`,
+ohne Sprünge. Wo eine Zwischenüberschrift nur der Gliederung dient und
+nicht zu sehen sein soll, bekommt sie die Klasse `nurvorlesen`.
+
+Eingabefelder brauchen eine Beschriftung. Entweder umschließt sie ein
+`<label>`, oder das Feld trägt ein `aria-label`. Ein `placeholder` reicht
+nicht – er verschwindet beim Tippen.
+
+Beide Seiten tragen `<meta name="robots" content="noindex, nofollow">`.
+Die Anwendung ist öffentlich erreichbar, soll aber nicht gefunden werden.
+
 ## Wo der Spielstand liegt
 
 Im Browser unter `wortabenteuer.v1.<code>`, die Abgleichsbasis unter
@@ -384,7 +401,7 @@ Stelle einbaut und das vergisst, verliert die Änderung beim nächsten Laden.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=30`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=31`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

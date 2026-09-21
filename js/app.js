@@ -72,8 +72,51 @@
   function bar(p, color) {
     return '<div class="bar"><i style="width:' + pct(p) + '%;background:' + (color || 'var(--brand)') + '"></i></div>';
   }
-  function showModal(html) { $modal.innerHTML = '<div class="overlay"><div class="dialog">' + html + '</div></div>'; }
-  function closeModal() { $modal.innerHTML = ''; }
+  // Dialoge.
+  //
+  // Vorher war das nur ein Kasten ueber der Seite: Ein Screenreader las
+  // weiter den Inhalt dahinter, der Fokus blieb dahinter haengen, und
+  // mit der Tastatur kam man gar nicht hinein. Jetzt ist es ein echter
+  // Dialog - Fokus springt hinein, Tabulator bleibt darin, Escape
+  // schliesst, und danach kehrt der Fokus dorthin zurueck, wo er war.
+  var modalVorher = null;
+  function showModal(html) {
+    modalVorher = document.activeElement;
+    $modal.innerHTML =
+      '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" tabindex="-1">' +
+      html + '</div></div>';
+    var d = $modal.querySelector('.dialog');
+    // Jeder Dialog beginnt mit einer Ueberschrift. Die wird zu seinem
+    // Namen, damit ein Screenreader beim Oeffnen sagt, worum es geht.
+    var h = d.querySelector('h2, h1, h3');
+    if (h) { h.id = 'dialogtitel'; d.setAttribute('aria-labelledby', 'dialogtitel'); }
+    var erste = d.querySelector('button, [href], input, select, textarea');
+    try { (erste || d).focus({ preventScroll: true }); } catch (e) { (erste || d).focus(); }
+  }
+  function closeModal() {
+    if (!$modal.innerHTML) return;
+    $modal.innerHTML = '';
+    if (modalVorher && document.contains(modalVorher)) {
+      try { modalVorher.focus({ preventScroll: true }); } catch (e) { modalVorher.focus(); }
+    }
+    modalVorher = null;
+  }
+  function modalOffen() { return !!$modal.querySelector('.dialog'); }
+
+  // Escape schliesst, Tabulator laeuft im Kreis.
+  document.addEventListener('keydown', function (e) {
+    if (!modalOffen()) return;
+    if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+    if (e.key !== 'Tab') return;
+    var d = $modal.querySelector('.dialog');
+    var f = Array.prototype.filter.call(
+      d.querySelectorAll('button, [href], input, select, textarea, [tabindex]'),
+      function (x) { return !x.disabled && x.getAttribute('tabindex') !== '-1'; });
+    if (!f.length) { e.preventDefault(); return; }
+    var erste = f[0], letzte = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === erste) { e.preventDefault(); letzte.focus(); }
+    else if (!e.shiftKey && document.activeElement === letzte) { e.preventDefault(); erste.focus(); }
+  });
   function clearConfetti() { var c = document.querySelectorAll('.confetti'); for (var i = 0; i < c.length; i++) c[i].remove(); }
 
   function confetti() {                      // aufsteigende Luftblasen statt Konfetti
@@ -306,11 +349,18 @@
 
     $app.innerHTML =
       '<div class="home">' +
-      '<header class="top"><div class="brand">' + WA.mascot('happy', 48) + '<span>Perlen<b>taucher</b></span></div>' +
+      // Der Schriftzug ist die einzige Ueberschrift ersten Grades auf
+      // der Startseite. Vorher war er ein <div>, und die Seite begann
+      // mit h3 - wer per Ueberschriftenliste navigiert, landete mitten
+      // in der Gliederung.
+      '<header class="top"><h1 class="brand">' + WA.mascot('happy', 48) + '<span>Perlen<b>taucher</b></span></h1>' +
       '<div class="tools"><div class="pill" id="heartchip">' + heartChip() + '</div>' +
       '<div class="pill"><span class="pearl"></span> <b>' + st.xp + '</b> Perlen</div>' +
       '<button class="icon-btn" data-action="settings" aria-label="Einstellungen">' + ico('zahnrad') + '</button></div></header>' +
       '<section class="hero">' + WA.mascot(today >= goal ? 'cheer' : 'happy', 120) + '<div class="bubble">' + msg + '</div></section>' +
+      // Die drei Karten sind h3. Ohne diese Zwischenueberschrift
+      // folgte auf h1 direkt h3.
+      '<h2 class="nurvorlesen">Dein Stand</h2>' +
       '<section class="stats">' +
       '<div class="card stat"><h3>Tagesziel</h3><div class="big">' + Math.min(today, 9999) + ' <small>/ ' + goal + ' Perlen</small></div>' + bar(Math.min(1, today / goal), 'var(--coral)') + '</div>' +
       '<div class="card stat"><h3>Dein Rekord</h3><div class="big">' + ico('perle') + ' ' + st.best.day + ' <small>Perlen an einem Tag</small></div><div class="sub">Bester Tauchgang: <b>' + st.best.lesson + ' Perlen</b></div></div>' +
