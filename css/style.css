@@ -411,6 +411,37 @@ body.sync-an #app { min-height: calc(100vh - var(--synch, 0px)); }
   background: #fff; border: 2px solid var(--line); border-bottom-width: 5px; border-radius: 14px; }
 .stapelkachel:active { transform: translateY(3px); border-bottom-width: 2px; }
 
+/* ---------- Sachunterricht: Bild beschriften ---------- */
+.schildbild { display: flex; justify-content: center; margin: 0 0 14px;
+  background: #fff; border: 2px solid var(--line); border-radius: 20px; padding: 10px; }
+.schildflaeche { position: relative; }
+.schildflaeche svg { display: block; width: 100%; height: 100%; }
+.marke { position: absolute; transform: translate(-50%, -50%); width: 34px; height: 34px;
+  border-radius: 50%; border: 3px solid var(--brand); background: #fff; color: var(--brand);
+  font-size: 17px; font-weight: 900; line-height: 1; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .12); }
+.marke.voll { background: var(--brand); color: #fff; }
+.marke.aktiv { border-color: var(--sand-ink); background: var(--sand); color: var(--sand-ink);
+  transform: translate(-50%, -50%) scale(1.18); }
+.marke.ok { border-color: var(--good); background: var(--good); color: #fff; }
+.marke.no { border-color: var(--bad); background: var(--bad); color: #fff; }
+.schildliste { list-style: none; margin: 0 0 14px; padding: 0;
+  display: flex; flex-direction: column; gap: 8px; }
+.schildzeile { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+  min-height: 56px; padding: 8px 14px; font-size: 18px; font-weight: 700;
+  border-radius: 14px; border: 3px dashed #9FC6D6; background: #fff; }
+.schildzeile .nr { flex: none; width: 32px; height: 32px; border-radius: 50%;
+  background: #E4F1F7; color: var(--muted); font-size: 16px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center; }
+.schildzeile .wort { flex: 1; }
+.schildzeile s { color: var(--muted); font-weight: 600; }
+.schildzeile.voll { border-style: solid; border-color: var(--brand); background: #E2F4F7; }
+.schildzeile.aktiv { border-style: solid; border-color: var(--sand-ink); background: var(--sand); }
+.schildzeile.aktiv .nr { background: #fff; color: var(--sand-ink); }
+.schildzeile.ok { border-style: solid; border-color: var(--good); background: var(--good-bg); color: var(--good-d); }
+.schildzeile.no { border-style: solid; border-color: var(--bad); background: var(--bad-bg); color: var(--bad-d); }
+
 /* ---------- Sachunterricht: Erst denken, dann vergleichen ---------- */
 .denkfeld { display: flex; align-items: center; gap: 16px; background: #fff; border: 2px solid var(--line);
   border-radius: 20px; padding: 18px; font-size: 19px; font-weight: 600; line-height: 1.35; }

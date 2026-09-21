@@ -794,7 +794,8 @@
   }
 
   function stageHtml() {
-    var q = L.q, mood = L.answered ? (L.res.ok ? 'cheer' : 'sad') : (q.kind === 'build' ? 'think' : 'happy');
+    var q = L.q, mood = L.answered ? (L.res.ok ? 'cheer' : 'sad')
+      : (q.kind === 'build' || q.kind === 'schild' ? 'think' : 'happy');
     var h = '<div class="prow">' + WA.mascot(mood, 72) + '<div class="bubble q">' + esc(q.prompt) +
       (q.speak ? ' <button class="spk" data-action="speak" aria-label="Vorlesen">' + ico('lautsprecher') + '</button>' : '') + '</div></div>';
 
@@ -835,6 +836,48 @@
           (L.answered ? ' disabled' : '') + '>' + esc(t) + '</button>';
       }).join('');
       if (offen) h += '<div class="stapelpool">' + offen + '</div>';
+    } else if (q.kind === 'schild') {
+      // Bild beschriften: nummerierte Stellen im Bild, darunter die
+      // Zeilen mit denselben Nummern. Das Kind tippt eine Stelle an
+      // und wählt dann den Begriff.
+      var richtigAn = function (idx) {
+        var ti = L.slots[idx];
+        return ti !== null && q.tiles[ti] === q.punkte[idx].label;
+      };
+      var ma = WA.grafikMasse(q.grafik);
+      h += '<div class="schild"><div class="schildbild"><div class="schildflaeche" style="' +
+        'aspect-ratio:' + ma.breite + '/' + ma.hoehe + ';' +
+        'width:min(100%, calc(42vh * ' + ma.breite + ' / ' + ma.hoehe + '))">' +
+        WA.grafikSvg(q.grafik) +
+        q.punkte.map(function (p, idx) {
+          var cls = 'marke' + (L.sel === idx ? ' aktiv' : '') + (L.slots[idx] !== null ? ' voll' : '');
+          if (L.answered) cls += richtigAn(idx) ? ' ok' : ' no';
+          return '<button class="' + cls + '" data-action="marke" data-i="' + idx + '"' +
+            (L.answered ? ' disabled' : '') +
+            ' style="left:' + p.x + '%;top:' + p.y + '%"' +
+            ' aria-label="Stelle ' + (idx + 1) + '">' + (idx + 1) + '</button>';
+        }).join('') + '</div></div>';
+      h += '<ol class="schildliste">' + q.punkte.map(function (p, idx) {
+        var ti = L.slots[idx], text;
+        var cls = 'schildzeile' + (L.sel === idx ? ' aktiv' : '') + (ti !== null ? ' voll' : '');
+        if (L.answered) {
+          cls += richtigAn(idx) ? ' ok' : ' no';
+          text = richtigAn(idx) ? esc(p.label)
+            : (ti !== null ? '<s>' + esc(q.tiles[ti]) + '</s> ' : '') + esc(p.label);
+        } else {
+          text = ti !== null ? esc(q.tiles[ti]) : '<span class="leerplatz">…</span>';
+        }
+        return '<li><button class="' + cls + '" data-action="marke" data-i="' + idx + '"' +
+          (L.answered ? ' disabled' : '') + '><span class="nr">' + (idx + 1) + '</span>' +
+          '<span class="wort">' + text + '</span></button></li>';
+      }).join('') + '</ol>';
+      var frei = q.tiles.map(function (t, i) {
+        return L.slots.indexOf(i) >= 0 ? '' :
+          '<button class="stapelkachel" data-action="tile" data-i="' + i + '"' +
+          (L.answered ? ' disabled' : '') + '>' + esc(t) + '</button>';
+      }).join('');
+      if (frei) h += '<div class="stapelpool">' + frei + '</div>';
+      h += '</div>';
     } else if (q.kind === 'offen') {
       h += '<div class="offen">' + (L.answered
         ? '<div class="loesungsfeld"><h3>So könnte die Antwort lauten</h3><p>' + esc(q.loesung) + '</p></div>' +
@@ -872,7 +915,7 @@
     var q = L.q;
     if (q.kind === 'offen') return true;
     if (q.kind === 'choice') return L.sel !== null;
-    if (q.kind === 'build') return L.slots.every(function (x) { return x !== null; });
+    if (q.kind === 'build' || q.kind === 'schild') return L.slots.every(function (x) { return x !== null; });
     return Object.keys(L.cuts).length > 0;
   }
 
@@ -900,13 +943,25 @@
         erkl + '</div>' +
         '<button class="btn good big" data-action="next">Weiter</button></div>';
     }
+    // Beim Beschriften zählt jede Stelle einzeln. Die richtige Lösung
+    // steht schon in den Zeilen, deshalb hier nur die Bilanz.
+    var t = L.res.teil;
+    if (t) {
+      var gx = L.res.xp;
+      return '<div class="footer bad"><div class="fb"><b>' +
+        (t.richtig * 2 >= t.gesamt ? 'Fast!' : 'Nicht ganz.') + '</b> <span class="sol">' +
+        t.richtig + ' von ' + t.gesamt + ' sitzen.</span>' +
+        (gx.total ? '<span class="xpgain">+' + gx.total + ' Perlen</span>' : '') +
+        erkl + '</div>' +
+        '<button class="btn bad big" data-action="next">Weiter</button></div>';
+    }
     return '<div class="footer bad"><div class="fb"><b>Nicht ganz.</b> Richtig ist: <span class="sol">' + esc(L.q.solutionText) + '</span>' +
       erkl + '</div>' +
       '<button class="btn bad big" data-action="next">Weiter</button></div>';
   }
 
   function check() {
-    var q = L.q, ok;
+    var q = L.q, ok, teil = null;
 
     // Bei der Merkfrage entscheidet nicht das Programm, sondern das
     // Kind selbst – deshalb wird hier nur aufgelöst.
@@ -924,6 +979,15 @@
       ok = Array.isArray(q.correct) ? q.correct.indexOf(gewaehlt) >= 0 : gewaehlt === q.correct;
     }
     else if (q.kind === 'build') ok = q.assemble(L.slots.map(function (i) { return q.tiles[i]; })) === q.answerWord;
+    else if (q.kind === 'schild') {
+      // Hier wird jede einzelne Stelle gezählt, nicht nur alles oder nichts.
+      var sitzen = 0;
+      L.slots.forEach(function (ti, idx) {
+        if (ti !== null && q.tiles[ti] === q.punkte[idx].label) sitzen++;
+      });
+      teil = { richtig: sitzen, gesamt: q.punkte.length };
+      ok = sitzen === q.punkte.length;
+    }
     else {
       var a = Object.keys(L.cuts).map(Number).sort(function (x, y) { return x - y; }).join(',');
       ok = a === q.solution.join(',');
@@ -937,7 +1001,18 @@
       sfx.ok();
     } else {
       L.wrong++; L.streak = 0; sfx.bad();
-      if (!L.practice) {
+      // Teilwertung: Wer die meisten Stellen trifft, bekommt anteilig
+      // Perlen und behält seine Luftblase. Nur wer weniger als den
+      // eingestellten Anteil schafft, verliert eine.
+      var anteil = teil && teil.gesamt ? teil.richtig / teil.gesamt : 0;
+      var teilwertung = teil && (C.quiz || {}).teilpunkte !== false;
+      if (teilwertung && teil.richtig > 0 && !L.practice) {
+        var voll = EX.xpFor(q, 0);
+        var perlen = Math.round(voll.base * anteil);
+        if (perlen > 0) { xp = { base: perlen, bonus: 0, total: perlen }; S.addXp(perlen); L.xp += perlen; }
+      }
+      var schont = teilwertung && anteil >= ((C.quiz || {}).luftblaseAbAnteil != null ? C.quiz.luftblaseAbAnteil : 0.5);
+      if (!L.practice && !schont) {
         S.loseHeart();
         if (S.hearts().count <= 0) L.outOfHearts = true;
       }
@@ -948,7 +1023,7 @@
           : EX.makeQuestion(q.type, getWord(q.wordId)));
       }
     }
-    L.res = { ok: ok, xp: xp };
+    L.res = { ok: ok, xp: xp, teil: teil };
     updateLesson();
   }
 
@@ -1070,7 +1145,20 @@
       case 'speak': speak(L.q.speak); break;
       case 'pick': if (!L.answered) { L.sel = i; updateLesson(); } break;
       case 'tile':
-        if (!L.answered) { var free = L.slots.indexOf(null); if (free >= 0 && L.slots.indexOf(i) < 0) { L.slots[free] = i; updateLesson(); } }
+        if (!L.answered && L.slots.indexOf(i) < 0) {
+          // Beim Beschriften zählt die vorher angetippte Stelle,
+          // sonst geht der Baustein auf den nächsten freien Platz.
+          var ziel = (L.q.kind === 'schild' && L.sel !== null && L.slots[L.sel] === null)
+            ? L.sel : L.slots.indexOf(null);
+          if (ziel >= 0) { L.slots[ziel] = i; if (L.q.kind === 'schild') L.sel = null; updateLesson(); }
+        }
+        break;
+      case 'marke':
+        if (!L.answered) {
+          if (L.slots[i] !== null) { L.slots[i] = null; L.sel = i; }   // Begriff wieder abnehmen
+          else L.sel = (L.sel === i ? null : i);
+          updateLesson();
+        }
         break;
       case 'unslot': if (!L.answered && L.slots[i] !== null) { L.slots[i] = null; updateLesson(); } break;
       case 'cut': if (!L.answered) { if (L.cuts[i]) delete L.cuts[i]; else L.cuts[i] = true; updateLesson(); } break;

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="stylesheet" href="css/style.css?v=17">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -107,14 +107,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=16"></script>
-<script src="js/words.js?v=16"></script>
-<script src="js/quiz.js?v=16"></script>
-<script src="js/mascot.js?v=16"></script>
-<script src="js/icons.js?v=16"></script>
-<script src="js/malen.js?v=16"></script>
-<script src="js/merge.js?v=16"></script>
-<script src="js/cloud.js?v=16"></script>
+<script src="js/config.js?v=17"></script>
+<script src="js/words.js?v=17"></script>
+<script src="js/bilder.js?v=17"></script>
+<script src="js/quiz.js?v=17"></script>
+<script src="js/mascot.js?v=17"></script>
+<script src="js/icons.js?v=17"></script>
+<script src="js/malen.js?v=17"></script>
+<script src="js/merge.js?v=17"></script>
+<script src="js/cloud.js?v=17"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -828,7 +829,15 @@
       var richtige = Array.isArray(f.richtig) ? f.richtig : [f.richtig];
       var art = ARTEN[f.art] ? f.art : 'wahl';
       var ant;
-      if (art === 'merken') {
+      if (art === 'beschriften') {
+        var g = WA.grafiken[f.grafik];
+        ant = g
+          ? '<b class="richtig">' + esc(g.titel) + '</b> · ' +
+            WA.grafikPunkte(f.grafik, f.antworten).map(function (p, i) {
+              return (i + 1) + ' ' + esc(p.label);
+            }).join(' · ')
+          : '<span class="muted">Bild „' + esc(f.grafik || '?') + '“ gibt es nicht mehr</span>';
+      } else if (art === 'merken') {
         ant = '<span class="muted">' + esc(f.loesung || '') + '</span>';
       } else if (art === 'reihenfolge') {
         ant = (f.antworten || []).map(function (a) { return esc(a); }).join(' <b class="richtig">→</b> ');
@@ -879,7 +888,8 @@
   var ARTEN = {
     wahl:        { name: 'Antwortfrage',   hilfe: 'Die Kinder wählen aus mehreren Antworten aus.' },
     reihenfolge: { name: 'Reihenfolge',    hilfe: 'Die Kinder bringen die Schritte in die richtige Reihenfolge. Schreibe sie hier in der richtigen Reihenfolge auf.' },
-    merken:      { name: 'Erst denken',    hilfe: 'Die Kinder überlegen selbst, lesen dann die Musterlösung und schätzen sich ein. Diese Aufgabe gibt keine Perlen.' }
+    merken:      { name: 'Erst denken',    hilfe: 'Die Kinder überlegen selbst, lesen dann die Musterlösung und schätzen sich ein. Diese Aufgabe gibt keine Perlen.' },
+    beschriften: { name: 'Bild beschriften', hilfe: 'Die Kinder ordnen den nummerierten Stellen im Bild die richtigen Begriffe zu. Die Bilder sind fest eingebaut; neue kann ich ergänzen.' }
   };
   var ANTWORTFELDER = 6;
 
@@ -895,20 +905,49 @@
       var r = el('f_r' + i);
       if (v && r && r.checked) richtige.push(v);
     }
+    if (el('f_grafik')) {
+      // Beim Beschriften stehen in "antworten" die angekreuzten Stellen.
+      ant = [];
+      document.querySelectorAll('[data-punkt]').forEach(function (c) {
+        if (c.checked) ant.push(c.getAttribute('data-punkt'));
+      });
+      richtige = [];
+    }
     return {
       thema: el('f_thema').value, bereich: el('f_bereich').value,
       schwierigkeit: Number(el('f_stufe').value) || 2,
       art: el('f_art') ? el('f_art').value : 'wahl',
       frage: el('f_frage').value, antworten: ant, richtig: richtige,
       loesung: el('f_loesung') ? el('f_loesung').value : '',
+      grafik: el('f_grafik') ? el('f_grafik').value : '',
       erklaerung: el('f_erklaerung').value
     };
+  }
+
+  /* Die Grafik im Formular zeigen, mit den Nummern der angekreuzten Stellen */
+  function grafikVorschau() {
+    var wo = el('f_vorschau');
+    if (!wo) return;
+    var key = el('f_grafik').value;
+    var ids = [];
+    document.querySelectorAll('[data-punkt]').forEach(function (c) {
+      if (c.checked) ids.push(c.getAttribute('data-punkt'));
+    });
+    var punkte = WA.grafikPunkte(key, ids), ma = WA.grafikMasse(key);
+    wo.innerHTML = '<div class="schildbild"><div class="schildflaeche" style="aspect-ratio:' +
+      ma.breite + '/' + ma.hoehe + ';width:min(100%, calc(240px * ' + ma.breite + ' / ' + ma.hoehe + '))">' +
+      WA.grafikSvg(key) + punkte.map(function (p, i) {
+        return '<span class="marke" style="left:' + p.x + '%;top:' + p.y + '%">' + (i + 1) + '</span>';
+      }).join('') + '</div></div>' +
+      '<p class="muted" style="font-size:15px">' + (punkte.length
+        ? punkte.map(function (p, i) { return (i + 1) + ' ' + esc(p.label); }).join(' · ')
+        : 'Es ist keine Stelle angekreuzt.') + '</p>';
   }
 
   function frageFormular(id, vorlage) {
     var f = vorlage || fragen.filter(function (x) { return x.id === id; })[0] ||
       { id: '', thema: filterThema || 'feuer', bereich: '', schwierigkeit: 2, art: 'wahl',
-        frage: '', antworten: ['', '', ''], richtig: [], loesung: '', erklaerung: '' };
+        frage: '', antworten: ['', '', ''], richtig: [], loesung: '', grafik: '', erklaerung: '' };
     var neu = !id;
     var art = ARTEN[f.art] ? f.art : 'wahl';
     var anzahl = art === 'reihenfolge' ? ANTWORTFELDER : 4;
@@ -916,7 +955,25 @@
     var richtige = Array.isArray(f.richtig) ? f.richtig : (f.richtig ? [f.richtig] : []);
 
     var mitte;
-    if (art === 'merken') {
+    if (art === 'beschriften') {
+      var liste = WA.grafikListe();
+      var key = WA.grafiken[f.grafik] ? f.grafik : liste[0].id;
+      var gewaehlt = (f.antworten || []).filter(function (a) { return a; });
+      mitte = '<h3 class="merker">Bild und Stellen</h3>' +
+        '<p class="muted" style="margin-bottom:10px;font-size:15px">' + esc(ARTEN.beschriften.hilfe) +
+        ' Kreuze an, welche Stellen beschriftet werden sollen – mindestens zwei.</p>' +
+        '<label class="feld" style="max-width:360px">Bild<select id="f_grafik" style="width:100%">' +
+        liste.map(function (g) {
+          return '<option value="' + esc(g.id) + '"' + (key === g.id ? ' selected' : '') +
+            '>' + esc(g.titel) + ' (' + g.punkte + ' Stellen)</option>';
+        }).join('') + '</select></label>' +
+        '<div id="f_stellen">' + WA.grafiken[key].punkte.map(function (p) {
+          var an = !gewaehlt.length || gewaehlt.indexOf(p.id) >= 0;
+          return '<div class="antwzeile"><input type="checkbox" data-punkt="' + esc(p.id) + '"' +
+            (an ? ' checked' : '') + '><span>' + esc(p.label) + '</span></div>';
+        }).join('') + '</div>' +
+        '<div id="f_vorschau" style="margin-top:12px;max-width:280px"></div>';
+    } else if (art === 'merken') {
       mitte = '<h3 class="merker">Musterlösung</h3>' +
         '<p class="muted" style="margin-bottom:10px;font-size:15px">' + esc(ARTEN.merken.hilfe) + '</p>' +
         feld('f_loesung', 'So könnte die Antwort lauten', f.loesung || '');
@@ -962,7 +1019,21 @@
 
     el('fzu').onclick = function () { el('fformular').innerHTML = ''; };
     el('fspeichern').onclick = function () { frageSpeichern(id); };
-    el('f_art').onchange = function () { frageFormular(id, formularLesen()); };
+    el('f_art').onchange = function () {
+      var v = formularLesen();
+      // Antworten und Stellen lassen sich nicht ineinander übersetzen.
+      if ((v.art === 'beschriften') !== (art === 'beschriften')) v.antworten = [];
+      frageFormular(id, v);
+    };
+    if (el('f_grafik')) {
+      el('f_grafik').onchange = function () {
+        var v = formularLesen();
+        v.antworten = [];                // neues Bild, alle Stellen an
+        frageFormular(id, v);
+      };
+      document.querySelectorAll('[data-punkt]').forEach(function (c) { c.onchange = grafikVorschau; });
+      grafikVorschau();
+    }
     el('f_frage').focus();
   }
 
@@ -980,6 +1051,14 @@
     }
     var frage = el('f_frage').value.trim();
     var loesung = el('f_loesung') ? el('f_loesung').value.trim() : '';
+    var grafik = el('f_grafik') ? el('f_grafik').value : '';
+    if (art === 'beschriften') {
+      ant = [];
+      document.querySelectorAll('[data-punkt]').forEach(function (c) {
+        if (c.checked) ant.push(c.getAttribute('data-punkt'));
+      });
+      richtige = [];
+    }
     var gefuellt = ant.filter(function (a) { return a; });
     var doppelt = gefuellt.length !== gefuellt.filter(function (a, i2) { return gefuellt.indexOf(a) === i2; }).length;
 
@@ -987,6 +1066,9 @@
     if (!frage) fehler = 'Die Frage fehlt.';
     else if (art === 'merken') {
       if (!loesung) fehler = 'Die Musterlösung fehlt.';
+    } else if (art === 'beschriften') {
+      if (!WA.grafiken[grafik]) fehler = 'Es ist kein Bild ausgewählt.';
+      else if (gefuellt.length < 2) fehler = 'Es müssen mindestens zwei Stellen angekreuzt sein.';
     } else if (art === 'reihenfolge') {
       if (gefuellt.length < 3) fehler = 'Es braucht mindestens drei Schritte.';
       else if (doppelt) fehler = 'Zwei Schritte sind gleich.';
@@ -1008,6 +1090,7 @@
       antworten: art === 'merken' ? [] : gefuellt,
       richtig: art === 'wahl' ? richtige : [],
       loesung: art === 'merken' ? loesung : '',
+      grafik: art === 'beschriften' ? grafik : '',
       erklaerung: el('f_erklaerung').value.trim(),
       aktiv: true
     };
@@ -1038,6 +1121,7 @@
                  JSON.stringify(vorhanden[f.id].antworten) !== JSON.stringify(f.antworten) ||
                  (vorhanden[f.id].art || 'wahl') !== (f.art || 'wahl') ||
                  (vorhanden[f.id].loesung || '') !== (f.loesung || '') ||
+                 (vorhanden[f.id].grafik || '') !== (f.grafik || '') ||
                  vorhanden[f.id].frage !== f.frage ||
                  vorhanden[f.id].erklaerung !== f.erklaerung) geaendert++;
       });
@@ -1053,7 +1137,7 @@
         thema: f.thema, bereich: f.bereich, schwierigkeit: f.schwierigkeit,
         art: f.art || 'wahl',
         frage: f.frage, antworten: f.antworten, richtig: f.richtig,
-        loesung: f.loesung || '',
+        loesung: f.loesung || '', grafik: f.grafik || '',
         erklaerung: f.erklaerung, aktiv: true
       });
     });
@@ -1068,12 +1152,12 @@
   }
 
   function fragenExport() {
-    var kopf = ['id', 'thema', 'bereich', 'schwierigkeit', 'art', 'frage', 'antworten (mit | getrennt)', 'richtig', 'loesung', 'erklaerung'];
+    var kopf = ['id', 'thema', 'bereich', 'schwierigkeit', 'art', 'frage', 'antworten (mit | getrennt)', 'richtig', 'loesung', 'grafik', 'erklaerung'];
     var zeilen = [kopf.join(';')].concat(fragen.map(function (f) {
       return [f.id, f.thema, f.bereich, f.schwierigkeit, f.art || 'wahl', f.frage,
               (f.antworten || []).join('|'),
               (Array.isArray(f.richtig) ? f.richtig : [f.richtig]).join('|'),
-              f.loesung || '', f.erklaerung]
+              f.loesung || '', f.grafik || '', f.erklaerung]
         .map(function (x) { return String(x == null ? '' : x).replace(/;/g, ','); }).join(';');
     }));
     el('fformular').innerHTML = '<h2 class="sec">Fragen als CSV</h2><section class="card">' +

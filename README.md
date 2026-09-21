@@ -17,6 +17,7 @@ Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukom
 | `js/words.js` | Die mitgelieferten Lernwörter als Rückfallebene, falls die Datenbank nicht erreichbar ist |
 | `js/exercises.js` | Die zehn Aufgabentypen für Deutsch |
 | `js/quiz.js` | Fragen für den Sachunterricht und ihr Aufgabenbau |
+| `js/bilder.js` | Die Grafiken zum Beschriften, als eigene Zeichnungen |
 | `js/store.js` | Spielstand |
 | `js/cloud.js` | Anmeldung und Speicherung in Firebase |
 | `js/icons.js` | Alle Symbole als eigene Zeichnungen |
@@ -33,13 +34,14 @@ Die Startseite zeigt zuerst die **Fächer**. Deutsch führt zu den fünf
 Tauchrevieren mit den Lernwörtern, Sachunterricht zu den **Sachthemen**;
 das erste ist *Feuer*.
 
-Es gibt drei **Aufgabenarten** (Feld `art` in der Datenbank):
+Es gibt vier **Aufgabenarten** (Feld `art` in der Datenbank):
 
 | Art | Was die Kinder tun | Perlen |
 |---|---|---|
 | `wahl` | Aus zwei bis vier Antworten auswählen | ja |
 | `reihenfolge` | Bausteine in die richtige Reihenfolge bringen | ja |
 | `merken` | Erst selbst überlegen, dann mit der Musterlösung vergleichen und sich selbst einschätzen | nein |
+| `beschriften` | Den nummerierten Stellen einer Grafik die Begriffe zuordnen | ja |
 
 Bei `merken` bewertet niemand außer dem Kind selbst; die Antwort wird nicht
 getippt und nicht geprüft. Die Selbsteinschätzung geht trotzdem in die
@@ -48,6 +50,28 @@ ein Kind hier bewusst besser einschätzen könnte, gibt es dafür keine Perlen
 und keine Luftblasen zurück – das nimmt den Anreiz zum Schummeln. Ist
 `quiz.merkfrageZuerst` gesetzt (Voreinstellung), beginnt jeder Tauchgang mit
 einer solchen Aufgabe zum Aufwärmen.
+
+Beim Beschriften tippt das Kind eine nummerierte Stelle im Bild an und
+wählt dann den Begriff; ein zweiter Tipp auf dieselbe Stelle nimmt ihn
+wieder weg. Nach dem Prüfen stehen die falschen Begriffe durchgestrichen
+neben den richtigen, und die Rückmeldung lautet „3 von 5 sitzen".
+
+Gewertet wird **jede Stelle einzeln**: Perlen gibt es anteilig, und die
+Luftblase bleibt erhalten, solange mindestens die Hälfte stimmt. Nur eine
+fehlerfreie Aufgabe zählt als richtig – für die Serie, für die Statistik
+und für den vollen Perlenbetrag samt Bonus; falsche Aufgaben kommen im
+selben Tauchgang noch einmal. Zwei Stellschrauben in `js/config.js` unter
+`quiz`: `teilpunkte` (auf `false` wieder alles oder nichts) und
+`luftblaseAbAnteil` (`0.5` = die Hälfte reicht, `1` = nur fehlerfrei).
+
+Die Grafiken sind selbst gezeichnete Vektorbilder in `js/bilder.js` – nicht
+in der Datenbank. Das spart Speicher, bleibt auf jedem Bildschirm scharf und
+umgeht jede Lizenzfrage. Im Lehrerbereich kannst du auswählen, welche Grafik
+eine Aufgabe benutzt und welche ihrer Stellen beschriftet werden sollen; neue
+Grafiken kommen dagegen nur über den Code dazu. Es gibt vier: brennende
+Kerze, Feuerdreieck, Streichholz mit Schachtel und Ausrüstung der Feuerwehr.
+Die Kennungen der Stellen (`docht`, `helm`, …) sind fest – wer sie in
+`js/bilder.js` ändert, zerreißt gespeicherte Aufgaben.
 
 Jede Aufgabe hat außerdem eine **Erklärung**. Sie erscheint nach jeder
 Antwort – auch nach einer richtigen – und ist der eigentliche Lerneffekt.
@@ -63,8 +87,8 @@ es zwei weitere Fragen, die Taiwan und Europa gezielt auseinanderhalten.
 Gepflegt wird das im Lehrerbereich unter **Sachthemen**. Das Formular stellt
 sich auf die gewählte Art um: Ankreuzfelder bei `wahl`, nummerierte Schritte
 in der richtigen Reihenfolge bei `reihenfolge`, ein Feld für die
-Musterlösung bei `merken`. Beim Wechsel der Art bleibt stehen, was du schon
-eingegeben hast. Dort gibt es auch
+Musterlösung bei `merken`, Bildauswahl mit Vorschau bei `beschriften`. Beim
+Wechsel der Art bleibt stehen, was du schon eingegeben hast. Dort gibt es auch
 **Mitgelieferte Fragen abgleichen**: Die Datenbank hat Vorrang vor der Datei
 `js/quiz.js`, also kommen korrigierte oder neue mitgelieferte Fragen nicht
 von allein an. Der Abgleich schreibt sie nach – Fragen mit derselben Kennung
@@ -249,7 +273,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=16`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=17`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

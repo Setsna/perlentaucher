@@ -118,7 +118,14 @@ WA.config = {
   quiz: {
     // Jeder Tauchgang beginnt mit einer Merkfrage zum Aufwärmen:
     // erst selbst nachdenken, dann vergleichen.
-    merkfrageZuerst: true
+    merkfrageZuerst: true,
+
+    // Bild beschriften: Jede richtig getroffene Stelle zählt einzeln.
+    // teilpunkte false = wieder alles oder nichts.
+    teilpunkte: true,
+    // Ab diesem Anteil richtiger Stellen bleibt die Luftblase erhalten.
+    // 0.5 = die Hälfte reicht. 1 = nur bei einer fehlerfreien Aufgabe.
+    luftblaseAbAnteil: 0.5
   },
 
   // --- Sachthemen -----------------------------------------------

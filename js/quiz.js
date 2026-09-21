@@ -11,10 +11,14 @@
    'merken'       Frage ohne Auswahl. Das Kind denkt nach, löst auf und
                   schätzt selbst ein, ob es das wusste. Gibt keine
                   Perlen und kostet keine Luftblasen.
+   'beschriften'  Eine Grafik aus js/bilder.js. Das Kind ordnet den
+                  nummerierten Stellen die richtigen Begriffe zu.
+                  Die Antwortenliste enthält hier die Punkt-Kennungen;
+                  ist sie leer, werden alle Stellen der Grafik genommen.
 
    Aufbau einer Zeile:
      [ id, thema, bereich, schwierigkeit, Frage, Antworten, Erklärung,
-       { art: '…', richtige: n, loesung: '…' } ]
+       { art: '…', richtige: n, loesung: '…', grafik: '…' } ]
 
    Die Fragen hier sind die Rückfallebene, falls die Datenbank nicht
    erreichbar ist. Im Betrieb kommen sie aus der Sammlung
@@ -238,7 +242,21 @@ window.WA = window.WA || {};
     ['fe-mk-08', 'feuer', 'geschichte', 1, 'Womit machen Menschen heute Feuer? Nenne zwei Geräte.', [],
       '', { art: 'merken', loesung: 'Mit einem Streichholz und mit einem Feuerzeug.' }],
     ['fe-mk-09', 'feuer', 'verhalten', 2, 'Was machst du als Erstes, wenn der Feueralarm losgeht?', [],
-      '', { art: 'merken', loesung: 'Ruhig bleiben, Sachen liegen lassen und mit der Klasse zum Sammelplatz gehen. Niemals verstecken.' }]
+      '', { art: 'merken', loesung: 'Ruhig bleiben, Sachen liegen lassen und mit der Klasse zum Sammelplatz gehen. Niemals verstecken.' }],
+
+    // ---------- Ein Bild beschriften ----------
+    ['fe-bb-01', 'feuer', 'verbrennung', 2, 'Beschrifte die brennende Kerze.', [],
+      'Der Docht saugt das flüssige Wachs nach oben. Dort wird es so heiß, dass es verdampft – und erst dieser Dampf brennt.',
+      { art: 'beschriften', grafik: 'kerze' }],
+    ['fe-bb-02', 'feuer', 'verbrennung', 2, 'Beschrifte das Feuerdreieck.', [],
+      'Ein Feuer braucht alle drei. Nimm eines davon weg, und es geht aus – genau das macht die Feuerwehr beim Löschen.',
+      { art: 'beschriften', grafik: 'feuerdreieck' }],
+    ['fe-bb-03', 'feuer', 'geschichte', 1, 'Beschrifte das Streichholz und die Schachtel.', [],
+      'Beim Anreiben an der Reibefläche entsteht Wärme. Davon entzündet sich der Kopf, und der Holzstiel brennt weiter.',
+      { art: 'beschriften', grafik: 'streichholz' }],
+    ['fe-bb-04', 'feuer', 'feuerwehr', 2, 'Beschrifte die Ausrüstung der Feuerwehr.', [],
+      'Helm, Jacke, Handschuhe und Stiefel halten Hitze, Funken und Scherben ab. Über die Atemschutzmaske atmet die Feuerwehrfrau Luft aus einer Flasche auf ihrem Rücken.',
+      { art: 'beschriften', grafik: 'feuerwehr' }]
   ];
 
   WA.fragen = zeilen.map(function (r) {
@@ -248,6 +266,7 @@ window.WA = window.WA || {};
       frage: r[4], antworten: r[5] || [],
       richtig: art === 'wahl' ? (r[5] || []).slice(0, o.richtige || 1) : [],
       loesung: o.loesung || '',
+      grafik: o.grafik || '',
       erklaerung: r[6]
     };
   });
@@ -267,6 +286,7 @@ window.WA = window.WA || {};
       frage: d.frage, antworten: ant,
       richtig: art === 'wahl' ? rich.filter(function (r) { return ant.indexOf(r) >= 0; }) : [],
       loesung: d.loesung || '',
+      grafik: d.grafik || '',
       erklaerung: d.erklaerung || ''
     };
   };
@@ -315,6 +335,24 @@ window.WA = window.WA || {};
         kind: 'offen', ohnePunkte: true,
         loesung: f.loesung,
         solutionText: f.loesung
+      });
+    }
+
+    // Bild beschriften: die Stellen der Grafik bekommen ihre Begriffe.
+    if (f.art === 'beschriften') {
+      var punkte = WA.grafikPunkte ? WA.grafikPunkte(f.grafik, f.antworten) : [];
+      if (punkte.length < 2) return null;     // Grafik fehlt oder ist unbrauchbar
+      var begriffe = punkte.map(function (p) { return p.label; });
+      var lose = mischen(begriffe);
+      if (lose.join('|') === begriffe.join('|') && lose.length > 1) lose.push(lose.shift());
+      return Object.assign(grund, {
+        kind: 'schild',
+        grafik: f.grafik,
+        punkte: punkte,
+        blanks: punkte.length,
+        tiles: lose,
+        answerWord: begriffe.join('|'),
+        solutionText: punkte.map(function (p, i) { return (i + 1) + ' ' + p.label; }).join(' · ')
       });
     }
 
