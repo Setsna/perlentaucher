@@ -41,11 +41,14 @@
   }
 
   // ---------- Bausteine ----------
+  // Die Blasen sind reine Grafik. Ohne Beschriftung erfährt ein
+  // Screenreader-Kind nie, wie viele Leben es noch hat.
   function heartsHtml(n, max) {
     var h = '';
     for (var i = 0; i < max; i++) h += '<span class="bub ' + (i < n ? 'full' : 'empty') + '"></span>';
     return h;
   }
+  function blasenText(n, max) { return n + ' von ' + max + ' Luftblasen'; }
   function sylHtml(teile) {
     if (!Array.isArray(teile)) teile = teile.silben;
     return teile.map(function (s, i) { return '<span class="syl s' + (i % 3) + '">' + esc(s) + '</span>'; }).join('<span class="dot">·</span>');
@@ -92,12 +95,34 @@
   // ==========================================================
   var speicherStand = null;
 
+  // Ein unsichtbarer Bereich, den Screenreader vorlesen, sobald sich
+  // sein Inhalt ändert. Die Rückmeldung nach einer Antwort steht sonst
+  // nur sichtbar da – wer nicht sieht, erfährt nicht, ob es richtig war.
+  function ansagen(text) {
+    var a = document.getElementById('ansage');
+    if (!a) {
+      a = document.createElement('div');
+      a.id = 'ansage';
+      a.className = 'nurvorlesen';
+      a.setAttribute('role', 'status');
+      a.setAttribute('aria-live', 'polite');
+      a.setAttribute('aria-atomic', 'true');
+      document.body.appendChild(a);
+    }
+    // Gleicher Text zweimal hintereinander wird sonst nicht erneut
+    // vorgelesen; das Leeren davor erzwingt die Ansage.
+    a.textContent = '';
+    setTimeout(function () { a.textContent = text; }, 40);
+  }
+
   function speicherAnzeige(s) {
     speicherStand = s;
     var leiste = document.getElementById('sync');
     if (!leiste) {
       leiste = document.createElement('div');
       leiste.id = 'sync';
+      leiste.setAttribute('role', 'status');
+      leiste.setAttribute('aria-live', 'polite');
       document.body.appendChild(leiste);
     }
     if (!s || s.zustand === 'ok' || s.zustand === 'wartet') {
@@ -143,7 +168,8 @@
   // ==========================================================
   function heartChip() {
     var h = S.hearts();
-    return '<span class="bubbles">' + heartsHtml(h.count, h.max) + '</span>' +
+    return '<span class="bubbles" role="img" aria-label="' + blasenText(h.count, h.max) + '">' +
+      heartsHtml(h.count, h.max) + '</span>' +
       (h.count < h.max ? '<small>+1 in ' + mmss(h.nextMs) + '</small>' : '');
   }
 
@@ -281,8 +307,8 @@
     $app.innerHTML =
       '<div class="home">' +
       '<header class="top"><div class="brand">' + WA.mascot('happy', 48) + '<span>Perlen<b>taucher</b></span></div>' +
-      '<div class="tools"><div class="pill heartpill" id="heartchip">' + heartChip() + '</div>' +
-      '<div class="pill xppill"><span class="pearl"></span> <b>' + st.xp + '</b> Perlen</div>' +
+      '<div class="tools"><div class="pill" id="heartchip">' + heartChip() + '</div>' +
+      '<div class="pill"><span class="pearl"></span> <b>' + st.xp + '</b> Perlen</div>' +
       '<button class="icon-btn" data-action="settings" aria-label="Einstellungen">' + ico('zahnrad') + '</button></div></header>' +
       '<section class="hero">' + WA.mascot(today >= goal ? 'cheer' : 'happy', 120) + '<div class="bubble">' + msg + '</div></section>' +
       '<section class="stats">' +
@@ -817,7 +843,22 @@
       denkUhr = null;
       var f = $('#footer');
       if (!f || view !== 'lesson') return;   // Ansicht gewechselt
-      f.innerHTML = footerHtml();
+      var rest = bedenkRest(phase);
+      var zahl = f.querySelector('.denkzahl'), balken = f.querySelector('.denkbalken i');
+      // Solange der Countdown läuft, nur Zahl und Balken anfassen.
+      // Früher wurde hier fünfmal je Sekunde der ganze Fuß neu gebaut.
+      // Dabei verschwand der Knopf jedes Mal samt Tastaturfokus, und
+      // ein Screenreader las die Zeile immer wieder vor.
+      if (rest > 0 && zahl && balken) {
+        zahl.textContent = Math.ceil(rest);
+        balken.style.width = Math.min(100, Math.max(0, (1 - rest / bedenkSoll(phase)) * 100)).toFixed(1) + '%';
+        denkUhrStarten();
+        return;
+      }
+      f.innerHTML = footerHtml();     // Zeit ist um: Knopf freigeben
+      // Der Knopf war bis eben gesperrt und konnte deshalb keinen
+      // Fokus annehmen. Jetzt kann er es.
+      if (document.activeElement === document.body) knopfFokussieren();
       denkUhrStarten();
     }, 200);
   }
@@ -836,7 +877,9 @@
   function updateLesson() {
     var h = S.hearts();
     $('#lbar').innerHTML = bar(L.i / L.queue.length, 'var(--wc)');
-    $('#lhearts').innerHTML = L.practice ? '<span class="practice">Üben</span>' : heartsHtml(h.count, h.max);
+    var lh = $('#lhearts');
+    if (L.practice) { lh.removeAttribute('aria-label'); lh.innerHTML = '<span class="practice">Üben</span>'; }
+    else { lh.setAttribute('role', 'img'); lh.setAttribute('aria-label', blasenText(h.count, h.max)); lh.innerHTML = heartsHtml(h.count, h.max); }
     $('#stage').innerHTML = stageHtml();
     $('#footer').innerHTML = footerHtml();
     denkUhrStarten();
@@ -1105,6 +1148,28 @@
     }
     L.res = { ok: ok, xp: xp, teil: teil };
     updateLesson();
+
+    // Für Screenreader: Was sichtbar im Fuß steht, wird hier angesagt.
+    var satz = ok ? 'Richtig.' : 'Leider falsch.';
+    if (teil) satz = teil.richtig + ' von ' + teil.gesamt + ' sitzen.';
+    if (xp.total) satz += ' ' + xp.total + ' Perlen.';
+    if (!ok && q.solutionText) satz += ' Richtig ist: ' + q.solutionText + '.';
+    if (q.erklaerung) satz += ' ' + q.erklaerung;
+    ansagen(satz);
+
+    // Nach dem Prüfen springt der Fokus auf den Weiter-Knopf. Vorher
+    // landete er bei <body>, weil der ganze Fuß neu gebaut wird – wer
+    // mit Tastatur arbeitet, musste sich jedes Mal neu durchtabben.
+    knopfFokussieren();
+  }
+
+  function knopfFokussieren() {
+    setTimeout(function () {
+      var f = $('#footer');
+      if (!f || view !== 'lesson') return;
+      var k = f.querySelector('button');
+      if (k) { try { k.focus({ preventScroll: true }); } catch (e) { k.focus(); } }
+    }, 0);
   }
 
   function next() {

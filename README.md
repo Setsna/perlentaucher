@@ -20,7 +20,7 @@ Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukom
 | `js/bilder.js` | Die Grafiken zum Beschriften, als eigene Zeichnungen |
 | `js/store.js` | Spielstand |
 | `js/cloud.js` | Anmeldung und Speicherung in Firebase |
-| `js/icons.js` | Alle Symbole als eigene Zeichnungen |
+| `js/icons.js` | Alle Symbole als eigene Zeichnungen (nur die Kinder-App) |
 | `js/malen.js` | Speicherformat und Zeichnen der Pixelbilder und freien Bilder |
 | `js/merge.js` | Führt Spielstände von zwei Geräten zusammen |
 | `js/mascot.js` | Otti, der Oktopus |
@@ -344,10 +344,47 @@ neuen Kinder oder Wörter.
 Sinnvoller Rhythmus: freitags herunterladen, Datei zu den Unterlagen legen,
 und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 
+## Barrierefreiheit
+
+Alles Anklickbare ist ein echter Knopf, nicht ein `div` mit Klick-Handler –
+sonst wäre es mit Tastatur und Screenreader nicht bedienbar. Symbolknöpfe
+haben ein `aria-label`, die Zeichnungen in `js/icons.js` sind `aria-hidden`.
+
+Drei Dinge, die man leicht wieder kaputt macht:
+
+Die Rückmeldung nach einer Antwort steht sichtbar im Fuß. Wer nicht sieht,
+erfährt daraus nichts. Deshalb schreibt `ansagen()` denselben Inhalt in einen
+unsichtbaren Bereich mit `aria-live`, den Screenreader vorlesen. Wer die
+Rückmeldung ändert, muss die Ansage mitändern.
+
+Die Luftblasen sind reine Grafik. Der Zähler steckt im `aria-label` der
+Leiste (`blasenText`). Ohne das weiß ein Kind mit Screenreader nie, wie viele
+Leben es noch hat.
+
+Der Countdown der Bedenkzeit aktualisiert nur die Zahl und den Balken, nicht
+den ganzen Fuß. Vorher wurde der Knopf fünfmal je Sekunde ersetzt – mit
+Tastatur war er dadurch nicht erreichbar. Nach dem Prüfen springt der Fokus
+auf den Weiter-Knopf.
+
+Fokusringe kommen aus einer `:focus-visible`-Regel und erscheinen nur bei
+Tastaturbedienung. `outline: none` gehört nirgendwo hin.
+
+## Wo der Spielstand liegt
+
+Im Browser unter `wortabenteuer.v1.<code>`, die Abgleichsbasis unter
+`…​.basis` und die gemalten Bilder unter `…​.bilder`.
+
+Die Bilder liegen getrennt, weil `save()` bei jeder gutgeschriebenen Perle
+läuft und, solange der Malbereich offen ist, jede Sekunde. Lägen sie mit im
+Spielstand, würde jedes Mal der ganze Bildbestand in Text verwandelt. Sie
+werden nur geschrieben, wenn sich wirklich eins geändert hat – dafür ruft
+jede Stelle, die Bilder anfasst, `malGeaendert()` auf. Wer eine neue solche
+Stelle einbaut und das vergisst, verliert die Änderung beim nächsten Laden.
+
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=29`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=30`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

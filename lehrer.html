@@ -3,8 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Namensaufloesung und TLS zu den beiden Gegenstellen schon
+     hier anstossen. Sonst faengt der Browser damit erst an,
+     wenn er unten auf die Firebase-Skripte stoesst. -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=29">
+<link rel="stylesheet" href="css/style.css?v=30">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -39,7 +44,9 @@
   input[type=text], input[type=number], select, textarea {
     border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; font: inherit;
     font-size: 16px; color: var(--ink); background: #fff; max-width: 100%; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--brand); }
+  input:focus, select:focus, textarea:focus { border-color: var(--brand); }
+  /* Sichtbarer Fokusring fuer Tastaturbedienung, siehe css/style.css */
+  :focus-visible { outline: 3px solid #0B3B57; outline-offset: 3px; border-radius: 6px; }
   textarea { width: 100%; min-height: 150px; font-family: ui-monospace, Menlo, monospace; font-size: 14px; resize: vertical; }
   label.feld { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 800;
     text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
@@ -120,15 +127,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=29"></script>
-<script src="js/words.js?v=29"></script>
-<script src="js/bilder.js?v=29"></script>
-<script src="js/quiz.js?v=29"></script>
-<script src="js/mascot.js?v=29"></script>
-<script src="js/icons.js?v=29"></script>
-<script src="js/malen.js?v=29"></script>
-<script src="js/merge.js?v=29"></script>
-<script src="js/cloud.js?v=29"></script>
+<script src="js/config.js?v=30"></script>
+<script src="js/words.js?v=30"></script>
+<script src="js/bilder.js?v=30"></script>
+<script src="js/quiz.js?v=30"></script>
+<script src="js/mascot.js?v=30"></script>
+<script src="js/malen.js?v=30"></script>
+<script src="js/merge.js?v=30"></script>
+<script src="js/cloud.js?v=30"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -853,11 +859,25 @@
   // ==========================================================
   // Zeichnen und Speicherformat stecken in js/malen.js,
   // damit Kinder-App und Lehrerbereich dasselbe benutzen.
-  function bildVorschau(b, px) { return WA.malen.vorschau(b, px); }
+  //
+  // Mit Zwischenspeicher: zeichnen() baut bei JEDEM Reiterwechsel alles
+  // neu, und jede Vorschau bedeutet eine Zeichenflaeche plus eine
+  // PNG-Kodierung. Bei 300 Bildern waren das 300 Kodierungen am Stück,
+  // jedes Mal von vorn. Der Schluessel enthaelt den Zeitstempel des
+  // Bildes, damit eine geaenderte Fassung nicht aus dem Speicher kommt.
+  var vorschauSpeicher = {};
+  function bildVorschau(b, px) {
+    var k = b.id + '|' + (b.ts || 0) + '|' + (px || 96) + '|' + ((b.px || b.striche || '').length);
+    if (vorschauSpeicher[k]) return vorschauSpeicher[k];
+    var d = WA.malen.vorschau(b, px);
+    vorschauSpeicher[k] = d;
+    return d;
+  }
 
-  // Die Bilder liegen in einer eigenen Sammlung. Sie werden je Kind
-  // einzeln geholt, sonst würden bei 22 Kindern sehr viele Daten auf
-  // einmal geladen.
+  // Die Bilder liegen in einer eigenen Sammlung und werden in EINER
+  // Abfrage geholt (bilderAlleHolen), damit die Vorschaubilder unter
+  // den Namen sofort da sind. Bei 22 Kindern ist das schneller als 22
+  // einzelne Abfragen.
   var bilderVon = {};        // code -> Liste von Bildern
 
   function tabBilder() {
@@ -1318,7 +1338,14 @@
               (f.antworten || []).join('|'),
               (Array.isArray(f.richtig) ? f.richtig : [f.richtig]).join('|'),
               f.loesung || '', f.grafik || '', f.erklaerung]
-        .map(function (x) { return String(x == null ? '' : x).replace(/;/g, ','); }).join(';');
+        .map(function (x) {
+          // Wie beim Wörter-Export: Semikolons und Anführungszeichen
+          // werden gequotet, nicht stillschweigend ersetzt. Vorher wurde
+          // aus einem ";" im Fragentext ein "," – die Frage kam also
+          // verändert aus dem Export zurück.
+          var t = String(x == null ? '' : x);
+          return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+        }).join(';');
     }));
     el('fformular').innerHTML = '<h2 class="sec">Fragen als CSV</h2><section class="card">' +
       '<div class="hinweis">Zum Sichern oder zum Weiterarbeiten in einer Tabelle.</div>' +

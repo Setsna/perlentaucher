@@ -24,6 +24,25 @@ h1, h2, h3, p { margin: 0; }
 .mascot { display: block; flex: none; }
 .muted { color: var(--muted); }
 
+/* ---------- Tastatur und Screenreader ----------
+   Ein gut sichtbarer Fokusring. :focus-visible heißt: nur, wenn
+   wirklich mit der Tastatur navigiert wird – beim Antippen auf dem
+   iPad erscheint nichts. Der Ring liegt außen, damit er auch auf den
+   farbigen Kacheln zu sehen ist. */
+:focus-visible {
+  outline: 3px solid #0B3B57;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+/* Nur für Screenreader: steht im Textfluss, ist aber nicht zu sehen.
+   Nicht display:none und nicht visibility:hidden – dann würde es auch
+   nicht vorgelesen. */
+.nurvorlesen {
+  position: absolute; width: 1px; height: 1px; margin: -1px;
+  padding: 0; border: 0; overflow: hidden; white-space: nowrap;
+  clip: rect(0 0 0 0); clip-path: inset(50%);
+}
+
 /* ---------- Luftblasen und Perlen ---------- */
 .bubbles { display: inline-flex; align-items: center; gap: 5px; }
 .bub { width: 22px; height: 22px; border-radius: 50%; display: inline-block; }
@@ -258,7 +277,7 @@ h1, h2, h3, p { margin: 0; }
   letter-spacing: .12em; padding: 16px 12px; border-radius: 16px; border: 3px solid var(--line-akt);
   background: #fff; color: var(--ink); font-family: ui-monospace, "SF Mono", Menlo, monospace;
   text-transform: uppercase; -webkit-user-select: text; user-select: text; }
-.codefeld:focus { outline: none; border-color: var(--brand); background: #F2FAFC; }
+.codefeld:focus { border-color: var(--brand); background: #F2FAFC; }
 .codefeld::placeholder { color: #A8C3D0; letter-spacing: .12em; }
 .loginfehler { background: var(--bad-bg); color: var(--bad-d); border-radius: 14px;
   padding: 12px 16px; font-weight: 700; font-size: 17px; }

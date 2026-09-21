@@ -366,6 +366,6 @@ window.WA = window.WA || {};
     return { base: base, bonus: bonus, total: base + bonus };
   }
 
-  WA.ex = { TYPES: T, buildLesson: buildLesson, makeQuestion: makeQuestion, eligibleWords: eligibleWords, xpFor: xpFor,
-            typeCat: function (t) { return T[t].cat; }, misspell: misspell };
+  WA.ex = { TYPES: T, buildLesson: buildLesson, makeQuestion: makeQuestion,
+            eligibleWords: eligibleWords, xpFor: xpFor, misspell: misspell };
 })();

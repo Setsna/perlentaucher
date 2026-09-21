@@ -250,7 +250,15 @@ WA.firebaseConfig = {
         WA.store.onChange(spaeterSchreiben);
         // Beim Anmelden wird nicht überschrieben, sondern zusammen-
         // geführt – genau wie bei jedem späteren Speichern auch.
-        return schreiben().then(function () { return true; });
+        //
+        // WICHTIG: ohne "return". Das Kind sah vorher einen weißen
+        // Bildschirm, bis diese Transaktion durch war – eine vierte
+        // Netzrunde nacheinander. Der Spielstand liegt lokal sicher,
+        // das Hochladen darf nebenher laufen. Schlägt es fehl, meldet
+        // sich die Speicherleiste, und spaeterSchreiben versucht es
+        // beim nächsten Speichern erneut.
+        schreiben().catch(function () {});
+        return true;
       });
   }
 

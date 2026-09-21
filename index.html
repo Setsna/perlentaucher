@@ -6,9 +6,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Perlentaucher">
+<!-- Namensaufloesung und TLS zu den beiden Gegenstellen schon
+     hier anstossen. Sonst faengt der Browser damit erst an,
+     wenn er unten auf die Firebase-Skripte stoesst. -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="theme-color" content="#0E7C86">
 <title>Perlentaucher</title>
-<link rel="stylesheet" href="css/style.css?v=29">
+<link rel="stylesheet" href="css/style.css?v=30">
 </head>
 <body>
 <div id="app"></div>
@@ -17,17 +22,17 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=29"></script>
-<script src="js/words.js?v=29"></script>
-<script src="js/bilder.js?v=29"></script>
-<script src="js/quiz.js?v=29"></script>
-<script src="js/mascot.js?v=29"></script>
-<script src="js/icons.js?v=29"></script>
-<script src="js/malen.js?v=29"></script>
-<script src="js/merge.js?v=29"></script>
-<script src="js/exercises.js?v=29"></script>
-<script src="js/store.js?v=29"></script>
-<script src="js/cloud.js?v=29"></script>
-<script src="js/app.js?v=29"></script>
+<script src="js/config.js?v=30"></script>
+<script src="js/words.js?v=30"></script>
+<script src="js/bilder.js?v=30"></script>
+<script src="js/quiz.js?v=30"></script>
+<script src="js/mascot.js?v=30"></script>
+<script src="js/icons.js?v=30"></script>
+<script src="js/malen.js?v=30"></script>
+<script src="js/merge.js?v=30"></script>
+<script src="js/exercises.js?v=30"></script>
+<script src="js/store.js?v=30"></script>
+<script src="js/cloud.js?v=30"></script>
+<script src="js/app.js?v=30"></script>
 </body>
 </html>

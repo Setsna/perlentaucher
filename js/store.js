@@ -36,15 +36,50 @@ window.WA = window.WA || {};
     if (!Array.isArray(x.mal.bilder)) x.mal.bilder = [];
     return x;
   }
+  // Die gemalten Bilder liegen in einem EIGENEN Speicherplatz.
+  //
+  // Grund: save() lief bei jeder gutgeschriebenen Perle und, solange
+  // der Malbereich offen ist, jede Sekunde. Lagen die Bilder mit im
+  // Spielstand, wurde jedes Mal der komplette Bildbestand in Text
+  // verwandelt und geschrieben. Bei vollem Sammelalbum wären das
+  // fast zwei Megabyte mehrmals pro Sekunde – auf einem älteren iPad
+  // ein spürbares Ruckeln, und nah an der Speichergrenze des Browsers.
+  //
+  // Jetzt werden die Bilder nur geschrieben, wenn sich wirklich eins
+  // geändert hat. Das merkt sich bilderSchmutzig; jede Stelle, die
+  // Bilder anfasst, ruft malGeaendert().
+  function bilderSchluessel() { return KEY + '.bilder'; }
+  var bilderSchmutzig = false;
+  function malGeaendert() { bilderSchmutzig = true; }
+
   function load() {
-    try { var r = localStorage.getItem(KEY); if (r) return sicherMal(Object.assign(fresh(), JSON.parse(r))); } catch (e) {}
-    return fresh();
+    var st = null;
+    try { var r = localStorage.getItem(KEY); if (r) st = sicherMal(Object.assign(fresh(), JSON.parse(r))); } catch (e) {}
+    if (!st) st = fresh();
+    try {
+      var rb = localStorage.getItem(bilderSchluessel());
+      if (rb) { var arr = JSON.parse(rb); if (Array.isArray(arr)) st.mal.bilder = arr; }
+    } catch (e) {}
+    // Beim ersten Start nach der Umstellung stecken die Bilder noch im
+    // alten Speicherplatz. Deshalb gilt der Bestand hier immer als
+    // ungesichert – der erste save() schreibt ihn an die neue Stelle.
+    // Ohne das wären alte Bilder beim nächsten Speichern verloren.
+    bilderSchmutzig = true;
+    return st;
   }
   var s = load();
 
   function save(still) {
     if (!still) s.updatedAt = Date.now();
-    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+    try {
+      // Flache Kopie ohne Bilder – kostet nichts und lässt s unberührt.
+      var ohne = Object.assign({}, s, { mal: Object.assign({}, s.mal, { bilder: [] }) });
+      localStorage.setItem(KEY, JSON.stringify(ohne));
+      if (bilderSchmutzig) {
+        localStorage.setItem(bilderSchluessel(), JSON.stringify(s.mal.bilder));
+        bilderSchmutzig = false;
+      }
+    } catch (e) {}
     if (!still) lauscher.forEach(function (f) { try { f(s); } catch (e) {} });
   }
 
@@ -81,21 +116,17 @@ window.WA = window.WA || {};
     var bilder = (s.mal && s.mal.bilder) || [];
     s = sicherMal(Object.assign(fresh(), zusammen));
     s.mal.bilder = bilder;
+    malGeaendert();
     save(true);
     basisSetzen(zusammen);
   }
 
   function snapshot() { return JSON.parse(JSON.stringify(s)); }
 
-  function hydrate(obj) {
-    if (!obj) return;
-    s = sicherMal(Object.assign(fresh(), obj));
-    save(true);
-  }
-
+  // Hier standen frueher hydrate() und setXpGemeldet(). Beide wurden
+  // nirgends aufgerufen; hydrate haette sogar die gemalten Bilder
+  // geloescht, weil es die Rettung aus abgleichUebernehmen nicht hat.
   function onChange(f) { if (lauscher.indexOf(f) < 0) lauscher.push(f); }
-
-  function setXpGemeldet(n) { s.xpGemeldet = n; save(true); }
 
   // ---------- Herzen ----------
   function tick() {
@@ -177,6 +208,7 @@ window.WA = window.WA || {};
       : { id: s.mal.naechsteId++, art: 'raster', g: g, px: leeresBild(g), fertig: false, ts: Date.now() };
     s.mal.bilder.push(b);
     s.mal.aktiv = b.id;
+    malGeaendert();
     save();
     return b;
   }
@@ -194,6 +226,7 @@ window.WA = window.WA || {};
       .sort(function (a, b) { return a.id - b.id; });
     var hoechste = s.mal.bilder.reduce(function (m, b) { return Math.max(m, b.id); }, 0);
     if (s.mal.naechsteId <= hoechste) s.mal.naechsteId = hoechste + 1;
+    malGeaendert();
     save(true);
     return s.mal.bilder;
   }
@@ -213,6 +246,7 @@ window.WA = window.WA || {};
   function malFertig(id) {
     s.mal.bilder.forEach(function (b) { if (b.id === id) { b.fertig = true; b.ts = Date.now(); } });
     s.mal.aktiv = null;
+    malGeaendert();
     save();
   }
   // Gelöschte Bilder werden gemerkt, sonst holt sie das nächste
@@ -221,6 +255,7 @@ window.WA = window.WA || {};
     s.mal.bilder = s.mal.bilder.filter(function (b) { return b.id !== id; });
     if (s.mal.aktiv === id) s.mal.aktiv = null;
     malWegMerken([id]);
+    malGeaendert();
     save();
   }
   function malWeg() { return (s.mal.weg || []).slice(); }
@@ -235,10 +270,16 @@ window.WA = window.WA || {};
   // Ein Feld setzen. still = nur lokal sichern, nicht sofort in die Wolke.
   function malSetzen(id, i, zeichen) {
     var b = s.mal.bilder.filter(function (x) { return x.id === id; })[0];
-    if (!b || b.fertig || i < 0 || i >= b.px.length) return false;
+    // !b.px fangen: Bei einem frei gezeichneten Bild gibt es kein
+    // Raster, und b.px.length wuerde die Seite mit einem Fehler
+    // anhalten. Ueber die Oberflaeche passiert das nicht, weil dort
+    // immer das passende Bild aktiv ist - aber verlassen wollen wir
+    // uns darauf nicht.
+    if (!b || b.fertig || !b.px || i < 0 || i >= b.px.length) return false;
     if (b.px.charAt(i) === zeichen) return false;
     b.px = b.px.substring(0, i) + zeichen + b.px.substring(i + 1);
     b.ts = Date.now();
+    malGeaendert();
     save(true);
     return true;
   }
@@ -250,6 +291,7 @@ window.WA = window.WA || {};
     if ((b.striche || '').length + text.length > C.malen.maxStrichdaten) return false;
     b.striche = (b.striche || '') + text;
     b.ts = Date.now();
+    malGeaendert();
     save(true);
     return true;
   }
@@ -257,6 +299,7 @@ window.WA = window.WA || {};
     var b = s.mal.bilder.filter(function (x) { return x.id === id; })[0];
     if (!b || b.fertig || b.art !== 'frei' || !b.striche) return false;
     b.striche = WA.malen.ohneLetztenStrich(b.striche);
+    malGeaendert();
     save(true);
     return true;
   }
@@ -380,9 +423,8 @@ window.WA = window.WA || {};
     wordStat: wordStat, recordAnswer: recordAnswer, weakWords: weakWords, wordMastered: wordMastered,
     wordState: wordState, totals: totals, topWrong: topWrong, weekInfo: weekInfo,
     worldProgress: worldProgress, finishLesson: finishLesson, badges: BADGES,
-    useProfile: useProfile, snapshot: snapshot, hydrate: hydrate, onChange: onChange,
+    useProfile: useProfile, snapshot: snapshot, onChange: onChange,
     basis: basis, basisSetzen: basisSetzen, abgleichUebernehmen: abgleichUebernehmen,
-    setXpGemeldet: setXpGemeldet,
     malRest: malRest, malFrisch: malFrisch, malBild: malBild, malNeu: malNeu,
     malWaehlen: malWaehlen, malFertig: malFertig, malLoeschen: malLoeschen,
     malWeg: malWeg, malWegMerken: malWegMerken,
