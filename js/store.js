@@ -114,8 +114,15 @@ window.WA = window.WA || {};
   // gehören nicht in den Abgleich.
   function abgleichUebernehmen(zusammen) {
     var bilder = (s.mal && s.mal.bilder) || [];
+    // Die Liste der weggeworfenen Bilder wird zusaetzlich hier
+    // gerettet. Der Abgleich fuehrt sie zwar mit (js/merge.js), aber
+    // wenn sie hier verloren ginge, holte das naechste Laden die
+    // geloeschten Bilder aus der Datenbank zurueck - fuer das Kind
+    // waere ein weggeworfenes Bild nach dem Neuladen wieder da.
+    var weg = (s.mal && s.mal.weg) || [];
     s = sicherMal(Object.assign(fresh(), zusammen));
     s.mal.bilder = bilder;
+    malWegMerken(weg);
     malGeaendert();
     save(true);
     basisSetzen(zusammen);

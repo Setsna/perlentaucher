@@ -93,10 +93,26 @@ window.WA = window.WA || {};
       rest: Math.max(0, zahl(f.rest) + (zahl(l.rest) - zahl(b.rest))),
       tage: Object.assign({}, f.tage || {}, l.tage || {}),
       bilder: [],                       // eigene Sammlung
+      // Die Liste der weggeworfenen Bilder ist eine VEREINIGUNG, wie
+      // die Abzeichen. Sie darf nie verloren gehen: Ohne sie holt das
+      // nächste Zusammenführen ein gelöschtes Bild aus der Datenbank
+      // zurück, und für das Kind taucht es nach dem Neuladen wieder
+      // auf. Genau das ist einmal passiert, weil dieses Feld hier
+      // fehlte und der Abgleich es stillschweigend geleert hat.
+      weg: wegListe(l.weg, f.weg),
       aktiv: l.aktiv != null ? l.aktiv : (f.aktiv != null ? f.aktiv : null),
       naechsteId: groesser(l.naechsteId, f.naechsteId) || 1,
       frisch: zahl(l.frisch)
     };
+  }
+  // Beide Seiten zusammen, ohne Dopplungen, hinten gekappt wie in
+  // js/store.js (malWegMerken).
+  function wegListe(a, b) {
+    var raus = [];
+    [].concat(Array.isArray(a) ? a : [], Array.isArray(b) ? b : []).forEach(function (id) {
+      if (raus.indexOf(id) < 0) raus.push(id);
+    });
+    return raus.slice(-300);
   }
 
   /* Der eigentliche Abgleich.

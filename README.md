@@ -391,6 +391,14 @@ Die Anwendung ist öffentlich erreichbar, soll aber nicht gefunden werden.
 Im Browser unter `wortabenteuer.v1.<code>`, die Abgleichsbasis unter
 `…​.basis` und die gemalten Bilder unter `…​.bilder`.
 
+Weggeworfene Bilder hinterlassen eine Spur: Ihre Kennung landet in
+`mal.weg`, und in der Datenbank bleibt ein winziges Dokument mit
+`geloescht: true` stehen. Beides ist nötig, sonst holt das nächste
+Zusammenführen das Bild zurück und es ist nach dem Neuladen wieder da.
+Diese Liste wird beim Abgleich **vereinigt** (`js/merge.js`, `wegListe`) und
+beim Übernehmen zusätzlich lokal gerettet (`abgleichUebernehmen`). Wer am
+Abgleich etwas ändert, muss sie mitführen.
+
 Die Bilder liegen getrennt, weil `save()` bei jeder gutgeschriebenen Perle
 läuft und, solange der Malbereich offen ist, jede Sekunde. Lägen sie mit im
 Spielstand, würde jedes Mal der ganze Bildbestand in Text verwandelt. Sie
@@ -401,7 +409,7 @@ Stelle einbaut und das vergisst, verliert die Änderung beim nächsten Laden.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=31`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=32`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 
