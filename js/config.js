@@ -59,7 +59,7 @@ WA.config = {
   klasse: {
     name: 'Klasse 3',
     kinder: 22,                // Anzahl der Kinder
-    wochenzielProKind: 150,    // Wochenziel = kinder × dieser Wert
+    wochenzielProKind: 300,    // Wochenziel = kinder × dieser Wert (≈ 4 Tauchgänge je Kind)
     // Nur für den Prototyp: Beispielwerte, bis Firebase angebunden ist.
     demoRestDerKlasse: 1730,   // Perlen der übrigen Kinder in dieser Woche
     demoWochen: [              // abgeschlossene Wochen (Beispiel)
