@@ -135,6 +135,18 @@ Bei den meisten Wörtern sind beide gleich. Sie unterscheiden sich dort,
 wo eine Silbe nur aus einem Vokal besteht: *A-bend* hat zwei Silbenbögen,
 ist aber nach Duden nicht trennbar.
 
+## Bedenkzeit
+
+Manche Kinder tippen reflexhaft weiter, ohne die Aufgabe oder die Erklärung
+gelesen zu haben. Deshalb ist **Prüfen** die ersten Sekunden gesperrt und
+**Weiter** ebenfalls. Der Knopf zeigt währenddessen die Restsekunden und
+einen ablaufenden Balken – sonst wirkt er kaputt. Gesperrt ist auch die
+Selbsteinschätzung bei den Merkfragen, damit die Musterlösung gelesen wird.
+
+Einstellbar im Lehrerbereich unter **Einstellungen → Bedenkzeit** oder in
+`js/config.js` unter `bedenkzeit`: `vorAntwort` (Voreinstellung 5 Sekunden)
+und `vorWeiter` (3 Sekunden). **0** schaltet die jeweilige Sperre ab.
+
 ## Belohnung: Malen und Zeichnen
 
 Wer das Tagesziel erreicht, bekommt Malzeit gutgeschrieben. Das Kind wählt
@@ -285,7 +297,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=19`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=20`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

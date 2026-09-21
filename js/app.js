@@ -773,7 +773,44 @@
 
   function prepQ() {
     L.q = L.queue[L.i]; L.sel = null; L.slots = []; L.cuts = {}; L.answered = false; L.res = null;
+    L.startZeit = Date.now(); L.antwortZeit = 0;
     for (var i = 0; i < (L.q.blanks || 0); i++) L.slots.push(null);
+  }
+
+  /* ---------- Bedenkzeit ----------
+     Manche Kinder tippen reflexhaft weiter, ohne die Aufgabe oder die
+     Erklärung gelesen zu haben. Deshalb wird der Knopf für ein paar
+     Sekunden gesperrt – sichtbar, mit Countdown, damit er nicht kaputt
+     wirkt. Einstellbar unter bedenkzeit in js/config.js. */
+  function bedenkSoll(phase) {
+    var b = C.bedenkzeit || {};
+    if (b.enabled === false) return 0;
+    var s = phase === 'weiter' ? b.vorWeiter : b.vorAntwort;
+    return typeof s === 'number' && s > 0 ? s : 0;
+  }
+
+  // Wie viel Zeit ist noch übrig? 0 = der Knopf ist frei.
+  function bedenkRest(phase) {
+    var soll = bedenkSoll(phase);
+    if (!soll) return 0;
+    var ab = phase === 'weiter' ? L.antwortZeit : L.startZeit;
+    if (!ab) return 0;
+    return Math.max(0, soll - (Date.now() - ab) / 1000);
+  }
+
+  var denkUhr = null;
+  function denkUhrStoppen() { if (denkUhr) { clearTimeout(denkUhr); denkUhr = null; } }
+  function denkUhrStarten() {
+    denkUhrStoppen();
+    var phase = L.answered ? 'weiter' : 'antwort';
+    if (bedenkRest(phase) <= 0) return;
+    denkUhr = setTimeout(function () {
+      denkUhr = null;
+      var f = $('#footer');
+      if (!f || view !== 'lesson') return;   // Ansicht gewechselt
+      f.innerHTML = footerHtml();
+      denkUhrStarten();
+    }, 200);
   }
 
   function renderLesson() {
@@ -793,6 +830,7 @@
     $('#lhearts').innerHTML = L.practice ? '<span class="practice">Üben</span>' : heartsHtml(h.count, h.max);
     $('#stage').innerHTML = stageHtml();
     $('#footer').innerHTML = footerHtml();
+    denkUhrStarten();
   }
 
   function stageHtml() {
@@ -923,14 +961,43 @@
 
   var PRAISE = ['Super!', 'Genau!', 'Stark getaucht!', 'Richtig!', 'Prima gemacht!', 'Perlentaucher!', 'Klasse!'];
 
+  // Ein Knopf, der erst nach Ablauf der Bedenkzeit gedrückt werden kann.
+  // Die Zahl und der Balken zeigen, dass gewartet wird und nichts klemmt.
+  function wartenKnopf(phase, klasse, aktion, text) {
+    var rest = bedenkRest(phase), soll = bedenkSoll(phase);
+    if (rest <= 0) {
+      return '<button class="' + klasse + '" data-action="' + aktion + '">' + esc(text) + '</button>';
+    }
+    var anteil = Math.min(100, Math.max(0, (1 - rest / soll) * 100));
+    // data-action bleibt dran, damit der Knopf an derselben Stelle steht
+    // und sich nur der Zustand ändert. Gegen den Klick schützen das
+    // disabled und zusätzlich die Prüfung im Klick-Empfänger.
+    return '<div class="denkzeit"><div class="denkbalken"><i style="width:' + anteil.toFixed(1) + '%"></i></div>' +
+      '<button class="' + klasse + ' off" data-action="' + aktion + '" disabled>' + esc(text) +
+      ' <span class="denkzahl">' + Math.ceil(rest) + '</span></button></div>';
+  }
+
   function footerHtml() {
     if (!L.answered) {
       var ok = isReady();
       var wort = L.q.kind === 'offen' ? 'Auflösen' : 'Prüfen';
-      return '<div class="footer"><button class="btn big' + (ok ? '' : ' off') + '" data-action="check"' + (ok ? '' : ' disabled') + '>' + wort + '</button></div>';
+      if (!ok) {
+        return '<div class="footer"><button class="btn big off" data-action="check" disabled>' + wort + '</button></div>';
+      }
+      return '<div class="footer">' + wartenKnopf('antwort', 'btn big', 'check', wort) + '</div>';
     }
     // Merkfrage: das Kind schätzt sich selbst ein.
     if (L.q.kind === 'offen') {
+      var restM = bedenkRest('weiter');
+      if (restM > 0) {
+        var anteilM = Math.min(100, Math.max(0, (1 - restM / bedenkSoll('weiter')) * 100));
+        return '<div class="footer"><div class="fb"><b>Lies erst die Lösung.</b></div>' +
+          '<div class="denkzeit"><div class="denkbalken"><i style="width:' + anteilM.toFixed(1) + '%"></i></div>' +
+          '<button class="btn good big off" data-action="selbst" data-ok="1" disabled>Wusste ich ' +
+          '<span class="denkzahl">' + Math.ceil(restM) + '</span></button>' +
+          '<button class="btn ghost big off" data-action="selbst" data-ok="0" disabled>Noch nicht</button>' +
+          '</div></div>';
+      }
       return '<div class="footer"><div class="fb"><b>Wusstest du das?</b></div>' +
         '<button class="btn good big" data-action="selbst" data-ok="1">Wusste ich</button>' +
         '<button class="btn ghost big" data-action="selbst" data-ok="0">Noch nicht</button></div>';
@@ -943,7 +1010,7 @@
       return '<div class="footer good"><div class="fb"><b>' + (L.streak >= C.xp.streakBonusFrom ? L.streak + ' in Folge!' : PRAISE[Math.floor(Math.random() * PRAISE.length)]) + '</b>' +
         (x.total ? '<span class="xpgain">+' + x.total + ' Perlen' + (x.bonus ? ' <small>(Serien-Bonus +' + x.bonus + ')</small>' : '') + '</span>' : '') +
         erkl + '</div>' +
-        '<button class="btn good big" data-action="next">Weiter</button></div>';
+        wartenKnopf('weiter', 'btn good big', 'next', 'Weiter') + '</div>';
     }
     // Beim Beschriften zählt jede Stelle einzeln. Die richtige Lösung
     // steht schon in den Zeilen, deshalb hier nur die Bilanz.
@@ -955,11 +1022,11 @@
         t.richtig + ' von ' + t.gesamt + ' sitzen.</span>' +
         (gx.total ? '<span class="xpgain">+' + gx.total + ' Perlen</span>' : '') +
         erkl + '</div>' +
-        '<button class="btn bad big" data-action="next">Weiter</button></div>';
+        wartenKnopf('weiter', 'btn bad big', 'next', 'Weiter') + '</div>';
     }
     return '<div class="footer bad"><div class="fb"><b>Nicht ganz.</b> Richtig ist: <span class="sol">' + esc(L.q.solutionText) + '</span>' +
       erkl + '</div>' +
-      '<button class="btn bad big" data-action="next">Weiter</button></div>';
+      wartenKnopf('weiter', 'btn bad big', 'next', 'Weiter') + '</div>';
   }
 
   function check() {
@@ -968,7 +1035,7 @@
     // Bei der Merkfrage entscheidet nicht das Programm, sondern das
     // Kind selbst – deshalb wird hier nur aufgelöst.
     if (q.kind === 'offen') {
-      L.answered = true;
+      L.answered = true; L.antwortZeit = Date.now();
       L.res = { ok: null, xp: { base: 0, bonus: 0, total: 0 } };
       updateLesson();
       return;
@@ -994,7 +1061,7 @@
       var a = Object.keys(L.cuts).map(Number).sort(function (x, y) { return x - y; }).join(',');
       ok = a === q.solution.join(',');
     }
-    L.answered = true;
+    L.answered = true; L.antwortZeit = Date.now();
     var xp = { base: 0, bonus: 0, total: 0 };
     S.recordAnswer(q.wordId, q.cat, ok);
     if (ok) {
@@ -1164,16 +1231,16 @@
         break;
       case 'unslot': if (!L.answered && L.slots[i] !== null) { L.slots[i] = null; updateLesson(); } break;
       case 'cut': if (!L.answered) { if (L.cuts[i]) delete L.cuts[i]; else L.cuts[i] = true; updateLesson(); } break;
-      case 'check': if (!L.answered && isReady()) check(); break;
+      case 'check': if (!L.answered && isReady() && bedenkRest('antwort') <= 0) check(); break;
       case 'selbst':
-        if (L.answered && L.q.kind === 'offen') {
+        if (L.answered && L.q.kind === 'offen' && bedenkRest('weiter') <= 0) {
           var wusste = t.getAttribute('data-ok') === '1';
           S.recordAnswer(L.q.wordId, L.q.cat, wusste);
           if (wusste) { L.correct++; sfx.ok(); } else { L.wrong++; sfx.bad(); }
           next();
         }
         break;
-      case 'next': if (L.answered) next(); break;
+      case 'next': if (L.answered && bedenkRest('weiter') <= 0) next(); break;
     }
   });
 

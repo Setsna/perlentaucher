@@ -411,6 +411,19 @@ body.sync-an #app { min-height: calc(100vh - var(--synch, 0px)); }
   background: #fff; border: 2px solid var(--line); border-bottom-width: 5px; border-radius: 14px; }
 .stapelkachel:active { transform: translateY(3px); border-bottom-width: 2px; }
 
+/* ---------- Bedenkzeit ---------- */
+.denkzeit { display: flex; flex-direction: column; gap: 10px; }
+.denkbalken { height: 8px; border-radius: 99px; background: #D7EAF2; overflow: hidden; }
+.denkbalken i { display: block; height: 100%; border-radius: 99px;
+  background: var(--brand); transition: width .2s linear; }
+.footer.good .denkbalken { background: #BCE8D2; }
+.footer.good .denkbalken i { background: var(--good); }
+.footer.bad .denkbalken { background: #F8CFCB; }
+.footer.bad .denkbalken i { background: var(--bad); }
+.denkzahl { display: inline-flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 30px; margin-left: 6px; padding: 0 6px;
+  border-radius: 99px; background: rgba(255, 255, 255, .35); font-variant-numeric: tabular-nums; }
+
 /* ---------- Sachunterricht: Bild beschriften ---------- */
 .schildbild { display: flex; justify-content: center; margin: 0 0 14px;
   background: #fff; border: 2px solid var(--line); border-radius: 20px; padding: 10px; }

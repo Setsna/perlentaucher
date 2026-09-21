@@ -39,6 +39,15 @@ WA.config = {
   wiederholungAnteil: 0.25,    // Anteil der Aufgaben aus früheren Listen
   hinweise: true,              // Bedeutung als Tipp einblenden
 
+  // --- Bedenkzeit -----------------------------------------------
+  // Gegen reflexhaftes Durchklicken. Der Knopf zeigt währenddessen
+  // einen Countdown, damit er nicht kaputt wirkt.
+  bedenkzeit: {
+    enabled: true,
+    vorAntwort: 5,             // Sekunden, bevor "Prüfen" freigegeben wird
+    vorWeiter: 3               // Sekunden, bevor "Weiter" freigegeben wird
+  },
+
   lessonLength: 8,             // Aufgaben pro Tauchgang
   dailyGoalXp: 100,            // Tagesziel in Perlen
   masteryTarget: 2,            // So oft richtig = Wort gilt im Bereich als "gelernt"
@@ -177,6 +186,9 @@ WA.applySettings = function (e) {
   if (typeof e.dailyGoalXp === 'number') C.dailyGoalXp = e.dailyGoalXp;
   if (typeof e.kinder === 'number') C.klasse.kinder = e.kinder;
   if (typeof e.wochenzielProKind === 'number') C.klasse.wochenzielProKind = e.wochenzielProKind;
+  if (typeof e.denkAn === 'boolean') C.bedenkzeit.enabled = e.denkAn;
+  if (typeof e.denkAntwort === 'number') C.bedenkzeit.vorAntwort = e.denkAntwort;
+  if (typeof e.denkWeiter === 'number') C.bedenkzeit.vorWeiter = e.denkWeiter;
   if (typeof e.malenAn === 'boolean') C.malen.enabled = e.malenAn;
   if (typeof e.malMinuten === 'number') C.malen.minutenProZiel = e.malMinuten;
   if (typeof e.malMaxMinuten === 'number') C.malen.maxGuthabenMinuten = e.malMaxMinuten;
