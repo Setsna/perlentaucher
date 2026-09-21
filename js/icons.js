@@ -242,6 +242,35 @@ window.WA = window.WA || {};
     ),
 
     // Erreichtes Klassenziel
+    // --- Fach Deutsch: Buchstaben auf einer Schriftrolle ---------
+    buchstabe: svg(
+      '<path d="M18 20 C18 14, 24 12, 30 12 L74 12 C80 12, 84 16, 84 22 L84 80 C84 86, 80 90, 74 90 L30 90 ' +
+      'C24 90, 18 86, 18 80 Z" fill="#FFF6F0" stroke="#D4554A" stroke-width="5" stroke-linejoin="round"/>' +
+      '<path d="M18 20 C18 26, 24 28, 30 28 L38 28" fill="none" stroke="#D4554A" stroke-width="4" stroke-linecap="round"/>' +
+      '<text x="52" y="66" font-family="ui-rounded, system-ui, sans-serif" font-size="44" font-weight="800" ' +
+      'fill="#D4554A" text-anchor="middle">Aa</text>' +
+      '<path d="M32 78 H72" stroke="#F2A9A0" stroke-width="4" stroke-linecap="round"/>'
+    ),
+
+    // --- Fach Sachunterricht: Lupe über einem Blatt --------------
+    lupe: svg(
+      '<path d="M28 74 C22 58, 30 36, 52 26 C58 44, 50 66, 28 74 Z" fill="#7CC47A"/>' +
+      '<path d="M28 74 C34 58, 42 42, 52 26" fill="none" stroke="#2E7D32" stroke-width="3.5" stroke-linecap="round"/>' +
+      '<circle cx="62" cy="44" r="24" fill="#EAF7FC" fill-opacity=".75" stroke="#2E7D32" stroke-width="6"/>' +
+      '<path d="M60 32 C52 34, 46 40, 44 48" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".8"/>' +
+      '<path d="M78 60 L92 78" stroke="#2E7D32" stroke-width="10" stroke-linecap="round"/>'
+    ),
+
+    // --- Thema Feuer: Flamme -------------------------------------
+    flamme: svg(
+      '<path d="M50 8 C58 26, 74 32, 76 52 C78 74, 64 90, 50 90 C36 90, 22 74, 24 52 ' +
+      'C26 36, 36 34, 40 22 C44 30, 48 30, 50 8 Z" fill="#E2631F"/>' +
+      '<path d="M50 34 C56 46, 64 50, 64 62 C64 76, 57 84, 50 84 C43 84, 36 76, 36 62 ' +
+      'C36 52, 44 48, 50 34 Z" fill="#F7B23B"/>' +
+      '<path d="M50 58 C54 65, 56 68, 56 72 C56 78, 53 82, 50 82 C47 82, 44 78, 44 72 ' +
+      'C44 68, 46 65, 50 58 Z" fill="#FFF0B8"/>'
+    ),
+
     // Pixelraster (Auswahl beim Malen)
     raster: svg(
       '<rect x="14" y="14" width="72" height="72" rx="8" fill="#EDF6FA" stroke="#0C3A4A" stroke-width="5"/>' +

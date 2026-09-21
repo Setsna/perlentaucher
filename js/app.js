@@ -49,6 +49,20 @@
     return teile.map(function (s, i) { return '<span class="syl s' + (i % 3) + '">' + esc(s) + '</span>'; }).join('<span class="dot">·</span>');
   }
   function ico(k) { return (WA.icons && WA.icons[k]) || k; }
+  // Ein Tauchgang gehört entweder zu einem Tauchrevier (Deutsch)
+  // oder zu einem Sachthema. Beide haben Titel und Farbe.
+  function revier(id) {
+    if (C.categories[id]) return C.categories[id];
+    if (C.themen && C.themen[id]) return C.themen[id];
+    if (istThema(id)) return { title: id, color: '#2E7D32' };
+    return { title: '', color: 'var(--brand)' };
+  }
+  // Ein Thema erkennt man daran, dass es Fragen dazu gibt.
+  function istThema(id) {
+    if (C.categories[id]) return false;
+    if (C.themen && C.themen[id]) return true;
+    return (WA.fragen || []).some(function (f) { return f.thema === id; });
+  }
   function getWord(id) { return WA.words.filter(function (w) { return w.id === id; })[0]; }
   function bar(p, color) {
     return '<div class="bar"><i style="width:' + pct(p) + '%;background:' + (color || 'var(--brand)') + '"></i></div>';
@@ -146,24 +160,103 @@
       (rest > 0 ? 'Malen' : 'Meine Bilder') + '</button></section>';
   }
 
+  // ---------- Fächer ----------
+  // Die Kinder wählen erst das Fach, dann das Revier bzw. das Thema.
+  function fachFortschritt(id) {
+    var f = C.faecher[id];
+    if (f.art === 'themen') {
+      var t = themenVon(id);
+      if (!t.length) return 0;
+      return t.reduce(function (s, k) { return s + WA.quiz.fortschritt(k); }, 0) / t.length;
+    }
+    var welten = ['schreibweise', 'artikel', 'silben', 'verstehen'];
+    return welten.reduce(function (s, k) { return s + S.worldProgress(k); }, 0) / welten.length;
+  }
+  // Themen kommen aus der Konfiguration – und zusätzlich aus den
+  // Fragen selbst. So entsteht ein neues Thema allein dadurch, dass
+  // im Lehrerbereich Fragen dazu angelegt werden.
+  function themenVon(fachId) {
+    var raus = Object.keys(C.themen || {}).filter(function (k) {
+      return C.themen[k].enabled !== false && C.themen[k].fach === fachId;
+    });
+    if (fachId === 'sachunterricht') {
+      (WA.fragen || []).forEach(function (f) {
+        if (f.thema && raus.indexOf(f.thema) < 0 && !(C.themen || {})[f.thema]) raus.push(f.thema);
+      });
+    }
+    return raus.filter(function (k) { return WA.quiz.anzahl(k) > 0 || (C.themen || {})[k]; });
+  }
+  // Für Themen ohne Eintrag in der Konfiguration
+  function themaInfo(id) {
+    var t = (C.themen || {})[id];
+    if (t) return t;
+    return { title: id.charAt(0).toUpperCase() + id.slice(1), sub: 'Sachthema',
+             icon: 'lupe', color: '#2E7D32' };
+  }
+
+  function faecherHtml() {
+    return Object.keys(C.faecher).filter(function (k) { return C.faecher[k].enabled; })
+      .map(function (k) {
+        var f = C.faecher[k], p = fachFortschritt(k);
+        return '<button class="fach" style="--wc:' + f.color + '" data-action="fach" data-f="' + k + '">' +
+          '<span class="wicon">' + ico(f.icon) + '</span>' +
+          '<span class="wtext"><b>' + esc(f.title) + '</b><small>' + esc(f.sub) + '</small>' +
+          '<span class="wbar"><i style="width:' + pct(p) + '%"></i></span></span>' +
+          '<span class="wpct">' + pct(p) + '%</span></button>';
+      }).join('');
+  }
+
+  function renderFach(fachId) {
+    var f = C.faecher[fachId];
+    if (!f) { renderHome(); return; }
+    view = 'fach'; L = null; clearInterval(timer); clearConfetti();
+    var inhalt, weak = S.weakWords();
+
+    if (f.art === 'themen') {
+      var themen = themenVon(fachId);
+      inhalt = themen.length
+        ? '<section class="worlds">' + themen.map(function (k) {
+            var t = themaInfo(k), p = WA.quiz.fortschritt(k), n = WA.quiz.anzahl(k);
+            return '<button class="world" style="--wc:' + t.color + '" data-action="startthema" data-t="' + k + '">' +
+              '<span class="wicon">' + ico(t.icon) + '</span>' +
+              '<span class="wtext"><b>' + esc(t.title) + '</b><small>' + esc(t.sub) + ' · ' + n + ' Fragen</small>' +
+              '<span class="wbar"><i style="width:' + pct(p) + '%"></i></span></span>' +
+              '<span class="wpct">' + pct(p) + '%</span></button>';
+          }).join('') + '</section>'
+        : '<section class="card"><p class="muted">Für dieses Fach gibt es noch keine Themen.</p></section>';
+    } else {
+      inhalt = '<section class="worlds">' +
+        Object.keys(C.categories).filter(function (k) { return C.categories[k].enabled; }).map(function (k) {
+          var c = C.categories[k], p = S.worldProgress(k);
+          return '<button class="world" style="--wc:' + c.color + '" data-action="start" data-w="' + k + '">' +
+            '<span class="wicon">' + ico(c.icon) + '</span>' +
+            '<span class="wtext"><b>' + esc(c.title) + '</b><small>' + esc(c.sub) + '</small>' +
+            '<span class="wbar"><i style="width:' + pct(p) + '%"></i></span></span>' +
+            '<span class="wpct">' + pct(p) + '%</span></button>';
+        }).join('') + '</section>' +
+        (weak.length ? '<section class="card weak"><h3>Kniffelige Wörter</h3><div class="chips2">' +
+          weak.slice(0, 6).map(function (w) { return '<span>' + esc(w.wort) + '</span>'; }).join('') +
+          '</div></section>' : '');
+    }
+
+    $app.innerHTML = '<div class="page" style="--wc:' + f.color + '">' +
+      '<header class="ptop"><button class="icon-btn" data-action="home" aria-label="Zurück">' + ico('zurueck') + '</button>' +
+      '<h1>' + esc(f.title) + '</h1></header>' +
+      '<p class="fachsub">' + esc(f.sub) + '</p>' + inhalt + '</div>';
+    window.scrollTo(0, 0);
+  }
+
   function renderHome() {
     view = 'home'; L = null; clearInterval(timer); clearConfetti();
     var st = S.state, today = S.todayXp(), goal = C.dailyGoalXp, weak = S.weakWords();
     var kind = WA.cloud && WA.cloud.kind && WA.cloud.kind();
     var name = kind ? esc(kind.vorname) : null;
-    var msg = st.lessons === 0 ? 'Hallo' + (name ? ' ' + name : '') + '! Ich bin <b>Otti</b>. Wähle ein Tauchrevier und starte deinen ersten Tauchgang!'
+    var msg = st.lessons === 0 ? 'Hallo' + (name ? ' ' + name : '') + '! Ich bin <b>Otti</b>. Wähle ein Fach und starte deinen ersten Tauchgang!'
       : today >= goal ? 'Tagesziel geschafft! Du bist ein echter Tiefseetaucher!'
       : weak.length ? 'Ein paar Wörter sind noch kniffelig. Im <b>Tiefsee-Mix</b> üben wir sie zusammen!'
-      : 'Schön, dass du wieder da bist' + (name ? ', ' + name : '') + '! Wo tauchen wir heute?';
+      : 'Schön, dass du wieder da bist' + (name ? ', ' + name : '') + '! Was tauchen wir heute?';
 
-    var worlds = Object.keys(C.categories).filter(function (k) { return C.categories[k].enabled; }).map(function (k) {
-      var c = C.categories[k], p = S.worldProgress(k);
-      return '<button class="world" style="--wc:' + c.color + '" data-action="start" data-w="' + k + '">' +
-        '<span class="wicon">' + ((WA.icons && WA.icons[c.icon]) || c.icon) + '</span>' +
-        '<span class="wtext"><b>' + esc(c.title) + '</b><small>' + esc(c.sub) + '</small>' +
-        '<span class="wbar"><i style="width:' + pct(p) + '%"></i></span></span>' +
-        '<span class="wpct">' + pct(p) + '%</span></button>';
-    }).join('');
+    var faecher = faecherHtml();
 
     var week = S.weekDays(), maxw = Math.max(goal, Math.max.apply(null, week.map(function (d) { return d.xp; })));
     var weekHtml = week.map(function (d) {
@@ -197,7 +290,7 @@
       '<button class="navbtn" data-action="klasse"><span class="nic">' + ico('schwarm') + '</span>' +
       '<span class="ntext"><b>Klassenziel</b><small>Was die Klasse zusammen schafft</small></span></button>' +
       '</section>' +
-      '<h2 class="sec">Tauchreviere</h2><section class="worlds">' + worlds + '</section>' +
+      '<h2 class="sec">Was möchtest du üben?</h2><section class="faecher">' + faecher + '</section>' +
       weakHtml +
       '<h2 class="sec">Diese Woche</h2><section class="card week">' + weekHtml + '</section>' +
       '<h2 class="sec">Abzeichen</h2><section class="badges">' + badges + '</section>' +
@@ -664,7 +757,13 @@
   }
 
   function beginLesson(world, practice, onlyIds) {
-    var queue = EX.buildLesson(world, onlyIds);
+    var queue = istThema(world) ? WA.quiz.baueTauchgang(world) : EX.buildLesson(world, onlyIds);
+    if (!queue.length) {
+      showModal('<h2>Noch nichts zum Üben</h2>' + WA.mascot('think', 110) +
+        '<p>Für dieses Thema sind noch keine Fragen da.</p>' +
+        '<button class="btn big wide" data-action="close">Alles klar</button>');
+      renderHome(); return;
+    }
     L = { world: world, queue: queue, i: 0, practice: practice, correct: 0, wrong: 0, streak: 0, maxStreak: 0, xp: 0,
           outOfHearts: false, retried: {}, onlyIds: onlyIds };
     prepQ(); renderLesson();
@@ -677,7 +776,7 @@
 
   function renderLesson() {
     view = 'lesson'; clearInterval(timer); clearConfetti();
-    var c = C.categories[L.world];
+    var c = revier(L.world);
     $app.innerHTML =
       '<div class="lesson" style="--wc:' + c.color + '">' +
       '<div class="ltop"><button class="icon-btn" data-action="quit" aria-label="Beenden">' + ico('schliessen') + '</button>' +
@@ -757,13 +856,18 @@
       var ok = isReady();
       return '<div class="footer"><button class="btn big' + (ok ? '' : ' off') + '" data-action="check"' + (ok ? '' : ' disabled') + '>Prüfen</button></div>';
     }
+    // Im Sachunterricht steht hinter jeder Frage eine kurze Erklärung.
+    // Die ist der eigentliche Lerneffekt und wird immer gezeigt.
+    var erkl = L.q.erklaerung ? '<span class="erkl">' + esc(L.q.erklaerung) + '</span>' : '';
     if (L.res.ok) {
       var x = L.res.xp;
       return '<div class="footer good"><div class="fb"><b>' + (L.streak >= C.xp.streakBonusFrom ? L.streak + ' in Folge!' : PRAISE[Math.floor(Math.random() * PRAISE.length)]) + '</b>' +
-        (x.total ? '<span class="xpgain">+' + x.total + ' Perlen' + (x.bonus ? ' <small>(Serien-Bonus +' + x.bonus + ')</small>' : '') + '</span>' : '') + '</div>' +
+        (x.total ? '<span class="xpgain">+' + x.total + ' Perlen' + (x.bonus ? ' <small>(Serien-Bonus +' + x.bonus + ')</small>' : '') + '</span>' : '') +
+        erkl + '</div>' +
         '<button class="btn good big" data-action="next">Weiter</button></div>';
     }
-    return '<div class="footer bad"><div class="fb"><b>Nicht ganz.</b> Richtig ist: <span class="sol">' + esc(L.q.solutionText) + '</span></div>' +
+    return '<div class="footer bad"><div class="fb"><b>Nicht ganz.</b> Richtig ist: <span class="sol">' + esc(L.q.solutionText) + '</span>' +
+      erkl + '</div>' +
       '<button class="btn bad big" data-action="next">Weiter</button></div>';
   }
 
@@ -790,7 +894,9 @@
       }
       if (!L.retried[q.wordId] && L.queue.length < C.lessonLength * 2) {    // falsche Aufgabe kommt später noch einmal
         L.retried[q.wordId] = true;
-        L.queue.push(EX.makeQuestion(q.type, getWord(q.wordId)));
+        L.queue.push(q.quelle === 'quiz'
+          ? WA.quiz.frageMitId(q.wordId)
+          : EX.makeQuestion(q.type, getWord(q.wordId)));
       }
     }
     L.res = { ok: ok, xp: xp };
@@ -865,6 +971,8 @@
     var a = t.getAttribute('data-action'), i = parseInt(t.getAttribute('data-i'), 10), w = t.getAttribute('data-w');
     switch (a) {
       case 'start': startLesson(w); break;
+      case 'fach': renderFach(t.getAttribute('data-f')); break;
+      case 'startthema': startLesson(t.getAttribute('data-t')); break;
       case 'progress': renderProgress(); break;
       case 'login': login(); break;
       case 'malen': closeModal(); mitBildern(renderMalen); break;

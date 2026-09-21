@@ -378,3 +378,16 @@ body.sync-an #app { min-height: calc(100vh - var(--synch, 0px)); }
   body.sync-an .lesson, body.sync-an .center,
   body.sync-an #app { min-height: calc(100dvh - var(--synch, 0px)); }
 }
+
+/* ---------- Fächerwahl auf der Startseite ---------- */
+.faecher { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.fach { display: flex; align-items: center; gap: 16px; text-align: left; padding: 20px; min-height: 128px;
+  border-radius: 24px; background: var(--wc); color: #fff; border-bottom: 7px solid rgba(0,0,0,.25); }
+.fach:active { transform: translateY(3px); border-bottom-width: 4px; }
+.fach .wicon { width: 78px; height: 78px; border-radius: 20px; }
+.fach .wicon .ic { width: 60px; height: 60px; }
+.fach .wtext b { font-size: 25px; }
+.fachsub { color: var(--muted); font-weight: 600; margin-bottom: 14px; }
+@media (max-width: 720px) { .faecher { grid-template-columns: 1fr; } }
+.erkl { display: block; font-size: 16px; font-weight: 600; opacity: .9; line-height: 1.3; max-width: 60ch; }
+.footer.good .erkl, .footer.bad .erkl { color: inherit; }

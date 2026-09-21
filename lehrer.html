@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=12">
+<link rel="stylesheet" href="css/style.css?v=13">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -90,6 +90,11 @@
   .bildkarte.fertig { border-color: var(--good); }
   @media print { .reiter, .lhead .rechts, .hinweis { display: none; } .bildkarte { break-inside: avoid; } }
 
+  .antw { font-size: 14px; margin-top: 4px; line-height: 1.5; }
+  .antw .richtig { color: var(--good-d); }
+  .antwzeile { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .antwzeile input[type=radio] { width: 24px; height: 24px; accent-color: var(--good); flex: none; }
+  .antwzeile input[type=text] { flex: 1; }
   .merker { padding: 18px 0 8px; }
   .chip { display: inline-block; background: #E4F1F7; color: var(--brand-d); border-radius: 99px;
     padding: 4px 12px; font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -102,13 +107,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=12"></script>
-<script src="js/words.js?v=12"></script>
-<script src="js/mascot.js?v=12"></script>
-<script src="js/icons.js?v=12"></script>
-<script src="js/malen.js?v=12"></script>
-<script src="js/merge.js?v=12"></script>
-<script src="js/cloud.js?v=12"></script>
+<script src="js/config.js?v=13"></script>
+<script src="js/words.js?v=13"></script>
+<script src="js/quiz.js?v=13"></script>
+<script src="js/mascot.js?v=13"></script>
+<script src="js/icons.js?v=13"></script>
+<script src="js/malen.js?v=13"></script>
+<script src="js/merge.js?v=13"></script>
+<script src="js/cloud.js?v=13"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -120,7 +126,7 @@
   'use strict';
   var $app = document.getElementById('app');
   var auth, db, nutzer = null;
-  var kinder = [], staende = {}, woerter = [], einst = {}, klassenPerlen = null;
+  var kinder = [], staende = {}, woerter = [], fragen = [], einst = {}, klassenPerlen = null;
   var reiter = 'fortschritt', filterListe = '', meldung = null;
 
   var TYPNAMEN = {
@@ -186,7 +192,8 @@
       db.collection('kinder').get(),
       db.collection('lernwoerter').get(),
       db.collection('einstellungen').doc('klasse').get(),
-      db.collection('klassenwochen').doc(WA.cloud.wochenSchluessel()).get().catch(function () { return null; })
+      db.collection('klassenwochen').doc(WA.cloud.wochenSchluessel()).get().catch(function () { return null; }),
+      db.collection('quizfragen').get().catch(function () { return null; })
     ]).then(function (r) {
       kinder = [];
       r[0].forEach(function (d) { kinder.push(Object.assign({ id: d.id }, d.data())); });
@@ -195,6 +202,13 @@
       woerter = [];
       r[1].forEach(function (d) { woerter.push(Object.assign({ id: d.id }, d.data())); });
       woerter.sort(function (a, b) { return String(a.wort).localeCompare(String(b.wort), 'de'); });
+
+      fragen = [];
+      if (r[4]) r[4].forEach(function (d) { fragen.push(WA.frageAusDoc(d.id, d.data())); });
+      fragen.sort(function (a, b) {
+        return String(a.thema).localeCompare(String(b.thema), 'de') ||
+               String(a.bereich).localeCompare(String(b.bereich), 'de');
+      });
 
       einst = (r[2] && r[2].exists) ? r[2].data() : {};
       klassenPerlen = (r[3] && r[3].exists) ? (r[3].data().perlen || 0) : 0;
@@ -232,6 +246,7 @@
     var inhalt = reiter === 'woerter' ? tabWoerter()
       : reiter === 'einstellungen' ? tabEinstellungen()
       : reiter === 'kinder' ? tabKinder()
+      : reiter === 'themen' ? tabThemen()
       : reiter === 'auswertung' ? tabAuswertung()
       : reiter === 'bilder' ? tabBilder()
       : reiter === 'sicherung' ? tabSicherung()
@@ -247,7 +262,7 @@
       '<button class="btn ghost mini" id="abmelden">Abmelden</button></div></div>' +
       '<div class="reiter">' +
       knopf('fortschritt', 'Fortschritt') + knopf('auswertung', 'Auswertung') + knopf('woerter', 'Lernwörter (' + woerter.length + ')') +
-      knopf('einstellungen', 'Einstellungen') + knopf('kinder', 'Kinder (' + kinder.length + ')') +
+      knopf('themen', 'Sachthemen (' + fragen.length + ')') + knopf('einstellungen', 'Einstellungen') + knopf('kinder', 'Kinder (' + kinder.length + ')') +
       knopf('bilder', 'Bilder') + knopf('sicherung', 'Sicherung') +
       '</div>' + m + inhalt + '</div>';
 
@@ -259,6 +274,7 @@
     if (reiter === 'einstellungen') bindeEinstellungen();
     if (reiter === 'kinder') bindeKinder();
     if (reiter === 'fortschritt') bindeFortschritt();
+    if (reiter === 'themen') bindeThemen();
     if (reiter === 'auswertung') bindeAuswertung();
     if (reiter === 'bilder') bindeBilder();
     if (reiter === 'sicherung') bindeSicherung();
@@ -783,6 +799,197 @@
   }
 
   // ==========================================================
+  //  Reiter: Sachthemen
+  //  Fragen für den Sachunterricht. Ein neues Thema entsteht
+  //  einfach dadurch, dass du Fragen mit einem neuen Themennamen
+  //  anlegst – dafür ist keine Änderung am Programm nötig.
+  // ==========================================================
+  var filterThema = '';
+
+  function themenNamen() {
+    var s = {};
+    fragen.forEach(function (f) { if (f.thema) s[f.thema] = (s[f.thema] || 0) + 1; });
+    return Object.keys(s).sort(function (a, b) { return a.localeCompare(b, 'de'); })
+      .map(function (n) { return { name: n, anzahl: s[n] }; });
+  }
+
+  function tabThemen() {
+    if (!fragen.length) {
+      return '<section class="card"><h2 style="margin-bottom:10px">Noch keine Fragen in der Datenbank</h2>' +
+        '<p class="muted" style="margin-bottom:14px">Die App benutzt gerade die ' + (WA.fragen || []).length +
+        ' mitgelieferten Fragen zum Thema Feuer aus der Datei. Übernimm sie einmalig in die Datenbank, ' +
+        'danach kannst du sie hier ändern, löschen und ergänzen.</p>' +
+        '<button class="btn" id="fragenuebernehmen">Die ' + (WA.fragen || []).length + ' Fragen übernehmen</button></section>';
+    }
+
+    var themen = themenNamen();
+    var sichtbar = fragen.filter(function (f) { return !filterThema || f.thema === filterThema; });
+    var zeilen = sichtbar.map(function (f) {
+      var ant = (f.antworten || []).map(function (a) {
+        return a === f.richtig ? '<b class="richtig">' + esc(a) + '</b>' : '<span class="muted">' + esc(a) + '</span>';
+      }).join(' · ');
+      return '<tr><td><span class="chip">' + esc(f.thema) + '</span></td>' +
+        '<td class="muted">' + esc(f.bereich) + '</td>' +
+        '<td><b>' + esc(f.frage) + '</b><div class="antw">' + ant + '</div>' +
+        (f.erklaerung ? '<div class="muted" style="font-size:14px">' + esc(f.erklaerung) + '</div>' : '') + '</td>' +
+        '<td class="num">' + esc(String(f.schwierigkeit || 2)) + '</td>' +
+        '<td style="white-space:nowrap">' +
+        '<button class="btn ghost mini" data-fbearbeiten="' + esc(f.id) + '">Ändern</button> ' +
+        '<button class="btn ghost mini danger" data-floeschen="' + esc(f.id) + '">Löschen</button></td></tr>';
+    }).join('');
+
+    var filter = '<select class="klein" id="fthema"><option value="">alle Themen (' + fragen.length + ')</option>' +
+      themen.map(function (t) {
+        return '<option value="' + esc(t.name) + '"' + (filterThema === t.name ? ' selected' : '') +
+          '>' + esc(t.name) + ' (' + t.anzahl + ')</option>';
+      }).join('') + '</select>';
+
+    return '<div class="hinweis">Die erste Antwort in der Liste ist nicht automatisch die richtige – ' +
+      'die richtige wird beim Anlegen ausgewählt und hier <b>fett</b> angezeigt. ' +
+      'Beim Üben werden die Antworten gemischt. Die <b>Erklärung</b> sehen die Kinder nach jeder Antwort; ' +
+      'sie ist der eigentliche Lerneffekt.</div>' +
+      '<section class="card">' +
+      '<div class="knopfreihe" style="margin:0 0 14px">' + filter +
+      '<button class="btn mini" id="fneu">Neue Frage</button>' +
+      '<button class="btn ghost mini" id="fexport">Als CSV sichern</button></div>' +
+      '<div class="tabwrap"><table class="tabelle"><thead><tr>' +
+      '<th>Thema</th><th>Bereich</th><th>Frage und Antworten</th><th>Stufe</th><th></th>' +
+      '</tr></thead><tbody>' + (zeilen ||
+        '<tr><td colspan="5" class="muted">Keine Fragen in diesem Thema.</td></tr>') +
+      '</tbody></table></div></section><div id="fformular"></div>';
+  }
+
+  function frageFormular(id) {
+    var f = fragen.filter(function (x) { return x.id === id; })[0] ||
+      { id: '', thema: filterThema || 'feuer', bereich: '', schwierigkeit: 2, frage: '', antworten: ['', '', ''], richtig: '', erklaerung: '' };
+    var neu = !id;
+    var ant = f.antworten.concat(['', '', '', '']).slice(0, 4);
+
+    el('fformular').innerHTML = '<h2 class="sec">' + (neu ? 'Neue Frage' : 'Frage ändern') + '</h2>' +
+      '<section class="card"><div class="raster">' +
+      feld('f_thema', 'Thema', f.thema) +
+      feld('f_bereich', 'Bereich (z. B. loeschen)', f.bereich) +
+      '<label class="feld">Stufe<select id="f_stufe" class="klein">' +
+      [1, 2, 3].map(function (n) {
+        return '<option value="' + n + '"' + (Number(f.schwierigkeit) === n ? ' selected' : '') + '>' + n + '</option>';
+      }).join('') + '</select></label>' +
+      '</div>' +
+      '<div style="margin-top:14px">' + feld('f_frage', 'Frage', f.frage) + '</div>' +
+      '<h3 class="merker">Antworten – die richtige auswählen</h3>' +
+      ant.map(function (a, i) {
+        return '<div class="antwzeile"><input type="radio" name="f_richtig" id="f_r' + i + '" value="' + i + '"' +
+          ((a && a === f.richtig) || (neu && i === 0 && !f.richtig) ? ' checked' : '') + '>' +
+          '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" placeholder="Antwort ' + (i + 1) +
+          (i > 1 ? ' (kann leer bleiben)' : '') + '"></div>';
+      }).join('') +
+      '<div style="margin-top:14px">' + feld('f_erklaerung', 'Erklärung nach der Antwort', f.erklaerung) + '</div>' +
+      '<div class="knopfreihe"><button class="btn" id="fspeichern">Speichern</button>' +
+      '<button class="btn ghost" id="fzu">Abbrechen</button></div><div id="ffehler"></div></section>';
+
+    el('fzu').onclick = function () { el('fformular').innerHTML = ''; };
+    el('fspeichern').onclick = function () { frageSpeichern(id); };
+    el('f_frage').focus();
+  }
+
+  function frageSpeichern(id) {
+    var ant = [], richtigIdx = 0;
+    for (var i = 0; i < 4; i++) {
+      var v = el('f_a' + i).value.trim();
+      var r = el('f_r' + i);
+      if (r && r.checked) richtigIdx = i;
+      ant.push(v);
+    }
+    var frage = el('f_frage').value.trim();
+    var richtig = ant[richtigIdx];
+    var gefuellt = ant.filter(function (a) { return a; });
+
+    var fehler = null;
+    if (!frage) fehler = 'Die Frage fehlt.';
+    else if (gefuellt.length < 2) fehler = 'Es braucht mindestens zwei Antworten.';
+    else if (!richtig) fehler = 'Die als richtig markierte Antwort ist leer.';
+    else if (gefuellt.length !== gefuellt.filter(function (a, i2) { return gefuellt.indexOf(a) === i2; }).length)
+      fehler = 'Zwei Antworten sind gleich.';
+    if (fehler) { el('ffehler').innerHTML = '<div class="melden fehler">' + esc(fehler) + '</div>'; return; }
+
+    var thema = (el('f_thema').value.trim() || 'feuer').toLowerCase();
+    var daten = {
+      thema: thema,
+      bereich: (el('f_bereich').value.trim() || 'allgemein').toLowerCase(),
+      schwierigkeit: Number(el('f_stufe').value) || 2,
+      frage: frage, antworten: gefuellt, richtig: richtig,
+      erklaerung: el('f_erklaerung').value.trim(),
+      aktiv: true
+    };
+    var schluessel = id || (thema.slice(0, 4) + '-' + Date.now().toString(36));
+    el('ffehler').innerHTML = '<div class="melden">Wird gespeichert …</div>';
+    db.collection('quizfragen').doc(schluessel).set(daten)
+      .then(function () { melde('Frage gespeichert.'); el('fformular').innerHTML = ''; laden(); })
+      .catch(function (e) {
+        el('ffehler').innerHTML = '<div class="melden fehler">Fehlgeschlagen: ' + esc(e.message) +
+          (e.code === 'permission-denied'
+            ? '<br>Wahrscheinlich fehlt der Block für <b>quizfragen</b> in den Firestore-Regeln.' : '') + '</div>';
+      });
+  }
+
+  function fragenUebernehmen() {
+    var liste = WA.fragen || [];
+    if (!liste.length) return;
+    var paket = db.batch();
+    liste.forEach(function (f) {
+      paket.set(db.collection('quizfragen').doc(f.id), {
+        thema: f.thema, bereich: f.bereich, schwierigkeit: f.schwierigkeit,
+        frage: f.frage, antworten: f.antworten, richtig: f.richtig,
+        erklaerung: f.erklaerung, aktiv: true
+      });
+    });
+    paket.commit()
+      .then(function () { melde(liste.length + ' Fragen übernommen.'); laden(); })
+      .catch(function (e) {
+        melde('Fehlgeschlagen: ' + esc(e.message) +
+          (e.code === 'permission-denied'
+            ? ' Wahrscheinlich fehlt der Block für quizfragen in den Firestore-Regeln.' : ''), 'fehler');
+        zeichnen();
+      });
+  }
+
+  function fragenExport() {
+    var kopf = ['id', 'thema', 'bereich', 'schwierigkeit', 'frage', 'antworten (mit | getrennt)', 'richtig', 'erklaerung'];
+    var zeilen = [kopf.join(';')].concat(fragen.map(function (f) {
+      return [f.id, f.thema, f.bereich, f.schwierigkeit, f.frage,
+              (f.antworten || []).join('|'), f.richtig, f.erklaerung]
+        .map(function (x) { return String(x == null ? '' : x).replace(/;/g, ','); }).join(';');
+    }));
+    el('fformular').innerHTML = '<h2 class="sec">Fragen als CSV</h2><section class="card">' +
+      '<div class="hinweis">Zum Sichern oder zum Weiterarbeiten in einer Tabelle.</div>' +
+      '<textarea id="fcsv" spellcheck="false" style="min-height:260px"></textarea>' +
+      '<div class="knopfreihe"><button class="btn ghost" id="fzu2">Schließen</button></div></section>';
+    el('fcsv').value = zeilen.join('\n');
+    el('fcsv').select();
+    el('fzu2').onclick = function () { el('fformular').innerHTML = ''; };
+  }
+
+  function bindeThemen() {
+    var u = el('fragenuebernehmen');
+    if (u) { u.onclick = fragenUebernehmen; return; }
+    el('fthema').onchange = function () { filterThema = this.value; zeichnen(); };
+    el('fneu').onclick = function () { frageFormular(null); };
+    el('fexport').onclick = fragenExport;
+    document.querySelectorAll('[data-fbearbeiten]').forEach(function (b) {
+      b.onclick = function () { frageFormular(b.getAttribute('data-fbearbeiten')); };
+    });
+    document.querySelectorAll('[data-floeschen]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-floeschen');
+        var f = fragen.filter(function (x) { return x.id === id; })[0];
+        if (!confirm('Diese Frage löschen?\n\n' + (f ? f.frage : ''))) return;
+        db.collection('quizfragen').doc(id).delete()
+          .then(function () { melde('Frage gelöscht.'); laden(); })
+          .catch(function (e) { alert('Fehler: ' + e.message); });
+      };
+    });
+  }
+
+  // ==========================================================
   //  Reiter: Auswertung
   //  Nicht "wer hat wie viel geübt", sondern "welche Wörter machen
   //  der Klasse Mühe". Gerechnet wird über alle Kinder zusammen.
@@ -907,7 +1114,7 @@
   //  zurückspielen. Wiederhergestellt wird nur, was in der Datei
   //  steht – nichts wird dabei gelöscht.
   // ==========================================================
-  var SAMMLUNGEN = ['kinder', 'lernwoerter', 'einstellungen', 'klassenwochen', 'fortschritt', 'bilder'];
+  var SAMMLUNGEN = ['kinder', 'lernwoerter', 'quizfragen', 'einstellungen', 'klassenwochen', 'fortschritt', 'bilder'];
   var sicherungInhalt = null;      // eingelesene Datei, noch nicht geschrieben
 
   function tabSicherung() {

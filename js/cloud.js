@@ -190,9 +190,21 @@ WA.firebaseConfig = {
   function stammdatenLaden(kindDaten) {
     return Promise.all([
       db.collection('lernwoerter').get().catch(function () { return null; }),
-      db.collection('einstellungen').doc('klasse').get().catch(function () { return null; })
+      db.collection('einstellungen').doc('klasse').get().catch(function () { return null; }),
+      db.collection('quizfragen').get().catch(function () { return null; })
     ]).then(function (r) {
-      var woerter = r[0], einst = r[1];
+      var woerter = r[0], einst = r[1], fragen = r[2];
+
+      // Sachunterricht: Fragen aus der Datenbank. Kommt nichts an,
+      // bleiben die mitgelieferten Fragen aus js/quiz.js in Kraft.
+      if (fragen && fragen.size) {
+        var liste2 = [];
+        fragen.forEach(function (d) {
+          var f = d.data();
+          if (f && f.frage && f.aktiv !== false) liste2.push(WA.frageAusDoc(d.id, f));
+        });
+        if (liste2.length) WA.fragen = liste2;
+      }
 
       if (woerter && woerter.size) {
         var liste = [];

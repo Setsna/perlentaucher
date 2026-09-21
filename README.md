@@ -15,7 +15,8 @@ Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukom
 | `lehrer.html` | Lehrerbereich: Inhalte pflegen, Kinder freischalten, Fortschritt ansehen |
 | `js/config.js` | **Alle Einstellungen**: Luftblasen, Perlen, Stufen, Tagesziel, Klassenziel, Übungstypen |
 | `js/words.js` | Die mitgelieferten Lernwörter als Rückfallebene, falls die Datenbank nicht erreichbar ist |
-| `js/exercises.js` | Die zehn Aufgabentypen |
+| `js/exercises.js` | Die zehn Aufgabentypen für Deutsch |
+| `js/quiz.js` | Fragen für den Sachunterricht und ihr Aufgabenbau |
 | `js/store.js` | Spielstand |
 | `js/cloud.js` | Anmeldung und Speicherung in Firebase |
 | `js/icons.js` | Alle Symbole als eigene Zeichnungen |
@@ -25,6 +26,34 @@ Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukom
 | `css/style.css` | Das gesamte Aussehen |
 | `tools/qr_aufkleber.py` | Erzeugt den Druckbogen mit den QR-Zugangsaufklebern |
 | `tools/silben.py` | Sprechsilben und Worttrennung nach Duden |
+
+## Fächer und Sachthemen
+
+Die Startseite zeigt zuerst die **Fächer**. Deutsch führt zu den fünf
+Tauchrevieren mit den Lernwörtern, Sachunterricht zu den **Sachthemen**;
+das erste ist *Feuer*.
+
+Eine Sachunterrichtsfrage besteht aus der Frage, zwei bis vier Antworten,
+der Markierung welche richtig ist, und einer **Erklärung**. Die Erklärung
+erscheint nach jeder Antwort – auch nach einer richtigen – und ist der
+eigentliche Lerneffekt. Die Antworten werden beim Üben gemischt.
+
+Gepflegt wird das im Lehrerbereich unter **Sachthemen**. Ein neues Thema
+entsteht dadurch, dass du Fragen mit einem neuen Themennamen anlegst; dafür
+ist keine Änderung am Programm nötig. Nur wenn das Thema eine eigene Farbe
+und ein eigenes Symbol bekommen soll, muss es zusätzlich in `js/config.js`
+unter `themen` eingetragen werden – sonst erscheint es mit Standardfarbe
+und Lupensymbol.
+
+Perlen, Luftblasen, Tagesziel und Klassenziel gelten fächerübergreifend.
+Ein Kind kann sein Tagesziel also mit Deutsch, mit Sachunterricht oder mit
+beidem erreichen.
+
+**Zum Urheberrecht:** Die Fragen sind eigene Formulierungen. Aus fremden
+Unterrichtsmaterialien dürfen weder Texte noch Bilder noch Aufgaben-
+stellungen übernommen werden – diese Seite ist öffentlich erreichbar, und
+die meisten Materialverlage untersagen genau das ausdrücklich. Sachverhalte
+selbst sind nicht geschützt und dürfen in eigenen Worten abgefragt werden.
 
 ## Inhalte pflegen
 
@@ -189,7 +218,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=12`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=13`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

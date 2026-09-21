@@ -99,6 +99,29 @@ WA.config = {
     satz:           { difficulty: 2, enabled: true }
   },
 
+  // --- Fächer ---------------------------------------------------
+  // Die Startseite zeigt diese Knöpfe. Ein Fach der Art "woerter"
+  // führt zu den Tauchrevieren, eines der Art "themen" zu seinen
+  // Sachthemen.
+  faecher: {
+    deutsch: {
+      title: 'Deutsch', sub: 'Lernwörter üben', icon: 'buchstabe',
+      color: '#D4554A', art: 'woerter', enabled: true
+    },
+    sachunterricht: {
+      title: 'Sachunterricht', sub: 'Unsere Themen', icon: 'lupe',
+      color: '#2E7D32', art: 'themen', enabled: true
+    }
+  },
+
+  // --- Sachthemen -----------------------------------------------
+  themen: {
+    feuer: {
+      fach: 'sachunterricht', title: 'Feuer', sub: 'Brennen, Löschen, Feuerwehr',
+      icon: 'flamme', color: '#E2631F', enabled: true
+    }
+  },
+
   // --- Tauchreviere (Übungskategorien) --------------------------
   // icon: Schlüssel aus js/icons.js oder ein Emoji
   categories: {
