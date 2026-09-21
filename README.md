@@ -45,7 +45,12 @@ Notruf: In Taiwan gilt die **119** für Feuerwehr und Rettungswagen, die
 Beide sind als richtig hinterlegt, die Erklärung ordnet sie ein. Dazu gibt
 es zwei weitere Fragen, die Taiwan und Europa gezielt auseinanderhalten.
 
-Gepflegt wird das im Lehrerbereich unter **Sachthemen**. Ein neues Thema
+Gepflegt wird das im Lehrerbereich unter **Sachthemen**. Dort gibt es auch
+**Mitgelieferte Fragen abgleichen**: Die Datenbank hat Vorrang vor der Datei
+`js/quiz.js`, also kommen korrigierte oder neue mitgelieferte Fragen nicht
+von allein an. Der Abgleich schreibt sie nach – Fragen mit derselben Kennung
+werden überschrieben, neue kommen dazu, deine eigenen bleiben unberührt. Vor
+dem Schreiben wird angezeigt, was sich ändert. Ein neues Thema
 entsteht dadurch, dass du Fragen mit einem neuen Themennamen anlegst; dafür
 ist keine Änderung am Programm nötig. Nur wenn das Thema eine eigene Farbe
 und ein eigenes Symbol bekommen soll, muss es zusätzlich in `js/config.js`
@@ -225,7 +230,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=14`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=15`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

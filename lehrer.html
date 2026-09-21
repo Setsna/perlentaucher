@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=14">
+<link rel="stylesheet" href="css/style.css?v=15">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -107,14 +107,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=14"></script>
-<script src="js/words.js?v=14"></script>
-<script src="js/quiz.js?v=14"></script>
-<script src="js/mascot.js?v=14"></script>
-<script src="js/icons.js?v=14"></script>
-<script src="js/malen.js?v=14"></script>
-<script src="js/merge.js?v=14"></script>
-<script src="js/cloud.js?v=14"></script>
+<script src="js/config.js?v=15"></script>
+<script src="js/words.js?v=15"></script>
+<script src="js/quiz.js?v=15"></script>
+<script src="js/mascot.js?v=15"></script>
+<script src="js/icons.js?v=15"></script>
+<script src="js/malen.js?v=15"></script>
+<script src="js/merge.js?v=15"></script>
+<script src="js/cloud.js?v=15"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -854,7 +854,8 @@
       '<section class="card">' +
       '<div class="knopfreihe" style="margin:0 0 14px">' + filter +
       '<button class="btn mini" id="fneu">Neue Frage</button>' +
-      '<button class="btn ghost mini" id="fexport">Als CSV sichern</button></div>' +
+      '<button class="btn ghost mini" id="fexport">Als CSV sichern</button>' +
+      '<button class="btn ghost mini" id="fabgleich">Mitgelieferte Fragen abgleichen</button></div>' +
       '<div class="tabwrap"><table class="tabelle"><thead><tr>' +
       '<th>Thema</th><th>Bereich</th><th>Frage und Antworten</th><th>Stufe</th><th></th>' +
       '</tr></thead><tbody>' + (zeilen ||
@@ -937,9 +938,28 @@
       });
   }
 
-  function fragenUebernehmen() {
+  // Die mitgelieferten Fragen in die Datenbank schreiben. Fragen mit
+  // derselben Kennung werden überschrieben, neue kommen dazu, eigene
+  // bleiben unberührt. Nötig, wenn zu einer bestehenden Sammlung
+  // korrigierte oder neue Fragen dazukommen.
+  function fragenUebernehmen(abgleich) {
     var liste = WA.fragen || [];
     if (!liste.length) return;
+    if (abgleich) {
+      var vorhanden = {}, neue = 0, geaendert = 0;
+      fragen.forEach(function (f) { vorhanden[f.id] = f; });
+      liste.forEach(function (f) {
+        if (!vorhanden[f.id]) neue++;
+        else if (JSON.stringify(vorhanden[f.id].richtig) !== JSON.stringify(f.richtig) ||
+                 vorhanden[f.id].frage !== f.frage ||
+                 vorhanden[f.id].erklaerung !== f.erklaerung) geaendert++;
+      });
+      if (!neue && !geaendert) { melde('Alles ist schon auf dem neuesten Stand.'); zeichnen(); return; }
+      if (!confirm('Abgleich mit den mitgelieferten Fragen:\n\n' +
+        neue + ' neue Fragen kommen dazu\n' +
+        geaendert + ' vorhandene Fragen werden überschrieben\n\n' +
+        'Eigene Fragen bleiben unberührt. Fortfahren?')) return;
+    }
     var paket = db.batch();
     liste.forEach(function (f) {
       paket.set(db.collection('quizfragen').doc(f.id), {
@@ -977,7 +997,8 @@
 
   function bindeThemen() {
     var u = el('fragenuebernehmen');
-    if (u) { u.onclick = fragenUebernehmen; return; }
+    if (u) { u.onclick = function () { fragenUebernehmen(false); }; return; }
+    el('fabgleich').onclick = function () { fragenUebernehmen(true); };
     el('fthema').onchange = function () { filterThema = this.value; zeichnen(); };
     el('fneu').onclick = function () { frageFormular(null); };
     el('fexport').onclick = fragenExport;
