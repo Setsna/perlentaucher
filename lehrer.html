@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=15">
+<link rel="stylesheet" href="css/style.css?v=16">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -107,14 +107,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=15"></script>
-<script src="js/words.js?v=15"></script>
-<script src="js/quiz.js?v=15"></script>
-<script src="js/mascot.js?v=15"></script>
-<script src="js/icons.js?v=15"></script>
-<script src="js/malen.js?v=15"></script>
-<script src="js/merge.js?v=15"></script>
-<script src="js/cloud.js?v=15"></script>
+<script src="js/config.js?v=16"></script>
+<script src="js/words.js?v=16"></script>
+<script src="js/quiz.js?v=16"></script>
+<script src="js/mascot.js?v=16"></script>
+<script src="js/icons.js?v=16"></script>
+<script src="js/malen.js?v=16"></script>
+<script src="js/merge.js?v=16"></script>
+<script src="js/cloud.js?v=16"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -826,13 +826,22 @@
     var sichtbar = fragen.filter(function (f) { return !filterThema || f.thema === filterThema; });
     var zeilen = sichtbar.map(function (f) {
       var richtige = Array.isArray(f.richtig) ? f.richtig : [f.richtig];
-      var ant = (f.antworten || []).map(function (a) {
-        return richtige.indexOf(a) >= 0
-          ? '<b class="richtig">' + esc(a) + '</b>'
-          : '<span class="muted">' + esc(a) + '</span>';
-      }).join(' · ');
+      var art = ARTEN[f.art] ? f.art : 'wahl';
+      var ant;
+      if (art === 'merken') {
+        ant = '<span class="muted">' + esc(f.loesung || '') + '</span>';
+      } else if (art === 'reihenfolge') {
+        ant = (f.antworten || []).map(function (a) { return esc(a); }).join(' <b class="richtig">→</b> ');
+      } else {
+        ant = (f.antworten || []).map(function (a) {
+          return richtige.indexOf(a) >= 0
+            ? '<b class="richtig">' + esc(a) + '</b>'
+            : '<span class="muted">' + esc(a) + '</span>';
+        }).join(' · ');
+      }
       return '<tr><td><span class="chip">' + esc(f.thema) + '</span></td>' +
-        '<td class="muted">' + esc(f.bereich) + '</td>' +
+        '<td class="muted">' + esc(f.bereich) + '<div class="muted" style="font-size:13px">' +
+        esc(ARTEN[art].name) + '</div></td>' +
         '<td><b>' + esc(f.frage) + '</b><div class="antw">' + ant + '</div>' +
         (f.erklaerung ? '<div class="muted" style="font-size:14px">' + esc(f.erklaerung) + '</div>' : '') + '</td>' +
         '<td class="num">' + esc(String(f.schwierigkeit || 2)) + '</td>' +
@@ -847,13 +856,16 @@
           '>' + esc(t.name) + ' (' + t.anzahl + ')</option>';
       }).join('') + '</select>';
 
-    return '<div class="hinweis">Die erste Antwort in der Liste ist nicht automatisch die richtige – ' +
+    return '<div class="hinweis">Drei Arten von Aufgaben: <b>Antwortfrage</b> (auswählen), ' +
+      '<b>Reihenfolge</b> (Schritte ordnen) und <b>Erst denken</b> (selbst überlegen, dann mit der ' +
+      'Musterlösung vergleichen und sich einschätzen – ohne Perlen). ' +
+      'Die erste Antwort in der Liste ist nicht automatisch die richtige – ' +
       'die richtige wird beim Anlegen ausgewählt und hier <b>fett</b> angezeigt. ' +
       'Beim Üben werden die Antworten gemischt. Die <b>Erklärung</b> sehen die Kinder nach jeder Antwort; ' +
       'sie ist der eigentliche Lerneffekt.</div>' +
       '<section class="card">' +
       '<div class="knopfreihe" style="margin:0 0 14px">' + filter +
-      '<button class="btn mini" id="fneu">Neue Frage</button>' +
+      '<button class="btn mini" id="fneu">Neue Aufgabe</button>' +
       '<button class="btn ghost mini" id="fexport">Als CSV sichern</button>' +
       '<button class="btn ghost mini" id="fabgleich">Mitgelieferte Fragen abgleichen</button></div>' +
       '<div class="tabwrap"><table class="tabelle"><thead><tr>' +
@@ -863,14 +875,73 @@
       '</tbody></table></div></section><div id="fformular"></div>';
   }
 
-  function frageFormular(id) {
-    var f = fragen.filter(function (x) { return x.id === id; })[0] ||
-      { id: '', thema: filterThema || 'feuer', bereich: '', schwierigkeit: 2, frage: '', antworten: ['', '', ''], richtig: [], erklaerung: '' };
+  // Die drei Aufgabenarten im Sachunterricht.
+  var ARTEN = {
+    wahl:        { name: 'Antwortfrage',   hilfe: 'Die Kinder wählen aus mehreren Antworten aus.' },
+    reihenfolge: { name: 'Reihenfolge',    hilfe: 'Die Kinder bringen die Schritte in die richtige Reihenfolge. Schreibe sie hier in der richtigen Reihenfolge auf.' },
+    merken:      { name: 'Erst denken',    hilfe: 'Die Kinder überlegen selbst, lesen dann die Musterlösung und schätzen sich ein. Diese Aufgabe gibt keine Perlen.' }
+  };
+  var ANTWORTFELDER = 6;
+
+  // Liest zusammen, was gerade im Formular steht – für den Wechsel der Art.
+  function formularLesen() {
+    if (!el('f_frage')) return null;
+    var ant = [], richtige = [];
+    for (var i = 0; i < ANTWORTFELDER; i++) {
+      var e = el('f_a' + i);
+      if (!e) continue;
+      var v = e.value.trim();
+      ant.push(v);
+      var r = el('f_r' + i);
+      if (v && r && r.checked) richtige.push(v);
+    }
+    return {
+      thema: el('f_thema').value, bereich: el('f_bereich').value,
+      schwierigkeit: Number(el('f_stufe').value) || 2,
+      art: el('f_art') ? el('f_art').value : 'wahl',
+      frage: el('f_frage').value, antworten: ant, richtig: richtige,
+      loesung: el('f_loesung') ? el('f_loesung').value : '',
+      erklaerung: el('f_erklaerung').value
+    };
+  }
+
+  function frageFormular(id, vorlage) {
+    var f = vorlage || fragen.filter(function (x) { return x.id === id; })[0] ||
+      { id: '', thema: filterThema || 'feuer', bereich: '', schwierigkeit: 2, art: 'wahl',
+        frage: '', antworten: ['', '', ''], richtig: [], loesung: '', erklaerung: '' };
     var neu = !id;
-    var ant = f.antworten.concat(['', '', '', '']).slice(0, 4);
+    var art = ARTEN[f.art] ? f.art : 'wahl';
+    var anzahl = art === 'reihenfolge' ? ANTWORTFELDER : 4;
+    var ant = (f.antworten || []).concat(['', '', '', '', '', '']).slice(0, anzahl);
     var richtige = Array.isArray(f.richtig) ? f.richtig : (f.richtig ? [f.richtig] : []);
 
-    el('fformular').innerHTML = '<h2 class="sec">' + (neu ? 'Neue Frage' : 'Frage ändern') + '</h2>' +
+    var mitte;
+    if (art === 'merken') {
+      mitte = '<h3 class="merker">Musterlösung</h3>' +
+        '<p class="muted" style="margin-bottom:10px;font-size:15px">' + esc(ARTEN.merken.hilfe) + '</p>' +
+        feld('f_loesung', 'So könnte die Antwort lauten', f.loesung || '');
+    } else if (art === 'reihenfolge') {
+      mitte = '<h3 class="merker">Schritte in der richtigen Reihenfolge</h3>' +
+        '<p class="muted" style="margin-bottom:10px;font-size:15px">' + esc(ARTEN.reihenfolge.hilfe) +
+        ' Beim Üben werden sie gemischt.</p>' +
+        ant.map(function (a, i) {
+          return '<div class="antwzeile"><span class="chip">' + (i + 1) + '</span>' +
+            '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" placeholder="Schritt ' + (i + 1) +
+            (i > 2 ? ' (kann leer bleiben)' : '') + '"></div>';
+        }).join('');
+    } else {
+      mitte = '<h3 class="merker">Antworten – alle richtigen ankreuzen</h3>' +
+        '<p class="muted" style="margin-bottom:10px;font-size:15px">Meist ist genau eine Antwort richtig. ' +
+        'Es dürfen aber mehrere sein – dann zählt jede davon als richtig.</p>' +
+        ant.map(function (a, i) {
+          return '<div class="antwzeile"><input type="checkbox" id="f_r' + i + '"' +
+            ((a && richtige.indexOf(a) >= 0) || (neu && i === 0 && !richtige.length) ? ' checked' : '') + '>' +
+            '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" placeholder="Antwort ' + (i + 1) +
+            (i > 1 ? ' (kann leer bleiben)' : '') + '"></div>';
+        }).join('');
+    }
+
+    el('fformular').innerHTML = '<h2 class="sec">' + (neu ? 'Neue Aufgabe' : 'Aufgabe ändern') + '</h2>' +
       '<section class="card"><div class="raster">' +
       feld('f_thema', 'Thema', f.thema) +
       feld('f_bereich', 'Bereich (z. B. loeschen)', f.bereich) +
@@ -878,44 +949,53 @@
       [1, 2, 3].map(function (n) {
         return '<option value="' + n + '"' + (Number(f.schwierigkeit) === n ? ' selected' : '') + '>' + n + '</option>';
       }).join('') + '</select></label>' +
+      '<label class="feld">Art<select id="f_art" class="klein">' +
+      Object.keys(ARTEN).map(function (k) {
+        return '<option value="' + k + '"' + (art === k ? ' selected' : '') + '>' + esc(ARTEN[k].name) + '</option>';
+      }).join('') + '</select></label>' +
       '</div>' +
       '<div style="margin-top:14px">' + feld('f_frage', 'Frage', f.frage) + '</div>' +
-      '<h3 class="merker">Antworten – alle richtigen ankreuzen</h3>' +
-      '<p class="muted" style="margin-bottom:10px;font-size:15px">Meist ist genau eine Antwort richtig. ' +
-      'Es dürfen aber mehrere sein – dann zählt jede davon als richtig.</p>' +
-      ant.map(function (a, i) {
-        return '<div class="antwzeile"><input type="checkbox" id="f_r' + i + '"' +
-          ((a && richtige.indexOf(a) >= 0) || (neu && i === 0 && !richtige.length) ? ' checked' : '') + '>' +
-          '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" placeholder="Antwort ' + (i + 1) +
-          (i > 1 ? ' (kann leer bleiben)' : '') + '"></div>';
-      }).join('') +
+      mitte +
       '<div style="margin-top:14px">' + feld('f_erklaerung', 'Erklärung nach der Antwort', f.erklaerung) + '</div>' +
       '<div class="knopfreihe"><button class="btn" id="fspeichern">Speichern</button>' +
       '<button class="btn ghost" id="fzu">Abbrechen</button></div><div id="ffehler"></div></section>';
 
     el('fzu').onclick = function () { el('fformular').innerHTML = ''; };
     el('fspeichern').onclick = function () { frageSpeichern(id); };
+    el('f_art').onchange = function () { frageFormular(id, formularLesen()); };
     el('f_frage').focus();
   }
 
   function frageSpeichern(id) {
+    var art = el('f_art') ? el('f_art').value : 'wahl';
+    if (!ARTEN[art]) art = 'wahl';
     var ant = [], richtige = [];
-    for (var i = 0; i < 4; i++) {
-      var v = el('f_a' + i).value.trim();
+    for (var i = 0; i < ANTWORTFELDER; i++) {
+      var e = el('f_a' + i);
+      if (!e) continue;
+      var v = e.value.trim();
       var r = el('f_r' + i);
       ant.push(v);
       if (v && r && r.checked) richtige.push(v);
     }
     var frage = el('f_frage').value.trim();
+    var loesung = el('f_loesung') ? el('f_loesung').value.trim() : '';
     var gefuellt = ant.filter(function (a) { return a; });
+    var doppelt = gefuellt.length !== gefuellt.filter(function (a, i2) { return gefuellt.indexOf(a) === i2; }).length;
 
     var fehler = null;
     if (!frage) fehler = 'Die Frage fehlt.';
-    else if (gefuellt.length < 2) fehler = 'Es braucht mindestens zwei Antworten.';
-    else if (!richtige.length) fehler = 'Es ist keine richtige Antwort angekreuzt.';
-    else if (richtige.length === gefuellt.length) fehler = 'Es sind alle Antworten als richtig angekreuzt – dann gibt es nichts zu entscheiden.';
-    else if (gefuellt.length !== gefuellt.filter(function (a, i2) { return gefuellt.indexOf(a) === i2; }).length)
-      fehler = 'Zwei Antworten sind gleich.';
+    else if (art === 'merken') {
+      if (!loesung) fehler = 'Die Musterlösung fehlt.';
+    } else if (art === 'reihenfolge') {
+      if (gefuellt.length < 3) fehler = 'Es braucht mindestens drei Schritte.';
+      else if (doppelt) fehler = 'Zwei Schritte sind gleich.';
+    } else {
+      if (gefuellt.length < 2) fehler = 'Es braucht mindestens zwei Antworten.';
+      else if (!richtige.length) fehler = 'Es ist keine richtige Antwort angekreuzt.';
+      else if (richtige.length === gefuellt.length) fehler = 'Es sind alle Antworten als richtig angekreuzt – dann gibt es nichts zu entscheiden.';
+      else if (doppelt) fehler = 'Zwei Antworten sind gleich.';
+    }
     if (fehler) { el('ffehler').innerHTML = '<div class="melden fehler">' + esc(fehler) + '</div>'; return; }
 
     var thema = (el('f_thema').value.trim() || 'feuer').toLowerCase();
@@ -923,7 +1003,11 @@
       thema: thema,
       bereich: (el('f_bereich').value.trim() || 'allgemein').toLowerCase(),
       schwierigkeit: Number(el('f_stufe').value) || 2,
-      frage: frage, antworten: gefuellt, richtig: richtige,
+      art: art,
+      frage: frage,
+      antworten: art === 'merken' ? [] : gefuellt,
+      richtig: art === 'wahl' ? richtige : [],
+      loesung: art === 'merken' ? loesung : '',
       erklaerung: el('f_erklaerung').value.trim(),
       aktiv: true
     };
@@ -951,6 +1035,9 @@
       liste.forEach(function (f) {
         if (!vorhanden[f.id]) neue++;
         else if (JSON.stringify(vorhanden[f.id].richtig) !== JSON.stringify(f.richtig) ||
+                 JSON.stringify(vorhanden[f.id].antworten) !== JSON.stringify(f.antworten) ||
+                 (vorhanden[f.id].art || 'wahl') !== (f.art || 'wahl') ||
+                 (vorhanden[f.id].loesung || '') !== (f.loesung || '') ||
                  vorhanden[f.id].frage !== f.frage ||
                  vorhanden[f.id].erklaerung !== f.erklaerung) geaendert++;
       });
@@ -964,7 +1051,9 @@
     liste.forEach(function (f) {
       paket.set(db.collection('quizfragen').doc(f.id), {
         thema: f.thema, bereich: f.bereich, schwierigkeit: f.schwierigkeit,
+        art: f.art || 'wahl',
         frage: f.frage, antworten: f.antworten, richtig: f.richtig,
+        loesung: f.loesung || '',
         erklaerung: f.erklaerung, aktiv: true
       });
     });
@@ -979,11 +1068,12 @@
   }
 
   function fragenExport() {
-    var kopf = ['id', 'thema', 'bereich', 'schwierigkeit', 'frage', 'antworten (mit | getrennt)', 'richtig', 'erklaerung'];
+    var kopf = ['id', 'thema', 'bereich', 'schwierigkeit', 'art', 'frage', 'antworten (mit | getrennt)', 'richtig', 'loesung', 'erklaerung'];
     var zeilen = [kopf.join(';')].concat(fragen.map(function (f) {
-      return [f.id, f.thema, f.bereich, f.schwierigkeit, f.frage,
+      return [f.id, f.thema, f.bereich, f.schwierigkeit, f.art || 'wahl', f.frage,
               (f.antworten || []).join('|'),
-              (Array.isArray(f.richtig) ? f.richtig : [f.richtig]).join('|'), f.erklaerung]
+              (Array.isArray(f.richtig) ? f.richtig : [f.richtig]).join('|'),
+              f.loesung || '', f.erklaerung]
         .map(function (x) { return String(x == null ? '' : x).replace(/;/g, ','); }).join(';');
     }));
     el('fformular').innerHTML = '<h2 class="sec">Fragen als CSV</h2><section class="card">' +

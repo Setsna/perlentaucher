@@ -1,15 +1,20 @@
 /* ==========================================================
    Perlentaucher – Sachunterricht: Fragen und Aufgabenbau
 
-   Aufbau einer Frage:
-     [ id, thema, bereich, schwierigkeit, Frage,
-       [richtige Antwort, falsch, falsch, ...], Erklärung,
-       (Anzahl richtiger Antworten, wenn mehr als eine) ]
+   Drei Aufgabenarten:
 
-   Die richtigen Antworten stehen vorn. Meist ist es genau eine;
-   steht am Ende eine Zahl, sind entsprechend viele der ersten
-   Antworten richtig. Beim Spielen werden die Antworten gemischt,
-   und jede richtige zählt.
+   'wahl'         Frage mit Antwortmöglichkeiten. Die richtigen stehen
+                  vorn; mit {richtige: 2} sind die ersten zwei richtig.
+                  Beim Spielen werden die Antworten gemischt.
+   'reihenfolge'  Bausteine in die richtige Ordnung bringen. Die Liste
+                  steht hier in der richtigen Reihenfolge.
+   'merken'       Frage ohne Auswahl. Das Kind denkt nach, löst auf und
+                  schätzt selbst ein, ob es das wusste. Gibt keine
+                  Perlen und kostet keine Luftblasen.
+
+   Aufbau einer Zeile:
+     [ id, thema, bereich, schwierigkeit, Frage, Antworten, Erklärung,
+       { art: '…', richtige: n, loesung: '…' } ]
 
    Die Fragen hier sind die Rückfallebene, falls die Datenbank nicht
    erreichbar ist. Im Betrieb kommen sie aus der Sammlung
@@ -144,7 +149,7 @@ window.WA = window.WA || {};
       ['119', '112', '110', '911'],
       'Beides ist richtig! In Taiwan ist die 119 die Nummer der Feuerwehr und des Rettungswagens. ' +
       'Die 112 kannst du von jedem Handy wählen – sie wird an die Feuerwehr weitergeleitet und ' +
-      'ist in ganz Europa der Notruf. Die 110 ist die Polizei.', 2],
+      'ist in ganz Europa der Notruf. Die 110 ist die Polizei.', { richtige: 2 }],
     ['fe-nr-06', 'feuer', 'notruf', 2, 'Du bist in Taiwan und es brennt. Welche Nummer ist die richtige?',
       ['119', '110', '911', '999'],
       'In Taiwan gilt: 119 für Feuerwehr und Rettungswagen, 110 für die Polizei.'],
@@ -185,14 +190,64 @@ window.WA = window.WA || {};
       'Rauchmelder retten Leben, weil sie einen aufwecken.'],
     ['fe-vh-07', 'feuer', 'verhalten', 2, 'Wo trefft ihr euch nach einem Feueralarm?',
       ['Am vereinbarten Sammelplatz', 'Auf dem Parkplatz vor der Schule', 'Im Klassenraum', 'Zu Hause'],
-      'Am Sammelplatz wird gezählt, ob alle da sind.']
+      'Am Sammelplatz wird gezählt, ob alle da sind.'],
+
+    // ---------- Reihenfolge bringen ----------
+    ['fe-rf-01', 'feuer', 'notruf', 2, 'Bring den Notruf in die richtige Reihenfolge.',
+      ['Wo ist es passiert?', 'Was ist passiert?', 'Wie viele Menschen sind in Gefahr?',
+       'Wer ruft an?', 'Auf Rückfragen warten'],
+      'Zuerst der Ort – ohne ihn findet niemand zu dir. Am Ende wartest du, ob die Leitstelle noch etwas wissen will.',
+      { art: 'reihenfolge' }],
+    ['fe-rf-02', 'feuer', 'verhalten', 2, 'Der Feueralarm geht los. Bring die Schritte in die richtige Reihenfolge.',
+      ['Ruhig bleiben und aufstehen', 'Sachen liegen lassen', 'Fenster und Tür schließen',
+       'Mit der Klasse zum Notausgang gehen', 'Am Sammelplatz warten, bis alle da sind'],
+      'Ruhe, nichts mitnehmen, Türen zu, geordnet raus, am Sammelplatz zählen.',
+      { art: 'reihenfolge' }],
+    ['fe-rf-03', 'feuer', 'loeschen', 3, 'In der Pfanne brennt Fett. Bring die Schritte in die richtige Reihenfolge.',
+      ['Den Herd ausschalten', 'Einen Deckel auf die Pfanne legen', 'Einen Erwachsenen holen',
+       'Die Pfanne stehen lassen und abkühlen lassen'],
+      'Erst die Wärmequelle weg, dann die Luft weg. Niemals Wasser, und die heiße Pfanne nicht herumtragen.',
+      { art: 'reihenfolge' }],
+    ['fe-rf-04', 'feuer', 'geschichte', 2, 'Bring die Geschichte des Feuers in die richtige Reihenfolge.',
+      ['Ein Blitz entzündet einen Baum', 'Menschen halten das Feuer am Lagerfeuer am Leben',
+       'Menschen schlagen Steine aneinander und machen selbst Feuer',
+       'Menschen erfinden das Streichholz'],
+      'Erst nehmen, dann bewahren, dann selbst machen – und viel später kommen Streichholz und Feuerzeug.',
+      { art: 'reihenfolge' }],
+    ['fe-rf-05', 'feuer', 'verhalten', 3, 'Es brennt, und der Weg nach draußen ist verraucht. Was tust du in welcher Reihenfolge?',
+      ['Die Zimmertür schließen', 'Zum Fenster gehen', 'Um Hilfe rufen und winken',
+       'Auf die Feuerwehr warten'],
+      'Die geschlossene Tür hält den Rauch auf. Am Fenster sieht dich die Feuerwehr.',
+      { art: 'reihenfolge' }],
+
+    // ---------- Erst denken, dann vergleichen ----------
+    ['fe-mk-01', 'feuer', 'verbrennung', 2, 'Nenne die drei Dinge, die ein Feuer zum Brennen braucht.', [],
+      '', { art: 'merken', loesung: 'Sauerstoff, Wärme und Brennstoff.' }],
+    ['fe-mk-02', 'feuer', 'loeschen', 2, 'Nenne drei Dinge, mit denen man ein Feuer löschen kann.', [],
+      '', { art: 'merken', loesung: 'Zum Beispiel: Wasser, Sand, eine Löschdecke, ein Topfdeckel oder ein Feuerlöscher.' }],
+    ['fe-mk-03', 'feuer', 'nutzen', 2, 'Wofür nutzen Menschen Feuer? Nenne drei Dinge.', [],
+      '', { art: 'merken', loesung: 'Zum Beispiel: kochen, wärmen, Licht machen, Metall formen, Motoren antreiben.' }],
+    ['fe-mk-04', 'feuer', 'gefahren', 2, 'Nenne zwei Situationen, in denen Feuer gefährlich wird.', [],
+      '', { art: 'merken', loesung: 'Zum Beispiel: eine Kerze bleibt allein brennen, Fett fängt in der Pfanne Feuer, ein Waldbrand, Rauch im Treppenhaus.' }],
+    ['fe-mk-05', 'feuer', 'feuerwehr', 2, 'Nenne vier Dinge, die zur Ausrüstung der Feuerwehr gehören.', [],
+      '', { art: 'merken', loesung: 'Zum Beispiel: Helm, Jacke, Hose, Handschuhe, Stiefel, Atemschutzmaske, Pressluftflasche, Funkgerät, Axt, Lampe, Seil.' }],
+    ['fe-mk-06', 'feuer', 'feuerwehr', 2, 'Welche Aufgaben hat die Feuerwehr? Nenne drei.', [],
+      '', { art: 'merken', loesung: 'Retten, Löschen, Bergen und Schützen. Dazu kommen Absichern und Aufklären.' }],
+    ['fe-mk-07', 'feuer', 'notruf', 1, 'Welche Nummer wählst du bei einem Feuer – und was sagst du zuerst?', [],
+      '', { art: 'merken', loesung: 'In Taiwan die 119, vom Handy geht auch die 112. Zuerst sagst du, wo es passiert ist.' }],
+    ['fe-mk-08', 'feuer', 'geschichte', 1, 'Womit machen Menschen heute Feuer? Nenne zwei Geräte.', [],
+      '', { art: 'merken', loesung: 'Mit einem Streichholz und mit einem Feuerzeug.' }],
+    ['fe-mk-09', 'feuer', 'verhalten', 2, 'Was machst du als Erstes, wenn der Feueralarm losgeht?', [],
+      '', { art: 'merken', loesung: 'Ruhig bleiben, Sachen liegen lassen und mit der Klasse zum Sammelplatz gehen. Niemals verstecken.' }]
   ];
 
   WA.fragen = zeilen.map(function (r) {
-    var wieviele = r[7] || 1;
+    var o = r[7] || {}, art = o.art || 'wahl';
     return {
-      id: r[0], thema: r[1], bereich: r[2], schwierigkeit: r[3],
-      frage: r[4], antworten: r[5], richtig: r[5].slice(0, wieviele),
+      id: r[0], thema: r[1], bereich: r[2], schwierigkeit: r[3], art: art,
+      frage: r[4], antworten: r[5] || [],
+      richtig: art === 'wahl' ? (r[5] || []).slice(0, o.richtige || 1) : [],
+      loesung: o.loesung || '',
       erklaerung: r[6]
     };
   });
@@ -202,13 +257,16 @@ window.WA = window.WA || {};
   WA.frageAusDoc = function (id, d) {
     var ant = Array.isArray(d.antworten) ? d.antworten
       : String(d.antworten || '').split('|').map(function (s) { return s.trim(); });
+    ant = ant.filter(function (a) { return a; });
     var rich = Array.isArray(d.richtig) ? d.richtig
       : (d.richtig ? [d.richtig] : [ant[0]]);
+    var art = d.art || 'wahl';
     return {
       id: id, thema: d.thema || 'feuer', bereich: d.bereich || 'allgemein',
-      schwierigkeit: Number(d.schwierigkeit) || 2,
+      schwierigkeit: Number(d.schwierigkeit) || 2, art: art,
       frage: d.frage, antworten: ant,
-      richtig: rich.filter(function (r) { return ant.indexOf(r) >= 0; }),
+      richtig: art === 'wahl' ? rich.filter(function (r) { return ant.indexOf(r) >= 0; }) : [],
+      loesung: d.loesung || '',
       erklaerung: d.erklaerung || ''
     };
   };
@@ -245,19 +303,48 @@ window.WA = window.WA || {};
 
   function aufgabe(f) {
     if (!f) return null;
-    var opt = mischen(f.antworten).map(function (a) { return { label: a, value: a }; });
-    return {
-      type: 'quiz', quelle: 'quiz', cat: f.bereich, kind: 'choice',
-      layout: opt.length > 3 ? 'list' : 'grid2',
-      wordId: f.id, thema: f.thema,
-      difficulty: f.schwierigkeit,
-      prompt: f.frage,
-      speak: f.frage,
-      options: opt,
-      correct: f.richtig,
-      solutionText: f.richtig.join(' oder '),
+    var grund = {
+      type: 'quiz', quelle: 'quiz', cat: f.bereich, wordId: f.id, thema: f.thema,
+      difficulty: f.schwierigkeit, prompt: f.frage, speak: f.frage,
       erklaerung: f.erklaerung
     };
+
+    // Erst denken, dann vergleichen: keine Auswahl, keine Perlen.
+    if (f.art === 'merken') {
+      return Object.assign(grund, {
+        kind: 'offen', ohnePunkte: true,
+        loesung: f.loesung,
+        solutionText: f.loesung
+      });
+    }
+
+    // Reihenfolge: die Bausteine werden gemischt und wieder geordnet.
+    if (f.art === 'reihenfolge') {
+      var richtig = f.antworten.slice();
+      var kacheln = mischen(richtig);
+      // Nicht zufällig schon in der richtigen Reihenfolge starten.
+      if (kacheln.join('|') === richtig.join('|') && kacheln.length > 1) {
+        kacheln.push(kacheln.shift());
+      }
+      return Object.assign(grund, {
+        kind: 'build', stapel: true,
+        slots: richtig.map(function () { return null; }),
+        blanks: richtig.length,      // ohne das bleibt die Reihe leer
+        tiles: kacheln,
+        answerWord: richtig.join('|'),
+        assemble: function (teile) { return teile.join('|'); },
+        solutionText: richtig.join(' → ')
+      });
+    }
+
+    var opt = mischen(f.antworten).map(function (a) { return { label: a, value: a }; });
+    return Object.assign(grund, {
+      kind: 'choice',
+      layout: opt.length > 3 ? 'list' : 'grid2',
+      options: opt,
+      correct: f.richtig,
+      solutionText: f.richtig.join(' oder ')
+    });
   }
 
   function frageMitId(id) {
@@ -265,9 +352,23 @@ window.WA = window.WA || {};
   }
 
   function baueTauchgang(thema) {
-    var pool = ausThema(thema), raus = [], benutzt = {};
-    if (!pool.length) return raus;
-    for (var k = 0; k < C.lessonLength; k++) {
+    var alle2 = ausThema(thema), raus = [], benutzt = {};
+    if (!alle2.length) return raus;
+
+    // Eine Merkfrage zum Aufwärmen an den Anfang: erst selbst
+    // nachdenken, dann vergleichen. Danach die normalen Aufgaben.
+    var merk = alle2.filter(function (f) { return f.art === 'merken'; });
+    var pool = alle2.filter(function (f) { return f.art !== 'merken'; });
+    if (!pool.length) pool = alle2;
+    if (merk.length && (!C.quiz || C.quiz.merkfrageZuerst !== false)) {
+      var summeM = merk.reduce(function (s2, f) { return s2 + gewicht(f); }, 0);
+      var rm = Math.random() * summeM, gew = merk[0];
+      for (var m = 0; m < merk.length; m++) { rm -= gewicht(merk[m]); if (rm <= 0) { gew = merk[m]; break; } }
+      raus.push(aufgabe(gew));
+      benutzt[gew.id] = true;
+    }
+
+    for (var k = raus.length; k < C.lessonLength; k++) {
       var kand = pool.filter(function (f) { return !benutzt[f.id]; });
       if (!kand.length) { benutzt = {}; kand = pool; }
       var summe = kand.reduce(function (s, f) { return s + gewicht(f); }, 0);

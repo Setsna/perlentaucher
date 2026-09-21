@@ -819,6 +819,29 @@
         }
         return '<button class="' + cls + '" data-action="pick" data-i="' + i + '"' + (L.answered ? ' disabled' : '') + '>' + esc(o.label) + '</button>';
       }).join('') + '</div>';
+    } else if (q.kind === 'build' && q.stapel) {
+      // Reihenfolge: untereinander statt nebeneinander, weil die
+      // Bausteine ganze Sätze sind.
+      h += '<ol class="stapel">' + L.slots.map(function (ti, idx) {
+        var cls = 'stapelplatz' + (ti !== null ? ' voll' : '') +
+          (L.answered ? (L.res.ok ? ' ok' : ' no') : '');
+        return '<li><button class="' + cls + '" data-action="unslot" data-i="' + idx + '"' +
+          (L.answered ? ' disabled' : '') + '>' +
+          (ti !== null ? esc(q.tiles[ti]) : '<span class="leerplatz">…</span>') + '</button></li>';
+      }).join('') + '</ol>';
+      var offen = q.tiles.map(function (t, i) {
+        return L.slots.indexOf(i) >= 0 ? '' :
+          '<button class="stapelkachel" data-action="tile" data-i="' + i + '"' +
+          (L.answered ? ' disabled' : '') + '>' + esc(t) + '</button>';
+      }).join('');
+      if (offen) h += '<div class="stapelpool">' + offen + '</div>';
+    } else if (q.kind === 'offen') {
+      h += '<div class="offen">' + (L.answered
+        ? '<div class="loesungsfeld"><h3>So könnte die Antwort lauten</h3><p>' + esc(q.loesung) + '</p></div>' +
+          '<p class="muted">Wusstest du das? Sei ehrlich zu dir selbst – es gibt dafür keine Perlen und du verlierst auch keine Luftblasen.</p>'
+        : '<div class="denkfeld">' + WA.mascot('think', 96) +
+          '<p>Überlege in Ruhe. Sag die Antwort leise vor dich hin oder zähl sie an den Fingern ab. ' +
+          'Wenn du fertig bist, tippe auf <b>Auflösen</b>.</p></div>') + '</div>';
     } else if (q.kind === 'build') {
       var bi = 0;
       h += '<div class="slots">' + q.slots.map(function (s) {
@@ -847,6 +870,7 @@
 
   function isReady() {
     var q = L.q;
+    if (q.kind === 'offen') return true;
     if (q.kind === 'choice') return L.sel !== null;
     if (q.kind === 'build') return L.slots.every(function (x) { return x !== null; });
     return Object.keys(L.cuts).length > 0;
@@ -857,7 +881,14 @@
   function footerHtml() {
     if (!L.answered) {
       var ok = isReady();
-      return '<div class="footer"><button class="btn big' + (ok ? '' : ' off') + '" data-action="check"' + (ok ? '' : ' disabled') + '>Prüfen</button></div>';
+      var wort = L.q.kind === 'offen' ? 'Auflösen' : 'Prüfen';
+      return '<div class="footer"><button class="btn big' + (ok ? '' : ' off') + '" data-action="check"' + (ok ? '' : ' disabled') + '>' + wort + '</button></div>';
+    }
+    // Merkfrage: das Kind schätzt sich selbst ein.
+    if (L.q.kind === 'offen') {
+      return '<div class="footer"><div class="fb"><b>Wusstest du das?</b></div>' +
+        '<button class="btn good big" data-action="selbst" data-ok="1">Wusste ich</button>' +
+        '<button class="btn ghost big" data-action="selbst" data-ok="0">Noch nicht</button></div>';
     }
     // Im Sachunterricht steht hinter jeder Frage eine kurze Erklärung.
     // Die ist der eigentliche Lerneffekt und wird immer gezeigt.
@@ -876,6 +907,16 @@
 
   function check() {
     var q = L.q, ok;
+
+    // Bei der Merkfrage entscheidet nicht das Programm, sondern das
+    // Kind selbst – deshalb wird hier nur aufgelöst.
+    if (q.kind === 'offen') {
+      L.answered = true;
+      L.res = { ok: null, xp: { base: 0, bonus: 0, total: 0 } };
+      updateLesson();
+      return;
+    }
+
     // Manche Fragen haben mehr als eine richtige Antwort –
     // zum Beispiel, wenn zwei Notrufnummern gelten.
     if (q.kind === 'choice') {
@@ -1034,6 +1075,14 @@
       case 'unslot': if (!L.answered && L.slots[i] !== null) { L.slots[i] = null; updateLesson(); } break;
       case 'cut': if (!L.answered) { if (L.cuts[i]) delete L.cuts[i]; else L.cuts[i] = true; updateLesson(); } break;
       case 'check': if (!L.answered && isReady()) check(); break;
+      case 'selbst':
+        if (L.answered && L.q.kind === 'offen') {
+          var wusste = t.getAttribute('data-ok') === '1';
+          S.recordAnswer(L.q.wordId, L.q.cat, wusste);
+          if (wusste) { L.correct++; sfx.ok(); } else { L.wrong++; sfx.bad(); }
+          next();
+        }
+        break;
       case 'next': if (L.answered) next(); break;
     }
   });

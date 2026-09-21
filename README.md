@@ -33,10 +33,25 @@ Die Startseite zeigt zuerst die **Fächer**. Deutsch führt zu den fünf
 Tauchrevieren mit den Lernwörtern, Sachunterricht zu den **Sachthemen**;
 das erste ist *Feuer*.
 
-Eine Sachunterrichtsfrage besteht aus der Frage, zwei bis vier Antworten,
-den angekreuzten richtigen Antworten und einer **Erklärung**. Die Erklärung
-erscheint nach jeder Antwort – auch nach einer richtigen – und ist der
-eigentliche Lerneffekt. Die Antworten werden beim Üben gemischt.
+Es gibt drei **Aufgabenarten** (Feld `art` in der Datenbank):
+
+| Art | Was die Kinder tun | Perlen |
+|---|---|---|
+| `wahl` | Aus zwei bis vier Antworten auswählen | ja |
+| `reihenfolge` | Bausteine in die richtige Reihenfolge bringen | ja |
+| `merken` | Erst selbst überlegen, dann mit der Musterlösung vergleichen und sich selbst einschätzen | nein |
+
+Bei `merken` bewertet niemand außer dem Kind selbst; die Antwort wird nicht
+getippt und nicht geprüft. Die Selbsteinschätzung geht trotzdem in die
+Statistik ein, damit du im Lehrerbereich siehst, was noch wackelt. Weil sich
+ein Kind hier bewusst besser einschätzen könnte, gibt es dafür keine Perlen
+und keine Luftblasen zurück – das nimmt den Anreiz zum Schummeln. Ist
+`quiz.merkfrageZuerst` gesetzt (Voreinstellung), beginnt jeder Tauchgang mit
+einer solchen Aufgabe zum Aufwärmen.
+
+Jede Aufgabe hat außerdem eine **Erklärung**. Sie erscheint nach jeder
+Antwort – auch nach einer richtigen – und ist der eigentliche Lerneffekt.
+Antworten und Bausteine werden beim Üben gemischt.
 
 Es dürfen **mehrere Antworten richtig** sein. Das Kind wählt eine aus, und
 jede angekreuzte zählt als richtig. Gebraucht wird das zum Beispiel beim
@@ -45,7 +60,11 @@ Notruf: In Taiwan gilt die **119** für Feuerwehr und Rettungswagen, die
 Beide sind als richtig hinterlegt, die Erklärung ordnet sie ein. Dazu gibt
 es zwei weitere Fragen, die Taiwan und Europa gezielt auseinanderhalten.
 
-Gepflegt wird das im Lehrerbereich unter **Sachthemen**. Dort gibt es auch
+Gepflegt wird das im Lehrerbereich unter **Sachthemen**. Das Formular stellt
+sich auf die gewählte Art um: Ankreuzfelder bei `wahl`, nummerierte Schritte
+in der richtigen Reihenfolge bei `reihenfolge`, ein Feld für die
+Musterlösung bei `merken`. Beim Wechsel der Art bleibt stehen, was du schon
+eingegeben hast. Dort gibt es auch
 **Mitgelieferte Fragen abgleichen**: Die Datenbank hat Vorrang vor der Datei
 `js/quiz.js`, also kommen korrigierte oder neue mitgelieferte Fragen nicht
 von allein an. Der Abgleich schreibt sie nach – Fragen mit derselben Kennung
@@ -230,7 +249,7 @@ und immer direkt vor größeren Änderungen an den Wörtern oder den Regeln.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=15`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=16`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

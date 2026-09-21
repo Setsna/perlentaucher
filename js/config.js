@@ -114,6 +114,13 @@ WA.config = {
     }
   },
 
+  // --- Sachunterricht -------------------------------------------
+  quiz: {
+    // Jeder Tauchgang beginnt mit einer Merkfrage zum Aufwärmen:
+    // erst selbst nachdenken, dann vergleichen.
+    merkfrageZuerst: true
+  },
+
   // --- Sachthemen -----------------------------------------------
   themen: {
     feuer: {
