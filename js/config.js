@@ -17,7 +17,21 @@ WA.config = {
 
   // --- Perlen (Punkte) ----------------------------------------
   xp: {
-    byDifficulty: { 1: 5, 2: 6, 3: 8 }, // Perlen pro richtiger Antwort je Schwierigkeit
+    // Perlen pro richtiger Antwort je Schwierigkeit.
+    //
+    // Bewusst für alle Stufen GLEICH. Vorher gab es 5 / 6 / 8, und dann
+    // sprang die Anzeige von "3 in Folge, +9" auf "4 in Folge, +8" –
+    // längere Serie, weniger Perlen. Die Schwierigkeitsstufe sieht ein
+    // Kind nicht, es sieht nur die kleinere Zahl und hält das für einen
+    // Fehler. Jetzt steigt die Zahl nur noch mit der Serie.
+    //
+    // Der Wert 6 ist gemessen, nicht geraten: Ein Tauchgang bringt damit
+    // im Schnitt 81 Perlen – vorher waren es 80. Tagesziel und Wochenziel
+    // bleiben also gültig, ohne dass du etwas nachstellen musst.
+    //
+    // Wer die Staffelung zurückhaben will, trägt hier wieder
+    // { 1: 5, 2: 6, 3: 8 } ein; sonst ist nichts zu ändern.
+    byDifficulty: { 1: 6, 2: 6, 3: 6 },
     streakBonusFrom: 3,        // Bonus ab so vielen richtigen Antworten in Folge
     streakBonusPerStep: 1,     // +1 Perle pro weiterer richtiger Antwort
     streakBonusMax: 4,         // Bonus-Obergrenze pro Antwort
