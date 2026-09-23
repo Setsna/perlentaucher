@@ -24,6 +24,7 @@ Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukom
 | `js/malen.js` | Speicherformat und Zeichnen der Pixelbilder und freien Bilder |
 | `js/merge.js` | Führt Spielstände von zwei Geräten zusammen |
 | `js/mascot.js` | Otti, der Oktopus |
+| `datenschutz.html` | Datenschutzerklärung, kurz für Kinder und ausführlich |
 | `css/style.css` | Das gesamte Aussehen |
 | `tools/qr_aufkleber.py` | Erzeugt den Druckbogen mit den QR-Zugangsaufklebern |
 | `tools/silben.py` | Sprechsilben und Worttrennung nach Duden |
@@ -406,10 +407,37 @@ werden nur geschrieben, wenn sich wirklich eins geändert hat – dafür ruft
 jede Stelle, die Bilder anfasst, `malGeaendert()` auf. Wer eine neue solche
 Stelle einbaut und das vergisst, verliert die Änderung beim nächsten Laden.
 
+## Datenschutz
+
+Auf `datenschutz.html` steht die Datenschutzerklärung, verlinkt aus der Fußzeile
+der Kinder-App und aus dem Kopf des Lehrerbereichs. Oben steht eine kurze, für
+Kinder lesbare Fassung, darunter die ausführliche. **Wer ändert, welche Daten
+gespeichert werden, muss diese Seite mitändern.**
+
+Im Reiter **Kinder** gibt es dafür drei Funktionen:
+
+**Auskunft** lädt alles herunter, was zu einem Kind gespeichert ist – Kindeintrag,
+Fortschritt und alle Bilder als eine JSON-Datei. Damit lässt sich ein
+Auskunftsersuchen (Art. 15 DSGVO) in einem Schritt beantworten.
+
+**Löschen** entfernt Kindeintrag, Fortschritt und alle Bilder endgültig. Nicht zu
+verwechseln mit **Sperren**, das nur den Aufkleber unbrauchbar macht und den
+Spielstand liegen lässt. Der Firebase-Anmeldezugang des Kindes bleibt bestehen –
+den entfernt nur die Firebase-Konsole; er enthält aber nichts außer dem Code und
+kommt ohne Eintrag in `kinder` an keine Daten mehr.
+
+**Lange inaktive Kinder löschen** fragt nach einer Anzahl Tage und räumt in einem
+Zug auf. Die Spalte *Zuletzt aktiv* in der Tabelle zeigt, wen es treffen würde.
+Gedacht fürs Schuljahresende.
+
+Die Kinder-App zeigt oben auf der Startseite, wer angemeldet ist, mit einem
+Knopf „Ich bin das nicht". Auf einem Klassengerät, das reihum geht, übte sonst
+das nächste Kind unbemerkt auf dem Konto des vorigen weiter.
+
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=32`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=34`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 

@@ -74,6 +74,12 @@ h1, h2, h3, p { margin: 0; }
 /* ---------- Startseite ---------- */
 .home { padding-bottom: 0; }
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0 8px; flex-wrap: wrap; }
+/* Wer ist angemeldet? Steht ueber allem anderen, damit auf einem
+   geteilten Geraet niemand versehentlich im fremden Konto uebt. */
+.werbinich { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; background: #fff; border: 2px solid var(--line-akt); border-radius: 16px;
+  padding: 8px 10px 8px 14px; margin-top: 10px; font-size: 16px; color: var(--muted); }
+.werbinich b { color: var(--ink); }
 .brand { display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 600; }
 .brand b { color: var(--coral-d); font-weight: 900; }
 .tools { display: flex; align-items: center; gap: 10px; }

@@ -12,7 +12,7 @@
      auftauchen; die Adresse gibt es nur auf dem Aufkleber. -->
 <meta name="robots" content="noindex, nofollow">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=32">
+<link rel="stylesheet" href="css/style.css?v=34">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -135,14 +135,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=32"></script>
-<script src="js/words.js?v=32"></script>
-<script src="js/bilder.js?v=32"></script>
-<script src="js/quiz.js?v=32"></script>
-<script src="js/mascot.js?v=32"></script>
-<script src="js/malen.js?v=32"></script>
-<script src="js/merge.js?v=32"></script>
-<script src="js/cloud.js?v=32"></script>
+<script src="js/config.js?v=34"></script>
+<script src="js/words.js?v=34"></script>
+<script src="js/bilder.js?v=34"></script>
+<script src="js/quiz.js?v=34"></script>
+<script src="js/mascot.js?v=34"></script>
+<script src="js/malen.js?v=34"></script>
+<script src="js/merge.js?v=34"></script>
+<script src="js/cloud.js?v=34"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -208,9 +208,13 @@
   /* Text als Datei anbieten. Auf dem iPad landet sie in "Dateien". */
   function alsDateiSichern(name, text) {
     try {
-      // Das Steuerzeichen am Anfang sorgt dafür, dass Excel die Umlaute
-      // richtig liest.
-      var blob = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' });
+      // Bei CSV steht am Anfang ein unsichtbares Steuerzeichen, damit
+      // Excel die Umlaute richtig liest. Bei JSON darf es NICHT davor:
+      // strenge Leseprogramme brechen daran ab.
+      var json = /\.json$/i.test(name);
+      var blob = json
+        ? new Blob([text], { type: 'application/json;charset=utf-8' })
+        : new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url; a.download = name;
@@ -332,6 +336,7 @@
     $app.innerHTML = '<div class="lehrer">' +
       '<div class="lhead"><h1>Lehrerbereich</h1><div class="rechts">' +
       '<span class="muted">' + esc(nutzer.email) + '</span>' +
+      '<a class="btn ghost mini" href="datenschutz.html" style="text-decoration:none">Datenschutz</a>' +
       '<a class="btn ghost mini" href="index.html" style="text-decoration:none">Zur App</a>' +
       '<button class="btn ghost mini" id="abmelden">Abmelden</button></div></div>' +
       '<div class="reiter">' +
@@ -841,19 +846,54 @@
   // ==========================================================
   //  Reiter 4: Kinder
   // ==========================================================
+  // Wann war dieses Kind zuletzt aktiv? Grundlage fuer das Aufraeumen
+  // am Schuljahresende (Speicherbegrenzung, Art. 5 Abs. 1 lit. e DSGVO).
+  function letzterTag(f) {
+    if (!f) return null;
+    if (f.lastDay) return String(f.lastDay);
+    var tage = Object.keys(f.days || {});
+    return tage.length ? tage.sort().pop() : null;
+  }
+  function tageHer(tag) {
+    if (!tag) return null;
+    var t = new Date(tag + 'T00:00:00');
+    if (isNaN(t)) return null;
+    return Math.floor((Date.now() - t.getTime()) / 86400000);
+  }
+  function aktivText(f) {
+    var tag = letzterTag(f), d = tageHer(tag);
+    if (d === null) return '<span class="muted">nie</span>';
+    if (d <= 0) return 'heute';
+    if (d === 1) return 'gestern';
+    if (d < 60) return 'vor ' + d + ' Tagen';
+    return '<b style="color:var(--bad-d)">vor ' + d + ' Tagen</b>';
+  }
+
   function tabKinder() {
     var zeilen = kinder.map(function (k) {
+      var f = staende[k.id];
       return '<tr><td><b>' + esc(k.vorname) + '</b></td><td class="code">' + esc(fmtCode(k.id)) + '</td>' +
-        '<td>' + (staende[k.id] ? (staende[k.id].xp || 0) + ' Perlen' : 'noch nie angemeldet') + '</td>' +
+        '<td>' + (f ? (f.xp || 0) + ' Perlen' : 'noch nie angemeldet') + '</td>' +
+        '<td>' + aktivText(f) + '</td>' +
         '<td style="white-space:nowrap">' +
-        (staende[k.id] ? '<button class="btn ghost mini" data-reset="' + esc(k.id) + '">Zurücksetzen</button> ' : '') +
-        '<button class="btn ghost mini danger" data-kindweg="' + esc(k.id) + '">Sperren</button></td></tr>';
+        '<button class="btn ghost mini" data-auskunft="' + esc(k.id) + '">Auskunft</button> ' +
+        (f ? '<button class="btn ghost mini" data-reset="' + esc(k.id) + '">Zurücksetzen</button> ' : '') +
+        '<button class="btn ghost mini" data-kindweg="' + esc(k.id) + '">Sperren</button> ' +
+        '<button class="btn ghost mini danger" data-kindloeschen="' + esc(k.id) + '">Löschen</button></td></tr>';
     }).join('');
 
-    return '<h2 class="sec">Freigeschaltete Kinder</h2><section class="card"><div class="tabwrap">' +
-      '<table class="tabelle"><thead><tr><th>Vorname</th><th>Code</th><th>Stand</th><th></th></tr></thead><tbody>' +
-      (zeilen || '<tr><td colspan="4" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
-      '</tbody></table></div></section>' +
+    return '<h2 class="sec">Freigeschaltete Kinder</h2><section class="card">' +
+      '<div class="hinweis"><b>Sperren</b> macht nur den Aufkleber unbrauchbar; der Spielstand bleibt liegen. ' +
+      '<b>Löschen</b> entfernt Kind, Fortschritt und alle Bilder endgültig – das ist der Weg, wenn Eltern die ' +
+      'Löschung verlangen oder das Schuljahr zu Ende ist. <b>Auskunft</b> lädt alles herunter, was zu diesem Kind ' +
+      'gespeichert ist.</div>' +
+      '<div class="tabwrap">' +
+      '<table class="tabelle"><thead><tr><th>Vorname</th><th>Code</th><th>Stand</th><th>Zuletzt aktiv</th><th></th></tr></thead><tbody>' +
+      (zeilen || '<tr><td colspan="5" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
+      '</tbody></table></div>' +
+      '<div class="knopfreihe" style="margin-top:12px">' +
+      '<button class="btn ghost" id="alteraeumen">Lange inaktive Kinder löschen …</button></div>' +
+      '</section>' +
 
       '<h2 class="sec">Kinder freischalten</h2><section class="card">' +
       '<div class="hinweis">Hier fügst du den Inhalt der Datei <b>kinder.json</b> ein, die zusammen mit dem ' +
@@ -1699,6 +1739,108 @@
           .catch(function (e) { alert('Fehler: ' + e.message); });
       };
     });
+    document.querySelectorAll('[data-auskunft]').forEach(function (b) {
+      b.onclick = function () { auskunft(b.getAttribute('data-auskunft')); };
+    });
+    document.querySelectorAll('[data-kindloeschen]').forEach(function (b) {
+      b.onclick = function () { kindLoeschenFragen(b.getAttribute('data-kindloeschen')); };
+    });
+    if (el('alteraeumen')) el('alteraeumen').onclick = alteAufraeumen;
+  }
+
+  // ==========================================================
+  //  Auskunft, Löschung, Aufräumen (DSGVO Art. 15, 17, 5 Abs. 1 lit. e)
+  // ==========================================================
+
+  // Alles, was zu einem Kind gespeichert ist, als Datei.
+  // Damit lässt sich ein Auskunftsersuchen in einem Schritt beantworten.
+  function auskunft(id) {
+    var k = kinder.filter(function (x) { return x.id === id; })[0];
+    if (!k) return;
+    melde('Auskunft für ' + esc(k.vorname) + ' wird zusammengestellt …');
+    Promise.all([
+      db.collection('kinder').doc(id).get(),
+      db.collection('fortschritt').doc(id).get(),
+      db.collection('bilder').where('code', '==', id).get()
+    ]).then(function (r) {
+      var bilder = [];
+      r[2].forEach(function (d) { bilder.push(Object.assign({ _id: d.id }, d.data())); });
+      var daten = {
+        hinweis: 'Alle Daten, die in der Lernplattform Perlentaucher zu diesem Kind gespeichert sind.',
+        erstellt: new Date().toISOString(),
+        kind: r[0].exists ? r[0].data() : null,
+        zugangscode: id.toUpperCase(),
+        fortschritt: r[1].exists ? r[1].data() : null,
+        bilder: bilder
+      };
+      alsDateiSichern('auskunft-' + k.vorname.toLowerCase().replace(/[^a-z0-9]/g, '') + '-' +
+        heuteFuerDateiname() + '.json', JSON.stringify(daten, null, 2));
+      melde('Auskunft für ' + esc(k.vorname) + ' heruntergeladen: ' +
+        (daten.fortschritt ? 'Fortschritt' : 'kein Fortschritt') + ', ' + bilder.length + ' Bilder.');
+    }).catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
+  }
+
+  // Endgültig löschen: Kindeintrag, Fortschritt und alle Bilder.
+  //
+  // Der Firebase-Anmeldezugang des Kindes bleibt bestehen – den kann nur
+  // die Firebase-Konsole entfernen. Er enthält aber nichts außer dem
+  // Code; ohne Eintrag in "kinder" kommt er an keine Daten mehr.
+  function kindLoeschen(id) {
+    var k = kinder.filter(function (x) { return x.id === id; })[0];
+    if (!k) return Promise.resolve();
+    return db.collection('bilder').where('code', '==', id).get()
+      .then(function (snap) {
+        var paket = db.batch();
+        snap.forEach(function (d) { paket.delete(d.ref); });
+        paket.delete(db.collection('fortschritt').doc(id));
+        paket.delete(db.collection('kinder').doc(id));
+        return paket.commit().then(function () { return snap.size; });
+      });
+  }
+
+  function kindLoeschenFragen(id) {
+    var k = kinder.filter(function (x) { return x.id === id; })[0];
+    if (!k) return;
+    if (!confirm('Alle Daten von ' + k.vorname + ' endgültig löschen?\n\n' +
+        'Fortschritt und alle gemalten Bilder werden entfernt, der Zugang erlischt. ' +
+        'Das lässt sich nicht rückgängig machen.\n\n' +
+        'Tipp: Vorher „Auskunft" anklicken, wenn du eine Kopie behalten willst.')) return;
+    if (!confirm('Wirklich sicher? ' + k.vorname + ' wird vollständig gelöscht.')) return;
+    melde('Wird gelöscht …');
+    kindLoeschen(id)
+      .then(function (n) { melde(esc(k.vorname) + ' gelöscht: Fortschritt und ' + n + ' Bilder entfernt.'); laden(); })
+      .catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
+  }
+
+  // Aufräumen am Schuljahresende: alle Kinder, die seit X Tagen nicht
+  // mehr geübt haben, in einem Zug löschen.
+  function alteAufraeumen() {
+    var eingabe = prompt('Kinder löschen, die seit wie vielen Tagen nicht mehr geübt haben?\n\n' +
+      'Ein Schuljahr sind etwa 200 Tage. Kinder, die sich noch nie angemeldet haben, zählen mit.', '200');
+    if (eingabe === null) return;
+    var grenze = parseInt(eingabe, 10);
+    if (!(grenze >= 0)) { melde('Das war keine Zahl.', 'fehler'); return; }
+
+    var treffer = kinder.filter(function (k) {
+      var d = tageHer(letzterTag(staende[k.id]));
+      return d === null || d >= grenze;
+    });
+    if (!treffer.length) { melde('Kein Kind ist so lange inaktiv. Es wurde nichts gelöscht.'); return; }
+    if (!confirm('Diese ' + treffer.length + ' Kinder endgültig löschen?\n\n' +
+        treffer.map(function (k) { return '• ' + k.vorname; }).join('\n') +
+        '\n\nFortschritt und Bilder werden entfernt. Das lässt sich nicht rückgängig machen.')) return;
+    if (!confirm('Wirklich sicher? ' + treffer.length + ' Kinder werden vollständig gelöscht.')) return;
+
+    melde(treffer.length + ' Kinder werden gelöscht …');
+    var kette = Promise.resolve(0);
+    treffer.forEach(function (k) {
+      kette = kette.then(function (summe) {
+        return kindLoeschen(k.id).then(function (n) { return summe + n; });
+      });
+    });
+    kette.then(function (bilder) {
+      melde(treffer.length + ' Kinder gelöscht, dabei ' + bilder + ' Bilder entfernt.'); laden();
+    }).catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
   }
 
   // ---------- Fortschritt zurücksetzen ----------

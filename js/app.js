@@ -353,6 +353,11 @@
       // der Startseite. Vorher war er ein <div>, und die Seite begann
       // mit h3 - wer per Ueberschriftenliste navigiert, landete mitten
       // in der Gliederung.
+      // Wer ist gerade angemeldet? Auf einem Klassen-iPad, das reihum
+      // geht, sah das nächste Kind sonst zuerst Namen und Perlen des
+      // vorigen und übte auf dessen Konto weiter.
+      (name ? '<div class="werbinich"><span>Angemeldet als <b>' + name + '</b></span>' +
+        '<button class="btn ghost mini" data-action="logout">Ich bin das nicht</button></div>' : '') +
       '<header class="top"><h1 class="brand">' + WA.mascot('happy', 48) + '<span>Perlen<b>taucher</b></span></h1>' +
       '<div class="tools"><div class="pill" id="heartchip">' + heartChip() + '</div>' +
       '<div class="pill"><span class="pearl"></span> <b>' + st.xp + '</b> Perlen</div>' +
@@ -378,7 +383,8 @@
       '<h2 class="sec">Diese Woche</h2><section class="card week">' + weekHtml + '</section>' +
       '<h2 class="sec">Abzeichen</h2><section class="badges">' + badges + '</section>' +
       '<footer class="foot">' + fusstext() +
-      '<br><a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a></footer></div>';
+      '<br><a class="lehrerlink" href="datenschutz.html">Datenschutz</a>' +
+      ' · <a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a></footer></div>';
 
     timer = setInterval(function () { var el = $('#heartchip'); if (el) el.innerHTML = heartChip(); }, 1000);
     window.scrollTo(0, 0);
@@ -398,6 +404,7 @@
       'autocomplete="off" spellcheck="false" maxlength="9" placeholder="ABCD-2345" aria-label="Zugangscode">' +
       '<button class="btn big wide" data-action="login">Los geht\'s</button>' +
       '<p class="muted klein">Du bleibst angemeldet. Den Code brauchst du nur einmal.</p>' +
+      '<a class="lehrerlink" href="datenschutz.html">Datenschutz</a> · ' +
       '<a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a>' +
       '</div></div>';
     var f = $('#codefeld');
