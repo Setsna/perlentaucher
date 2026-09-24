@@ -47,7 +47,47 @@ window.WA = window.WA || {};
     ['Hecke',          'die', 'He-cke',              'Nomen',   'pflanze', '🌿', 'eine Reihe dicht gewachsener Sträucher', 'Der Igel versteckt sich unter der Hecke.'],
     ['Adventskranz',   'der', 'Ad-vents-kranz',      'Nomen',   'ding',    '🕯️', 'ein Kranz aus Tannenzweigen mit vier Kerzen', 'Auf dem Adventskranz brennen vier Kerzen.'],
     ['breit',          null,  'breit',               'Adjektiv','adjektiv','↔️', 'von einer Seite zur anderen weit, nicht schmal', 'Die Straße ist sehr breit.'],
-    ['Klee',           'der', 'Klee',                'Nomen',   'pflanze', '🍀', 'eine Wiesenpflanze mit meist drei Blättern', 'Im Gras wächst Klee.']
+    ['Klee',           'der', 'Klee',                'Nomen',   'pflanze', '🍀', 'eine Wiesenpflanze mit meist drei Blättern', 'Im Gras wächst Klee.'],
+
+    // --- Woche vom 21. September 2026: V, x und chs -------------
+    // Worttrennung von duden.de geprueft. Bei Video weichen
+    // Sprechsilben (Vi-de-o) und Worttrennung (Vi-deo) ab.
+    ['Vorhang', 'der', 'Vor-hang', 'Nomen', 'ding', '', 'ein großes Stück Stoff, das man vor ein Fenster zieht', 'Am Abend ziehen wir den Vorhang zu.'],
+    ['Verb', 'das', 'Verb', 'Nomen', 'wort', '', 'ein Wort, das sagt, was jemand tut, zum Beispiel laufen oder essen', 'Das Wort „springen“ ist ein Verb.'],
+    ['Pavian', 'der', 'Pa-vi-an', 'Nomen', 'tier', '🐒', 'ein großer Affe mit langer Schnauze, der in Afrika lebt', 'Im Zoo klettert ein Pavian auf den Felsen.'],
+    ['vier', null, 'vier', 'Zahlwort', 'zahl', '4️⃣', 'die Zahl nach der Drei', 'Ein Tisch hat meistens vier Beine.'],
+    ['Video', 'das', 'Vi-de-o', 'Nomen', 'technik', '📹', 'ein kurzer Film, den man auf einem Bildschirm anschaut', 'Wir schauen ein Video über Vulkane.', 'Vi-deo'],
+    ['Kurve', 'die', 'Kur-ve', 'Nomen', 'ort', '', 'eine Stelle, an der ein Weg oder eine Straße einen Bogen macht', 'Hinter der Kurve beginnt der Wald.'],
+    ['Vokal', 'der', 'Vo-kal', 'Nomen', 'wort', '', 'ein Selbstlaut, also a, e, i, o oder u', 'In dem Wort „Haus“ stecken zwei Vokale.'],
+    ['Viper', 'die', 'Vi-per', 'Nomen', 'tier', '', 'eine giftige Schlange mit dickem, dreieckigem Kopf', 'Eine Viper sonnt sich auf dem warmen Stein.'],
+    ['verschiedene', null, 'ver-schie-de-ne', 'Adjektiv', 'adjektiv', '', 'mehrere, die nicht gleich sind', 'Im Korb liegen verschiedene Äpfel.'],
+    ['Luchs', 'der', 'Luchs', 'Nomen', 'tier', '', 'eine Wildkatze mit Haarpinseln an den Ohren', 'Der Luchs schleicht leise durch den Wald.'],
+    ['Experte', 'der', 'Ex-per-te', 'Nomen', 'person', '', 'jemand, der von einer Sache sehr viel versteht', 'Mein Opa ist ein Experte für Pilze.'],
+    ['Lachs', 'der', 'Lachs', 'Nomen', 'tier', '🐟', 'ein großer Fisch mit rosa Fleisch', 'Zum Abendessen gibt es Lachs mit Kartoffeln.'],
+    ['Mixer', 'der', 'Mi-xer', 'Nomen', 'technik', '', 'ein Küchengerät, das Essen zerkleinert und rührt', 'Im Mixer wird das Obst zu Saft.'],
+    ['Nixe', 'die', 'Ni-xe', 'Nomen', 'person', '🧜‍♀️', 'ein Wesen aus dem Märchen, halb Mädchen und halb Fisch', 'Die Nixe sitzt auf einem Felsen im Meer.'],
+    ['Fuchs', 'der', 'Fuchs', 'Nomen', 'tier', '🦊', 'ein wildes Tier mit rotem Fell und buschigem Schwanz', 'Der Fuchs läuft über die Wiese.'],
+    ['Ochse', 'der', 'Och-se', 'Nomen', 'tier', '🐂', 'ein großes männliches Rind, das früher schwere Wagen zog', 'Zwei Ochsen ziehen den Wagen über das Feld.'],
+    ['Axt', 'die', 'Axt', 'Nomen', 'werkzeug', '🪓', 'ein Werkzeug mit scharfem Eisen, mit dem man Holz hackt', 'Mit der Axt hackt er Holz für den Ofen.'],
+
+    // --- Woche vom 28. September 2026: Getreide (Sachunterricht) ---
+    // Alle dreizehn standen schon in der Klasse-2-Liste und ziehen
+    // hierher um. Silben und Bedeutungen von dort uebernommen,
+    // Worttrennung gegen duden.de geprueft. Neu sind die
+    // Beispielsaetze: elf der dreizehn hatten keinen.
+    ['Getreide', 'das', 'Ge-trei-de', 'Nomen', 'pflanze', '🌾', 'Pflanzen wie Weizen und Roggen, aus denen man Mehl macht', 'Der Bauer erntet im Sommer das Getreide.'],
+    ['Pflanze', 'die', 'Pflan-ze', 'Nomen', 'pflanze', '🪴', 'etwas Lebendiges, das in der Erde wächst und Wurzeln hat', 'Die Pflanze auf der Fensterbank braucht Wasser.'],
+    ['Gras', 'das', 'Gras', 'Nomen', 'pflanze', '', 'die grünen Halme, die auf einer Wiese wachsen', 'Die Kühe fressen Gras auf der Weide.'],
+    ['Korn', 'das', 'Korn', 'Nomen', 'pflanze', '', 'das kleine harte Stück, aus dem man Mehl macht', 'Die Mühle macht aus dem Korn feines Mehl.'],
+    ['Roggen', 'der', 'Rog-gen', 'Nomen', 'pflanze', '', 'eine Getreideart, aus der dunkles Brot gebacken wird', 'Aus Roggen backt man dunkles Brot.'],
+    ['Mais', 'der', 'Mais', 'Nomen', 'pflanze', '🌽', 'eine hohe Pflanze mit gelben Körnern an einem Kolben', 'Im Herbst ernten die Bauern den Mais.'],
+    ['Bestandteil', 'der', 'Be-stand-teil', 'Nomen', 'ding', '', 'eines von mehreren Stücken, aus denen etwas gebaut ist', 'Mehl ist ein wichtiger Bestandteil des Teigs.'],
+    ['Nahrung', 'die', 'Nah-rung', 'Nomen', 'essen', '🍽️', 'alles, was Menschen und Tiere essen', 'Vögel suchen im Winter lange nach Nahrung.'],
+    ['Lebensmittel', 'die', 'Le-bens-mit-tel', 'Nomen', 'essen', '🛒', 'Sachen aus dem Laden, die man essen oder trinken kann', 'Im Supermarkt kaufen wir Lebensmittel ein.'],
+    ['Feld', 'das', 'Feld', 'Nomen', 'ort', '', 'ein großes Stück Land, auf dem ein Bauer etwas anbaut', 'Hinter dem Hof liegt ein großes Feld.'],
+    ['mahlen', null, 'mah-len', 'Verb', 'verb', '', 'Körner zwischen harten Steinen zu Mehl zerreiben', 'In der Mühle mahlen schwere Steine das Korn.'],
+    ['verarbeiten', null, 'ver-ar-bei-ten', 'Verb', 'verb', '', 'aus einem Stoff etwas Neues machen, zum Beispiel Brot aus Mehl', 'Bäcker verarbeiten Mehl zu Brot und Brötchen.'],
+    ['bekannt', null, 'be-kannt', 'Adjektiv', 'adjektiv', '', 'so, dass viele Leute schon davon gehört haben', 'Dieses Lied ist bei uns allen bekannt.']
   ];
 
   WA.words = rows.map(function (r) {
