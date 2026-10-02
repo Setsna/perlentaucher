@@ -9,6 +9,9 @@
       Passwort:     K7PM4XRT
       Das Kind bekommt davon nichts mit.
    3. Nur Codes, die im Lehrerbereich angelegt wurden, funktionieren.
+      Ein gescannter Code hat dabei Vorrang vor einer Anmeldung, die auf
+      dem Geraet noch liegt. Auf geteilten Schulgeraeten ist sonst noch
+      das vorige Kind angemeldet und der Scan bliebe wirkungslos.
    4. Der Spielstand liegt unter  fortschritt/k7pm4xrt.
 
    Wenn Firebase nicht geladen werden kann (kein Netz, CDN gesperrt),
@@ -44,6 +47,14 @@ WA.firebaseConfig = {
   function codeAusAdresse() {
     var m = /[#&?]c=([A-Za-z0-9]{8})/.exec(location.hash + location.search);
     return m ? m[1].toUpperCase() : null;
+  }
+
+  // Stand in der Adresse ein "c=", ohne dass ein brauchbarer Code
+  // herauskam? Dann wurde der QR-Code angefangen zu lesen, kam aber
+  // unvollstaendig an. Ohne diese Unterscheidung sieht ein misslungener
+  // Scan genauso aus wie ein ganz normaler Seitenaufruf.
+  function scanSpur() {
+    return /[#&?]c=/.test(location.hash + location.search);
   }
 
   function adresseSaeubern() {
@@ -95,12 +106,27 @@ WA.firebaseConfig = {
       if (inArbeit) return;
       inArbeit = true;
 
+      var angemeldeterCode = (user && user.email && user.email.indexOf('@') > 0)
+        ? user.email.split('@')[0].toUpperCase() : null;
+
       var p;
-      if (user && user.email && user.email.indexOf('@') > 0) {
-        p = nachAnmeldung(user.email.split('@')[0].toUpperCase());
+      if (code && code === angemeldeterCode) {
+        // Dasselbe Kind scannt noch einmal auf seinem eigenen Geraet.
+        p = nachAnmeldung(code).then(adresseSaeubern);
       } else if (code) {
-        p = anmelden(code).then(adresseSaeubern);
+        // Ein gescannter Code hat Vorrang vor einer bestehenden Anmeldung.
+        // Auf geteilten Schulgeraeten ist sonst noch das vorige Kind
+        // angemeldet, und der Scan bliebe wirkungslos.
+        p = (angemeldeterCode ? auth.signOut().catch(function () {}) : Promise.resolve())
+          .then(function () { return anmelden(code); })
+          .then(adresseSaeubern);
+      } else if (angemeldeterCode) {
+        p = nachAnmeldung(angemeldeterCode);
       } else {
+        if (scanSpur()) {
+          fehlerMelden('Der QR-Code wurde nicht vollständig gelesen. '
+            + 'Bitte tippe den Code vom Aufkleber ein.');
+        }
         p = Promise.resolve();
       }
 

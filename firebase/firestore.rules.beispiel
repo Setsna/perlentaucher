@@ -1,0 +1,163 @@
+rules_version = '2';
+
+// ============================================================
+//  WortAbenteuer – Zugriffsregeln für Firestore
+//  Projekt: lernplattform-44aa1
+//
+//  Grundsatz: Alles ist verboten, ausser es steht hier ausdruecklich.
+//  Ein Kind kommt nur an seinen eigenen Spielstand. Die Lehrkraft
+//  kommt an alles. Niemand kann die Kinderliste durchblaettern.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Wer ist wer? ----------
+
+    // Lehrkraft: meldet sich mit diesem Google-Konto an.
+    // WICHTIG: Hier muss genau die Adresse stehen, mit der du dich
+    // bei Firebase angemeldet hast. Bei Bedarf hier aendern.
+    function istLehrer() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'DEINE-EMAIL@example.com';
+    }
+
+    // Kind: meldet sich unsichtbar mit <code>@lernplattform-44aa1.firebaseapp.com an.
+    // Der Code steht auf dem Aufkleber im Hausaufgabenheft.
+    function istKind(code) {
+      return request.auth != null
+        && request.auth.token.email == code + '@lernplattform-44aa1.firebaseapp.com';
+    }
+
+    // Nur Codes, die du vorher angelegt hast, zaehlen als freigeschaltet.
+    function freigeschaltet(code) {
+      return exists(/databases/$(database)/documents/kinder/$(code));
+    }
+
+    // Der Code steckt im vorderen Teil der Anmelde-Adresse, immer klein
+    // geschrieben (js/cloud.js: mailVon) - genau so heisst auch das
+    // Dokument in "kinder".
+    function mailCode() {
+      return request.auth.token.email.split('@')[0];
+    }
+
+    // Ein Kind, dessen Code du angelegt hast.
+    //
+    // WICHTIG: "request.auth != null" allein ist KEINE Schranke. Jeder
+    // Fremde kann sich mit dem oeffentlichen API-Schluessel selbst ein
+    // Konto anlegen und ist dann angemeldet. Erst der Blick in "kinder"
+    // macht daraus eine echte Pruefung. Deshalb steht unten ueberall
+    // istKlassenmitglied() statt request.auth != null.
+    function istKlassenmitglied() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email.matches('^[a-z0-9]+@lernplattform-44aa1[.]firebaseapp[.]com$')
+        && freigeschaltet(mailCode());
+    }
+
+    // ---------- Kinderliste: Vorname und Code ----------
+    // get   = ein einzelnes Kind gezielt nachschlagen
+    // list  = die ganze Liste durchblaettern (nur Lehrkraft)
+    match /kinder/{code} {
+      allow get:   if istLehrer() || istKind(code);
+      allow list:  if istLehrer();
+      allow write: if istLehrer();
+    }
+
+    // ---------- Spielstand eines Kindes ----------
+    // Perlen, Luftblasen, Wortstatistik, Abzeichen.
+    // Kein Kind kann den Spielstand eines anderen Kindes lesen.
+    match /fortschritt/{code} {
+      allow read:   if istLehrer() || istKind(code);
+
+      // Die Lehrkraft darf zuruecksetzen. Das Kind darf nur seinen
+      // eigenen Stand schreiben, und nur mit plausiblen Werten.
+      allow write:  if istLehrer()
+                    || (istKind(code) && freigeschaltet(code)
+                        && request.resource.data.xp is int
+                        && request.resource.data.xp >= 0
+                        && request.resource.data.xp <= 200000);
+      allow delete: if istLehrer();
+    }
+
+    // ---------- Gemalte Bilder ----------
+    // Ein Dokument je Bild, damit der Spielstand klein bleibt.
+    // Die Kennung lautet <code>_<nummer>, im Feld "code" steht noch
+    // einmal der Code des Kindes. Danach wird gesucht und geprueft.
+    // Ein Kind kommt nur an seine eigenen Bilder.
+    match /bilder/{id} {
+      allow read:   if istLehrer() || istKind(resource.data.code);
+
+      allow create: if istLehrer()
+                    || (istKind(request.resource.data.code)
+                        && freigeschaltet(request.resource.data.code)
+                        && request.resource.data.code is string
+                        && (!('striche' in request.resource.data)
+                            || request.resource.data.striche.size() <= 20000)
+                        && (!('px' in request.resource.data)
+                            || request.resource.data.px.size() <= 4096));
+
+      allow update: if istLehrer()
+                    || (istKind(resource.data.code)
+                        && request.resource.data.code == resource.data.code
+                        && (!('striche' in request.resource.data)
+                            || request.resource.data.striche.size() <= 20000)
+                        && (!('px' in request.resource.data)
+                            || request.resource.data.px.size() <= 4096));
+
+      allow delete: if istLehrer() || istKind(resource.data.code);
+    }
+
+    // ---------- Gemeinsames Klassenziel ----------
+    // Ein Dokument je Kalenderwoche, z. B. "2026-W38", mit einem Feld "perlen".
+    // Jedes Kind darf diese Summe nur erhoehen und nur um einen
+    // plausiblen Betrag. Es gibt hier keine Namen und keine Einzelwerte.
+    match /klassenwochen/{woche} {
+      allow read: if istLehrer() || istKlassenmitglied();
+
+      // Die Kennung muss aussehen wie "2026-W38" (js/cloud.js:
+      // wochenSchluessel). Sonst koennte jemand die Sammlung mit
+      // beliebigen Dokumenten vollschreiben.
+      allow create: if istKlassenmitglied()
+        && woche.matches('^[0-9]{4}-W[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['perlen'])
+        && request.resource.data.perlen is int
+        && request.resource.data.perlen >= 0
+        && request.resource.data.perlen <= 500;
+
+      allow update: if istKlassenmitglied()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['perlen'])
+        && request.resource.data.perlen is int
+        && request.resource.data.perlen >= resource.data.perlen
+        && request.resource.data.perlen <= resource.data.perlen + 500;
+
+      allow write: if istLehrer();
+    }
+
+    // ---------- Lernwoerter ----------
+    // Alle angemeldeten Kinder duerfen lesen, aendern darfst nur du.
+    match /lernwoerter/{id} {
+      allow read:  if istLehrer() || istKlassenmitglied();
+      allow write: if istLehrer();
+    }
+
+    // ---------- Fragen fuer den Sachunterricht ----------
+    // Alle angemeldeten Kinder duerfen lesen, aendern darfst nur du.
+    match /quizfragen/{id} {
+      allow read:  if istLehrer() || istKlassenmitglied();
+      allow write: if istLehrer();
+    }
+
+    // ---------- Einstellungen der Klasse ----------
+    match /einstellungen/{id} {
+      allow read:  if istLehrer() || istKlassenmitglied();
+      allow write: if istLehrer();
+    }
+
+    // ---------- Alles Uebrige ist gesperrt ----------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
