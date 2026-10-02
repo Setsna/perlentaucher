@@ -83,11 +83,62 @@ window.WA = window.WA || {};
     if (!still) lauscher.forEach(function (f) { try { f(s); } catch (e) {} });
   }
 
+  // ---------- Übungsmodus ohne Anmeldung ----------
+  // Laden die Firebase-Bibliotheken nicht (kein Netz, gesperrtes
+  // Netzwerk), läuft die App ohne Anmeldung weiter. Der Stand liegt dann
+  // unter dem Grundschlüssel, nicht unter dem des Kindes. Ohne die
+  // folgende Übernahme stünde das Kind nach der ersten Anmeldung wieder
+  // bei null, obwohl es geübt hat.
+  //
+  // Übernommen wird nur, wenn auf diesem Gerät noch NIE jemand
+  // angemeldet war. Sonst erbte auf einem geteilten Schul-iPad das
+  // nächste Kind die Perlen des vorigen.
+  function nochNieAngemeldet() {
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(BASIS + '.') === 0 && k !== BASIS + '.bilder') return false;
+      }
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // Lohnt sich die Übernahme überhaupt? Ein unberührter Stand bringt
+  // nichts und würde nur Zeitstempel durcheinanderbringen.
+  function hatFortschritt(x) {
+    return !!x && ((x.xp || 0) > 0 || (x.lessons || 0) > 0 ||
+      Object.keys(x.words || {}).length > 0 ||
+      ((x.mal && x.mal.bilder) || []).length > 0);
+  }
+
+  function uebungsstand() {
+    var st = null;
+    try {
+      var r = localStorage.getItem(BASIS);
+      if (r) st = sicherMal(Object.assign(fresh(), JSON.parse(r)));
+      var rb = localStorage.getItem(BASIS + '.bilder');
+      if (st && rb) { var arr = JSON.parse(rb); if (Array.isArray(arr)) st.mal.bilder = arr; }
+    } catch (e) { return null; }
+    return st;
+  }
+
   // ---------- Umschalten zwischen Kindern auf demselben iPad ----------
   // Jedes Kind bekommt einen eigenen lokalen Speicherplatz.
   function useProfile(id) {
+    var anon = (id && nochNieAngemeldet()) ? uebungsstand() : null;
     KEY = id ? BASIS + '.' + id : BASIS;
     s = load();
+    if (anon && hatFortschritt(anon) && !hatFortschritt(s)) {
+      s = anon;
+      s.updatedAt = Date.now();
+      malGeaendert();
+      save();
+      // Der alte Platz bleibt stehen. Er wird nicht noch einmal
+      // übernommen, weil es diesen Profilschlüssel jetzt gibt und
+      // nochNieAngemeldet() deshalb falsch liefert. Löschen wäre
+      // riskant ohne Not: Es ist der einzige Stand, den ein Kind hat,
+      // falls die Anmeldung beim nächsten Mal scheitert.
+    }
   }
 
   // ---------- Abgleichsbasis ----------
