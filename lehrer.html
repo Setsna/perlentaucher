@@ -12,7 +12,7 @@
      auftauchen; die Adresse gibt es nur auf dem Aufkleber. -->
 <meta name="robots" content="noindex, nofollow">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=37">
+<link rel="stylesheet" href="css/style.css?v=38">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -135,14 +135,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=37"></script>
-<script src="js/words.js?v=37"></script>
-<script src="js/bilder.js?v=37"></script>
-<script src="js/quiz.js?v=37"></script>
-<script src="js/mascot.js?v=37"></script>
-<script src="js/malen.js?v=37"></script>
-<script src="js/merge.js?v=37"></script>
-<script src="js/cloud.js?v=37"></script>
+<script src="js/config.js?v=38"></script>
+<script src="js/words.js?v=38"></script>
+<script src="js/bilder.js?v=38"></script>
+<script src="js/quiz.js?v=38"></script>
+<script src="js/mascot.js?v=38"></script>
+<script src="js/malen.js?v=38"></script>
+<script src="js/merge.js?v=38"></script>
+<script src="js/cloud.js?v=38"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -162,7 +162,7 @@
     artikel: 'Artikel zuordnen', silben_zaehlen: 'Silben zählen', silben_ordnen: 'Silben ordnen',
     trennen: 'Silben trennen', bild: 'Wort zum Bild', bedeutung: 'Bedeutung wählen', satz: 'Lückensatz'
   };
-  var SPALTEN = ['wort', 'artikel', 'silben', 'trennung', 'wortart', 'gruppe', 'bild', 'bedeutung', 'satz', 'liste'];
+  var SPALTEN = ['wort', 'artikel', 'zahl', 'silben', 'trennung', 'wortart', 'gruppe', 'bild', 'bedeutung', 'satz', 'liste'];
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -530,7 +530,7 @@
         var batch = db.batch();
         WA.words.forEach(function (w) {
           batch.set(db.collection('lernwoerter').doc(w.id), {
-            wort: w.wort, artikel: w.artikel || null, silben: w.silben.join('-'),
+            wort: w.wort, artikel: w.artikel || null, zahl: w.zahl || null, silben: w.silben.join('-'),
             trennung: (w.trennung || w.silben).join('-'),
             wortart: w.wortart || '', gruppe: w.gruppe || '', bild: w.bild || null,
             bedeutung: w.bedeutung || '', satz: w.satz || '', liste: w.liste || 'Merkwörter 1'
@@ -571,6 +571,10 @@
       '<div class="raster">' +
       feld('f_wort', 'Wort', w ? w.wort : '') +
       feld('f_artikel', 'Artikel (leer bei Verben)', w ? (w.artikel || '') : '') +
+      '<label class="feld">Zahl<select id="f_zahl">' +
+        '<option value=""' + (w && w.zahl === 'mehrzahl' ? '' : ' selected') + '>Einzahl</option>' +
+        '<option value="mehrzahl"' + (w && w.zahl === 'mehrzahl' ? ' selected' : '') + '>' +
+        'nur Mehrzahl (keine Artikelfrage)</option></select></label>' +
       feld('f_silben', 'Sprechsilben (Silbenbögen)', w ? w.silben : '') +
       feld('f_trennung', 'Worttrennung nach Duden', w ? (w.trennung || w.silben) : '') +
       feld('f_wortart', 'Wortart', w ? w.wortart : '') +
@@ -602,6 +606,8 @@
 
     if (!v.wort) fehler.push('Das Wort fehlt.');
     if (v.artikel && ['der', 'die', 'das'].indexOf(v.artikel) < 0) fehler.push('Der Artikel muss der, die oder das sein.');
+    if (v.zahl && v.zahl !== 'mehrzahl') fehler.push('Die Zahl muss leer oder „mehrzahl“ sein.');
+    if (v.zahl === 'mehrzahl' && v.artikel && v.artikel !== 'die') fehler.push('Ein Mehrzahlwort hat immer den Artikel „die“.');
     if (!v.silben) v.silben = v.wort;
     if (v.silben.replace(/-/g, '') !== v.wort) fehler.push('Die Sprechsilben ergeben zusammen nicht das Wort. „' +
       v.silben.replace(/-/g, '') + '“ statt „' + v.wort + '“.');
@@ -619,7 +625,7 @@
       return;
     }
 
-    var daten = { wort: v.wort, artikel: v.artikel || null, silben: v.silben, trennung: v.trennung, wortart: v.wortart,
+    var daten = { wort: v.wort, artikel: v.artikel || null, zahl: v.zahl || null, silben: v.silben, trennung: v.trennung, wortart: v.wortart,
                   gruppe: v.gruppe, bild: v.bild || null, bedeutung: v.bedeutung, satz: v.satz, liste: v.liste };
     var ziel = id || neueId;
     var p = db.collection('lernwoerter').doc(ziel).set(daten);
@@ -714,6 +720,8 @@
       var zeile = 'Zeile ' + (n + 2) + ': ';
       if (!o.wort) { fehler.push(zeile + 'kein Wort'); return; }
       if (o.artikel && ['der', 'die', 'das'].indexOf(o.artikel) < 0) { fehler.push(zeile + 'Artikel „' + o.artikel + '“ ist ungültig'); return; }
+      if (o.zahl && o.zahl !== 'mehrzahl') { fehler.push(zeile + 'Zahl „' + o.zahl + '“ ist ungültig, erlaubt ist nur „mehrzahl“'); return; }
+      if (o.zahl === 'mehrzahl' && o.artikel && o.artikel !== 'die') { fehler.push(zeile + 'Mehrzahlwort mit Artikel „' + o.artikel + '“'); return; }
       if (!o.silben) o.silben = o.wort;
       if (o.silben.replace(/-/g, '') !== o.wort) { fehler.push(zeile + 'Sprechsilben ergeben nicht „' + o.wort + '“'); return; }
       if (!o.trennung) o.trennung = o.silben;
@@ -729,7 +737,7 @@
     var batch = db.batch();
     gut.forEach(function (o) {
       batch.set(db.collection('lernwoerter').doc(o.wort.toLowerCase()), {
-        wort: o.wort, artikel: o.artikel || null, silben: o.silben, trennung: o.trennung, wortart: o.wortart || '',
+        wort: o.wort, artikel: o.artikel || null, zahl: o.zahl || null, silben: o.silben, trennung: o.trennung, wortart: o.wortart || '',
         gruppe: o.gruppe || '', bild: o.bild || null, bedeutung: o.bedeutung || '',
         satz: o.satz || '', liste: o.liste
       }, { merge: true });

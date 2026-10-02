@@ -249,6 +249,9 @@ WA.wortAusDoc = function (id, d) {
     id: id,
     wort: d.wort,
     artikel: d.artikel || null,
+    // 'mehrzahl' bei Woertern, die es nur im Plural gibt (Ferien).
+    // Fuer sie waere die Artikelfrage sinnlos: Mehrzahl ist immer 'die'.
+    zahl: d.zahl === 'mehrzahl' ? 'mehrzahl' : null,
     silben: String(d.silben || d.wort).split('-'),
     trennung: String(d.trennung || d.silben || d.wort).split('-'),
     wortart: d.wortart || '',

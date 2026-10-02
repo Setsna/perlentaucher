@@ -97,7 +97,10 @@ window.WA = window.WA || {};
 
   T.artikel = {
     cat: 'artikel',
-    applies: function (w) { return !!w.artikel; },
+    // Mehrzahlwoerter bleiben aussen vor: dort ist 'die' immer richtig,
+    // die Frage pruefte also nichts. In allen anderen Uebungen kommen
+    // sie weiter vor.
+    applies: function (w) { return !!w.artikel && w.zahl !== 'mehrzahl'; },
     make: function (w) {
       return {
         type: 'artikel', cat: 'artikel', kind: 'choice', layout: 'row3', wordId: w.id,
