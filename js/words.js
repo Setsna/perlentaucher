@@ -16,7 +16,7 @@ window.WA = window.WA || {};
     ['Regenwurm',      'der', 'Re-gen-wurm',         'Nomen',   'tier',    '🪱', 'ein Tier ohne Beine, das in der Erde lebt', 'Nach dem Regen kriecht ein Regenwurm über den Weg.'],
     ['Wellensittich',  'der', 'Wel-len-sit-tich',    'Nomen',   'tier',    '🦜', 'ein kleiner, bunter Papagei, den viele Menschen als Haustier halten', 'Mein Wellensittich kann ein paar Wörter sprechen.'],
     ['Bernhardiner',   'der', 'Bern-har-di-ner',     'Nomen',   'tier',    '🐕', 'ein sehr großer Hund mit braun-weißem Fell', 'Der Bernhardiner ist ein besonders großer Hund.'],
-    ['Papageientaucher','der','Pa-pa-gei-en-tau-cher','Nomen',  'tier',    '🐦', 'ein Meeresvogel mit einem großen, bunten Schnabel', 'Der Papageientaucher fängt kleine Fische im Meer.'],
+    ['Papageientaucher','der','Pa-pa-gei-en-tau-cher','Nomen',  'tier',    '',   'ein Meeresvogel mit einem großen, bunten Schnabel', 'Der Papageientaucher fängt kleine Fische im Meer.'],
     ['Streifengnu',    'das', 'Strei-fen-gnu',       'Nomen',   'tier',    null, 'ein großes Tier in Afrika, das in riesigen Herden lebt', 'Das Streifengnu wandert mit der Herde durch die Steppe.'],
     ['Riesensalamander','der','Rie-sen-sa-la-man-der','Nomen',  'tier',    null, 'ein sehr großes Tier, das im Wasser lebt und nicht zu den Fischen gehört', 'Der Riesensalamander wird über einen Meter lang.'],
     ['Schneeleopard',  'der', 'Schnee-le-o-pard',    'Nomen',   'tier',    '❄️🐆', 'eine Raubkatze mit dickem Fell, die hoch im Gebirge lebt', 'Der Schneeleopard lebt hoch oben im Gebirge.'],
@@ -33,7 +33,7 @@ window.WA = window.WA || {};
     ['Abend',          'der', 'A-bend',              'Nomen',   'zeit',    '🌆', 'die Tageszeit am Ende des Tages, wenn es dunkel wird', 'Am Abend gehe ich ins Bett.', 'Abend'],
     ['Bogen',          'der', 'Bo-gen',              'Nomen',   'ding',    '🏹', 'etwas Gebogenes, zum Beispiel zum Schießen von Pfeilen', 'Der Schütze spannt den Bogen.'],
     ['Wald',           'der', 'Wald',                'Nomen',   'pflanze', '🌲🌳', 'ein großes Gebiet mit vielen Bäumen', 'Im Wald sammeln wir Pilze.'],
-    ['heizen',         null,  'hei-zen',             'Verb',    'verb',    '🔥', 'einen Raum warm machen', 'Im Winter müssen wir die Wohnung heizen.'],
+    ['heizen',         null,  'hei-zen',             'Verb',    'verb',    '',   'einen Raum warm machen', 'Im Winter müssen wir die Wohnung heizen.'],
     ['springen',       null,  'sprin-gen',           'Verb',    'verb',    '🤸', 'sich mit den Beinen vom Boden abstoßen und durch die Luft fliegen', 'Die Kinder springen über das Seil.'],
     ['spritzen',       null,  'sprit-zen',           'Verb',    'verb',    '💦', 'Wasser in Tropfen herumschleudern', 'Beim Baden spritzen wir uns nass.'],
     ['blühen',         null,  'blü-hen',             'Verb',    'verb',    '🌸', 'Blüten bekommen und aufmachen', 'Im Frühling blühen die Blumen.'],
@@ -87,7 +87,22 @@ window.WA = window.WA || {};
     ['Feld', 'das', 'Feld', 'Nomen', 'ort', '', 'ein großes Stück Land, auf dem ein Bauer etwas anbaut', 'Hinter dem Hof liegt ein großes Feld.'],
     ['mahlen', null, 'mah-len', 'Verb', 'verb', '', 'Körner zwischen harten Steinen zu Mehl zerreiben', 'In der Mühle mahlen schwere Steine das Korn.'],
     ['verarbeiten', null, 'ver-ar-bei-ten', 'Verb', 'verb', '', 'aus einem Stoff etwas Neues machen, zum Beispiel Brot aus Mehl', 'Bäcker verarbeiten Mehl zu Brot und Brötchen.'],
-    ['bekannt', null, 'be-kannt', 'Adjektiv', 'adjektiv', '', 'so, dass viele Leute schon davon gehört haben', 'Dieses Lied ist bei uns allen bekannt.']
+    ['bekannt', null, 'be-kannt', 'Adjektiv', 'adjektiv', '', 'so, dass viele Leute schon davon gehört haben', 'Dieses Lied ist bei uns allen bekannt.'],
+
+    // Lernwoerter der Woche vom 07.10.2026 (Camping). Alle zwoelf
+    // standen zuvor in der Liste aus Klasse 2 und sind umgezogen.
+    ['Camping', 'das', 'Cam-ping', 'Nomen', 'ort', '🏕️', 'wenn man im Freien übernachtet und dort eine Weile lebt', 'Im Sommer fahren wir zum Camping an den See.'],
+    ['Zelt', 'das', 'Zelt', 'Nomen', 'ort', '⛺', 'ein Dach aus Stoff, unter dem man draußen schlafen kann', 'Wir schlafen alle zusammen in einem Zelt.'],
+    ['Fernglas', 'das', 'Fern-glas', 'Nomen', 'technik', null, 'damit sieht man Dinge ganz nah, die weit weg sind', 'Mit dem Fernglas kann ich die Berge genau sehen.'],
+    ['Vogel', 'der', 'Vo-gel', 'Nomen', 'tier', '🐦', 'ein Tier mit Federn und Schnabel, das meistens fliegen kann', 'Auf dem Ast sitzt ein kleiner Vogel.'],
+    ['Holz', 'das', 'Holz', 'Nomen', 'ding', '🪵', 'das harte Material, aus dem Stämme und Äste bestehen', 'Papa sägt ein Stück Holz für das Feuer.'],
+    ['Lagerfeuer', 'das', 'La-ger-feu-er', 'Nomen', 'ding', '🔥', 'ein kleines Feuer draußen, um das man abends sitzt', 'Am Abend singen wir am Lagerfeuer.'],
+    ['Schlafsack', 'der', 'Schlaf-sack', 'Nomen', 'ding', null, 'eine warme Hülle aus Stoff, in der man draußen übernachtet', 'Nachts kuschele ich mich in meinen Schlafsack.'],
+    ['Vater', 'der', 'Va-ter', 'Nomen', 'person', '👨', 'der Mann, dessen Kind man ist', 'Mein Vater hilft mir beim Packen.'],
+    ['heute', null, 'heu-te', 'anderes', 'zeit', null, 'an diesem Tag, an dem wir gerade sind', 'Wir gehen heute schwimmen.'],
+    ['mitbringen', null, 'mit-brin-gen', 'Verb', 'verb', null, 'etwas dabeihaben, wenn man irgendwohin geht', 'Zum Picknick soll jeder etwas mitbringen.'],
+    ['einpacken', null, 'ein-pa-cken', 'Verb', 'verb', '🎒', 'Sachen in eine Tasche oder Kiste hineintun', 'Vor der Fahrt müssen wir die Taschen einpacken.'],
+    ['trocken', null, 'tro-cken', 'Adjektiv', 'wetter', '🏜️', 'so, dass überhaupt kein Wasser darin ist', 'Nach dem Regen ist die Wiese wieder trocken.']
   ];
 
   WA.words = rows.map(function (r) {
