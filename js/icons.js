@@ -289,6 +289,16 @@ window.WA = window.WA || {};
       '<path d="M38 20 v-5 a5 5 0 0 1 5 -5 h14 a5 5 0 0 1 5 5 v5" fill="none" stroke="#5E7380" stroke-width="7" stroke-linecap="round"/>'
     ),
 
+    // --- Radiergummi: schraeg liegender Block mit heller Spitze -----
+    radierer: svg(
+      '<g transform="rotate(-35 50 50)">' +
+      '<rect x="30" y="20" width="40" height="38" rx="6" fill="#F2766B"/>' +
+      '<rect x="30" y="52" width="40" height="28" rx="6" fill="#F7F2EA"/>' +
+      '<rect x="30" y="50" width="40" height="6" fill="#D9574B"/>' +
+      '<rect x="30" y="20" width="40" height="60" rx="6" fill="none" stroke="#0C3A4A" stroke-width="4"/>' +
+      '</g>'
+    ),
+
     stift: svg(
       '<path d="M24 76 C 20 62, 30 52, 38 48 L 54 64 C 50 72, 38 82, 24 76 Z" fill="#F2A93B"/>' +
       '<path d="M24 76 C 26 70, 30 66, 35 64 C 33 70, 30 74, 24 76 Z" fill="#D9861F"/>' +

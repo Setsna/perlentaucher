@@ -276,7 +276,13 @@ window.WA = window.WA || {};
         slots: syl.map(function () { return null; }), blanks: syl.length,
         tiles: shuffleDiff(syl), answerWord: syl.join(''),
         assemble: function (f) { return f.join(''); },
-        solutionText: w.silben.join('-'), sylTiles: true
+        solutionText: w.silben.join('-'), sylTiles: true,
+        // Die Kacheln sind klein, damit die Grossschreibung nicht verraet,
+        // welche Silbe nach vorn gehoert. Nach richtiger Loesung stuende
+        // sonst "bogen" auf dem Schirm - mitten im Rechtschreibunterricht
+        // zur Grossschreibung von Nomen. Deshalb hier die richtige Form,
+        // die das Ergebnis anzeigt. Nur gesetzt, wenn sie abweicht.
+        richtigGeschrieben: (w.wort !== syl.join('')) ? w.wort : null
       };
     }
   };

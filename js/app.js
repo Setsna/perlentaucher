@@ -487,7 +487,13 @@
       return '<button class="farbknopf' + (!M.radierer && M.farbe === i ? ' an' : '') + '" data-action="farbe" data-i="' + i +
         '" style="--f:' + f + '" aria-label="Farbe ' + (i + 1) + '"></button>';
     }).join('') +
-    '<button class="farbknopf radier' + (M.radierer ? ' an' : '') + '" data-action="radierer" aria-label="Radierer"></button>';
+    // Der Radierer sah aus wie eine weitere Farbe - ein weisses Feld mit
+    // Schraegstreifen. Achtjaehrige haben darin keinen Radiergummi erkannt
+    // und sich einen gewuenscht, obwohl es ihn laengst gab. Jetzt traegt er
+    // ein eigenes Bild statt eines Farbfelds.
+    '<button class="farbknopf radier' + (M.radierer ? ' an' : '') +
+      '" data-action="radierer" aria-label="Radierer" title="Radierer">' +
+      ico('radierer') + '</button>';
   }
 
   // Palette und Strichbreiten neu zeichnen, ohne die ganze Seite
@@ -1120,6 +1126,8 @@
       var x = L.res.xp;
       return '<div class="footer good"><div class="fb"><b>' + (L.streak >= C.xp.streakBonusFrom ? L.streak + ' in Folge!' : PRAISE[Math.floor(Math.random() * PRAISE.length)]) + '</b>' +
         (x.total ? '<span class="xpgain">+' + x.total + ' Perlen' + (x.bonus ? ' <small>(Serien-Bonus +' + x.bonus + ')</small>' : '') + '</span>' : '') +
+        (L.q.richtigGeschrieben ? '<span class="sol">So wird es geschrieben: ' +
+          esc(L.q.richtigGeschrieben) + '</span>' : '') +
         erkl + '</div>' +
         wartenKnopf('weiter', 'btn good big', 'next', 'Weiter') + '</div>';
     }
@@ -1211,6 +1219,7 @@
     if (teil) satz = teil.richtig + ' von ' + teil.gesamt + ' sitzen.';
     if (xp.total) satz += ' ' + xp.total + ' Perlen.';
     if (!ok && q.solutionText) satz += ' Richtig ist: ' + q.solutionText + '.';
+    if (ok && q.richtigGeschrieben) satz += ' So wird es geschrieben: ' + q.richtigGeschrieben + '.';
     if (q.erklaerung) satz += ' ' + q.erklaerung;
     ansagen(satz);
 
