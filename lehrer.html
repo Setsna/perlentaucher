@@ -12,7 +12,7 @@
      auftauchen; die Adresse gibt es nur auf dem Aufkleber. -->
 <meta name="robots" content="noindex, nofollow">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=43">
+<link rel="stylesheet" href="css/style.css?v=44">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -137,14 +137,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=43"></script>
-<script src="js/words.js?v=43"></script>
-<script src="js/bilder.js?v=43"></script>
-<script src="js/quiz.js?v=43"></script>
-<script src="js/mascot.js?v=43"></script>
-<script src="js/malen.js?v=43"></script>
-<script src="js/merge.js?v=43"></script>
-<script src="js/cloud.js?v=43"></script>
+<script src="js/config.js?v=44"></script>
+<script src="js/words.js?v=44"></script>
+<script src="js/bilder.js?v=44"></script>
+<script src="js/quiz.js?v=44"></script>
+<script src="js/mascot.js?v=44"></script>
+<script src="js/malen.js?v=44"></script>
+<script src="js/merge.js?v=44"></script>
+<script src="js/cloud.js?v=44"></script>
 <script>
 /* ==========================================================
    Lehrerbereich
@@ -582,7 +582,15 @@
       '<div class="knopfreihe" style="margin:0 0 14px">' + filter +
       '<button class="btn mini" id="neu">Neues Wort</button>' +
       '<button class="btn ghost mini" id="csvexport">Als CSV sichern</button>' +
-      '<button class="btn ghost mini" id="csvimport">CSV einfügen</button></div>' +
+      '<button class="btn ghost mini" id="csvimport">CSV einfügen</button>' +
+      // Ganze Liste leeren: Nur sichtbar, wenn auf eine Liste gefiltert ist.
+      // Ohne Filter stuende hier ein Knopf, der den gesamten Bestand
+      // loescht - zu nah am Unfall.
+      (filterListe && sichtbar.length
+        ? '<button class="btn ghost mini danger" id="listeleeren">Diese Liste leeren (' +
+          sichtbar.length + ')</button>'
+        : '') +
+      '</div>' +
       '<div class="tabwrap"><table class="tabelle"><thead><tr>' +
       '<th></th><th>Wort</th><th>Sprechsilben</th><th>Worttrennung</th><th>Wortart</th><th>Liste</th><th></th>' +
       '</tr></thead><tbody>' + (zeilen ||
@@ -591,7 +599,38 @@
       '<div id="formular"></div>';
   }
 
+  // Alle Woerter einer Liste loeschen. Firestore nimmt hoechstens 500
+  // Vorgaenge je Stapel, deshalb in Haeppchen. Geloescht wird nur, was
+  // gerade sichtbar ist, also die gefilterte Liste.
+  function listeLeeren(name) {
+    var raus = woerter.filter(function (w) { return w.liste === name; });
+    if (!raus.length) return;
+    var frage = 'Wirklich alle ' + raus.length + ' Wörter der Liste „' + name +
+      '" löschen?\n\nDas lässt sich nicht rückgängig machen. Tippe zur Bestätigung ' +
+      'die Anzahl ein: ' + raus.length;
+    var antwort = prompt(frage, '');
+    if (String(antwort).trim() !== String(raus.length)) {
+      melde('Abgebrochen – es wurde nichts gelöscht.');
+      return;
+    }
+    var haeppchen = [];
+    for (var i = 0; i < raus.length; i += 400) haeppchen.push(raus.slice(i, i + 400));
+    var p = Promise.resolve();
+    haeppchen.forEach(function (teil) {
+      p = p.then(function () {
+        var batch = db.batch();
+        teil.forEach(function (w) { batch.delete(db.collection('lernwoerter').doc(w.id)); });
+        return batch.commit();
+      });
+    });
+    p.then(function () { melde(raus.length + ' Wörter gelöscht.'); laden(); })
+     .catch(function (e) { alert('Fehler beim Löschen: ' + e.message); });
+  }
+
   function bindeWoerter() {
+    if (el('listeleeren')) {
+      el('listeleeren').onclick = function () { listeLeeren(filterListe); };
+    }
     if (el('uebernehmen')) {
       el('uebernehmen').onclick = function () {
         this.disabled = true; this.textContent = 'Wird übernommen …';
