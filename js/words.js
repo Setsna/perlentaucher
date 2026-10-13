@@ -11,7 +11,7 @@ window.WA = window.WA || {};
   const rows = [
     ['Kompott',        'das', 'Kom-pott',            'Nomen',   'essen',   '🍑', 'gekochtes Obst mit Zucker, das man als Nachtisch isst', 'Zum Nachtisch gibt es Kompott.'],
     ['Tagpfauenauge',  'das', 'Tag-pfau-en-au-ge',   'Nomen',   'tier',    '',   'ein bunter Schmetterling mit Augenflecken auf den Flügeln', 'Ein Tagpfauenauge sitzt auf der Blüte.'],
-    ['Königskobra',    'die', 'Kö-nigs-ko-bra',      'Nomen',   'tier',    '🐍', 'eine sehr giftige, große Schlange', 'Im Zoo sahen wir eine Königskobra.'],
+    ['Königskobra',    'die', 'Kö-nigs-ko-bra',      'Nomen',   'tier',    '',   'eine sehr giftige, große Schlange', 'Im Zoo sahen wir eine Königskobra.'],
     ['Brillenpinguin', 'der', 'Bril-len-pin-gu-in',  'Nomen',   'tier',    '🐧', 'ein Pinguin, der aussieht, als würde er eine Brille tragen', 'Der Brillenpinguin watschelt am Strand entlang.'],
     ['Regenwurm',      'der', 'Re-gen-wurm',         'Nomen',   'tier',    '🪱', 'ein Tier ohne Beine, das in der Erde lebt', 'Nach dem Regen kriecht ein Regenwurm über den Weg.'],
     ['Wellensittich',  'der', 'Wel-len-sit-tich',    'Nomen',   'tier',    '🦜', 'ein kleiner, bunter Papagei, den viele Menschen als Haustier halten', 'Mein Wellensittich kann ein paar Wörter sprechen.'],
