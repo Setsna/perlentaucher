@@ -102,7 +102,22 @@ window.WA = window.WA || {};
     ['heute', null, 'heu-te', 'anderes', 'zeit', null, 'an diesem Tag, an dem wir gerade sind', 'Wir gehen heute schwimmen.'],
     ['mitbringen', null, 'mit-brin-gen', 'Verb', 'verb', null, 'etwas dabeihaben, wenn man irgendwohin geht', 'Zum Picknick soll jeder etwas mitbringen.'],
     ['einpacken', null, 'ein-pa-cken', 'Verb', 'verb', '🎒', 'Sachen in eine Tasche oder Kiste hineintun', 'Vor der Fahrt müssen wir die Taschen einpacken.'],
-    ['trocken', null, 'tro-cken', 'Adjektiv', 'wetter', '🏜️', 'so, dass überhaupt kein Wasser darin ist', 'Nach dem Regen ist die Wiese wieder trocken.']
+    ['trocken', null, 'tro-cken', 'Adjektiv', 'wetter', '🏜️', 'so, dass überhaupt kein Wasser darin ist', 'Nach dem Regen ist die Wiese wieder trocken.'],
+
+    // Lernwoerter der Woche vom 13.10.2026 (Hund). Alle zwoelf
+    // standen zuvor in der Liste aus Klasse 2 und sind umgezogen.
+    ['Vorfahre', 'der', 'Vor-fah-re', 'Nomen', 'person', null, 'jemand aus der eigenen Familie, der lange vor einem gelebt hat', 'Mein Vorfahre lebte in diesem Dorf.'],
+    ['Hund', 'der', 'Hund', 'Nomen', 'tier', '🐶', 'ein Haustier, das bellt und gern mit Menschen läuft', 'Unser Hund wartet schon an der Tür.'],
+    ['Jahr', 'das', 'Jahr', 'Nomen', 'zeit', '📅', 'ein Zeitraum von zwölf Monaten', 'Im nächsten Jahr komme ich in Klasse 4.'],
+    ['Fell', 'das', 'Fell', 'Nomen', 'tier', null, 'die dichten Haare, die den Körper eines Tieres bedecken', 'Das Fell unseres Hundes ist ganz weich.'],
+    ['Rasse', 'die', 'Ras-se', 'Nomen', 'tier', null, 'Hunde einer Sorte, die alle gleich aussehen, zum Beispiel Dackel', 'Ein Dackel ist eine kleine Rasse.'],
+    ['Norden', 'der', 'Nor-den', 'Nomen', 'ort', '🧭', 'die Richtung, in die die Nadel am Kompass zeigt', 'Der Kompass zeigt immer nach Norden.'],
+    ['Geruchssinn', 'der', 'Ge-ruchs-sinn', 'Nomen', 'koerper', null, 'damit merkt die Nase, ob etwas in der Nähe ist', 'Der Hund hat einen sehr guten Geruchssinn.'],
+    ['ausprägen', null, 'aus-prä-gen', 'Verb', 'verb', null, 'immer deutlicher werden', 'Beim jungen Hund muss sich der Geruchssinn erst ausprägen.'],
+    ['zähmen', null, 'zäh-men', 'Verb', 'verb', null, 'ein wildes Tier so an Menschen gewöhnen, dass es zutraulich wird', 'Früher musste man den Wolf erst zähmen.'],
+    ['hervorragend', null, 'her-vor-ra-gend', 'Adjektiv', 'adjektiv', null, 'sehr, sehr gut', 'Der Hund kann hervorragend riechen.'],
+    ['weiß', null, 'weiß', 'Adjektiv', 'adjektiv', '⬜', 'so hell wie frischer Schnee', 'Der Schnee auf dem Dach ist weiß.'],
+    ['europäisch', null, 'eu-ro-pä-isch', 'Adjektiv', 'adjektiv', '🇪🇺', 'so, dass es zu dem Erdteil gehört, in dem Deutschland liegt', 'Viele Hunderassen sind europäisch.']
   ];
 
   WA.words = rows.map(function (r) {
