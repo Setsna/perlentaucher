@@ -117,7 +117,25 @@ window.WA = window.WA || {};
     ['zähmen', null, 'zäh-men', 'Verb', 'verb', null, 'ein wildes Tier so an Menschen gewöhnen, dass es zutraulich wird', 'Früher musste man den Wolf erst zähmen.'],
     ['hervorragend', null, 'her-vor-ra-gend', 'Adjektiv', 'adjektiv', null, 'sehr, sehr gut', 'Der Hund kann hervorragend riechen.'],
     ['weiß', null, 'weiß', 'Adjektiv', 'adjektiv', '⬜', 'so hell wie frischer Schnee', 'Der Schnee auf dem Dach ist weiß.'],
-    ['europäisch', null, 'eu-ro-pä-isch', 'Adjektiv', 'adjektiv', '🇪🇺', 'so, dass es zu dem Erdteil gehört, in dem Deutschland liegt', 'Viele Hunderassen sind europäisch.']
+    ['europäisch', null, 'eu-ro-pä-isch', 'Adjektiv', 'adjektiv', '🇪🇺', 'so, dass es zu dem Erdteil gehört, in dem Deutschland liegt', 'Viele Hunderassen sind europäisch.'],
+    // Lernwörter der Woche vom 22.10.2026
+    ['Galerie', 'die', 'Ga-le-rie', 'Nomen', 'ort', '🖼️', 'ein Raum oder Haus, in dem viele Bilder zum Anschauen hängen', 'In der Galerie hängen viele bunte Bilder.'],
+    ['Mähne', 'die', 'Mäh-ne', 'Nomen', 'koerper', null, 'die langen Haare am Hals von einem Pferd oder einem Löwen', 'Das Pferd hat eine lange Mähne.'],
+    ['grimmig', null, 'grim-mig', 'Adjektiv', 'adjektiv', '😠', 'mit einem bösen, ärgerlichen Gesicht', 'Der Wächter schaute grimmig zu uns herüber.'],
+    ['Schleifpapier', 'das', 'Schleif-pa-pier', 'Nomen', 'werkzeug', null, 'raues Papier, mit dem man Holz glatt schleift', 'Mit Schleifpapier wird das Brett ganz glatt.'],
+    ['Sandpapier', 'das', 'Sand-pa-pier', 'Nomen', 'werkzeug', null, 'raues Papier mit Sandkörnern zum Glattmachen von Holz', 'Ich reibe das Holz mit Sandpapier ab.'],
+    // Lernwörter der Woche vom 22.10.2026 (Halloween)
+    ['Seele', 'die', 'See-le', 'Nomen', 'gefuehl', null, 'das Innere von einem Menschen, das man nicht sehen kann', 'Niemand kann die Seele sehen.'],
+    ['Begriff', 'der', 'Be-griff', 'Nomen', 'wort', null, 'ein Wort, mit dem man etwas benennt', 'Für dieses Tier kenne ich keinen Begriff.'],
+    ['Kelten', 'die', 'Kel-ten', 'Nomen', 'person', null, 'die Menschen, die vor langer Zeit in Europa lebten', 'Die Kelten feierten schon vor langer Zeit ein Fest im Herbst.', null, 'mehrzahl'],
+    ['Festlichkeit', 'die', 'Fest-lich-keit', 'Nomen', 'zeit', null, 'ein großes Fest, das man zusammen feiert', 'Zu der Festlichkeit kamen alle Nachbarn.'],
+    ['verkleiden', null, 'ver-klei-den', 'Verb', 'verb', null, 'andere Kleider anziehen, damit man aussieht wie jemand anderes', 'An Halloween verkleiden wir uns als Gespenster.'],
+    ['verstecken', null, 'ver-ste-cken', 'Verb', 'verb', null, 'etwas an einen Platz legen, wo es niemand findet', 'Wir verstecken die Süßigkeiten im Schrank.'],
+    ['kommen', null, 'kom-men', 'Verb', 'verb', null, 'sich auf einen Ort zubewegen und dort ankommen', 'Heute kommen meine Freunde zu mir.'],
+    ['gruselig', null, 'gru-se-lig', 'Adjektiv', 'adjektiv', null, 'so, dass man dabei Angst bekommt', 'Die dunkle Straße ist richtig gruselig.'],
+    ['schnitzen', null, 'schnit-zen', 'Verb', 'verb', null, 'mit einem Messer eine Form aus Holz oder einem Kürbis schneiden', 'Wir schnitzen ein Gesicht in den Kürbis.'],
+    ['gespenstisch', null, 'ge-spens-tisch', 'Adjektiv', 'adjektiv', '👻', 'so unheimlich, als wäre ein Geist in der Nähe', 'Im Nebel sieht der Garten gespenstisch aus.'],
+    ['hinzufügen', null, 'hin-zu-fü-gen', 'Verb', 'verb', null, 'etwas zu dem dazulegen, was schon da ist', 'Zum Teig musst du noch Zucker hinzufügen.']
   ];
 
   WA.words = rows.map(function (r) {
