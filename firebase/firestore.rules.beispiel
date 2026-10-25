@@ -15,12 +15,16 @@ service cloud.firestore {
     // ---------- Wer ist wer? ----------
 
     // Lehrkraft: meldet sich mit diesem Google-Konto an.
-    // WICHTIG: Hier muss genau die Adresse stehen, mit der du dich
-    // bei Firebase angemeldet hast. Bei Bedarf hier aendern.
+    // WICHTIG: Hier muessen genau die Adressen stehen, mit denen du
+    // dich bei Google anmeldest. Mehrere eigene Konten sind moeglich;
+    // lower() faengt ab, dass Google die Adresse anders schreibt.
     function istLehrer() {
       return request.auth != null
         && request.auth.token.email_verified == true
-        && request.auth.token.email == 'DEINE-EMAIL@example.com';
+        && request.auth.token.email.lower() in [
+             'DEINE-EMAIL@example.com',
+             'ZWEITE-EMAIL@example.com'
+           ];
     }
 
     // Kind: meldet sich unsichtbar mit <code>@lernplattform-44aa1.firebaseapp.com an.
