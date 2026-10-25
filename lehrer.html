@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Namensaufloesung und TLS zu den beiden Gegenstellen schon
+     hier anstossen. Sonst faengt der Browser damit erst an,
+     wenn er unten auf die Firebase-Skripte stoesst. -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<!-- Geschlossene Schulanwendung. Sie soll nicht in Suchergebnissen
+     auftauchen; die Adresse gibt es nur auf dem Aufkleber. -->
+<meta name="robots" content="noindex, nofollow">
+<title>Perlentaucher – Lehrerbereich</title>
+<link rel="stylesheet" href="css/style.css?v=49">
+<style>
+  body { -webkit-user-select: text; user-select: text; }
+  /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
+     braucht mehr Platz, sonst werden die Tabellen abgeschnitten. */
+  #app { max-width: 1280px; }
+  .lehrer { max-width: 1280px; margin: 0 auto; padding-bottom: 60px; }
+  .lhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 10px; flex-wrap: wrap; }
+  .lhead h1 { font-size: 26px; }
+  .lhead .rechts { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  .reiter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .reiter button { padding: 12px 20px; border-radius: 14px 14px 0 0; background: #fff; border: 2px solid var(--line);
+    border-bottom: none; font-weight: 800; font-size: 17px; color: var(--muted); min-height: 52px; }
+  .reiter button.an { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+  .tabelle { width: 100%; border-collapse: collapse; font-size: 16px; }
+  .tabelle th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); padding: 8px 10px; border-bottom: 2px solid var(--line); white-space: nowrap; }
+  .tabelle td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .tabelle tr:last-child td { border-bottom: 0; }
+  .tabelle .code { font-family: ui-monospace, Menlo, monospace; color: var(--muted); font-size: 14px; white-space: nowrap; }
+  .tabwrap { overflow-x: auto; -webkit-overflow-scrolling: touch;
+    background:
+      linear-gradient(90deg, #fff 30%, rgba(255,255,255,0)) left / 40px 100% no-repeat,
+      linear-gradient(90deg, rgba(255,255,255,0), #fff 70%) right / 40px 100% no-repeat,
+      radial-gradient(farthest-side at 0 50%, rgba(12,58,74,.14), transparent) left / 14px 100% no-repeat,
+      radial-gradient(farthest-side at 100% 50%, rgba(12,58,74,.14), transparent) right / 14px 100% no-repeat;
+    background-attachment: local, local, scroll, scroll; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+
+  input[type=file] { font: inherit; font-size: 16px; padding: 10px 0; max-width: 100%; }
+  input[type=text], input[type=number], select, textarea {
+    border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; font: inherit;
+    font-size: 16px; color: var(--ink); background: #fff; max-width: 100%; }
+  input:focus, select:focus, textarea:focus { border-color: var(--brand); }
+  /* Sichtbarer Fokusring fuer Tastaturbedienung, siehe css/style.css */
+  :focus-visible { outline: 3px solid #0B3B57; outline-offset: 3px; border-radius: 6px; }
+  /* Nur fuer Screenreader: im Textfluss, aber nicht zu sehen. */
+  .nurvorlesen { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    border: 0; overflow: hidden; white-space: nowrap; clip: rect(0 0 0 0); clip-path: inset(50%); }
+  textarea { width: 100%; min-height: 150px; font-family: ui-monospace, Menlo, monospace; font-size: 14px; resize: vertical; }
+  label.feld { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .raster { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+  .klein { padding: 8px 8px; font-size: 15px; min-height: 44px; border-radius: 10px; max-width: 150px; }
+
+  .btn.mini { min-height: 44px; padding: 8px 16px; font-size: 16px; border-bottom-width: 4px; min-width: 0; }
+  .knopfreihe { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+
+  .hinweis { background: var(--sand); color: var(--sand-ink); border-radius: 14px; padding: 12px 16px;
+    font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+  .melden { border-radius: 14px; padding: 12px 16px; font-weight: 700; margin-top: 12px; }
+  .melden.ok { background: var(--good-bg); color: var(--good-d); }
+  .melden.fehler { background: var(--bad-bg); color: var(--bad-d); }
+  .zahl { font-size: 32px; font-weight: 900; }
+  .geschafft { color: #1C6B3A; font-weight: 800; }
+  tr.laufend > td { background: #EAF7FC; }
+
+  .typen { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+  .typen label { display: flex; align-items: center; gap: 10px; background: #F4FAFD; border: 2px solid var(--line);
+    border-radius: 12px; padding: 12px 14px; font-weight: 700; cursor: pointer; }
+  .typen input { width: 22px; height: 22px; accent-color: var(--brand); }
+
+  .namensknopf { display: block; text-align: left; padding: 4px 8px 4px 0; border-radius: 8px; }
+  .namensknopf b { display: block; font-size: 16px; }
+  .namensknopf .code { display: block; }
+  .namensknopf:hover b { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+  .muehe { list-style: none; margin: 0; padding: 0; counter-reset: m; }
+  .muehe li { counter-increment: m; display: grid; align-items: center; gap: 6px 14px;
+    grid-template-columns: 28px minmax(140px, 1fr) minmax(90px, 2fr) 60px auto; padding: 10px 0; }
+  .muehe li + li { border-top: 1px solid var(--line); }
+  .muehe li::before { content: counter(m); width: 28px; height: 28px; border-radius: 50%;
+    background: var(--sand); color: var(--sand-ink); display: flex; align-items: center;
+    justify-content: center; font-size: 14px; font-weight: 900; }
+  .mwort { font-weight: 800; font-size: 18px; }
+  .mbar { display: block; height: 14px; background: var(--bad-bg); border-radius: 99px; overflow: hidden; }
+  .mbar i { display: block; height: 100%; background: var(--good); border-radius: 99px; }
+  .mzahl { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .chips2 { display: flex; flex-wrap: wrap; gap: 8px; }
+  @media (max-width: 720px) {
+    .muehe li { grid-template-columns: 28px 1fr; }
+    .muehe .mbar, .muehe .mzahl { grid-column: 2; }
+  }
+  .malname { font-size: 19px; margin: 18px 0 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .bildgalerie { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-bottom: 8px; }
+  .bildkarte { background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 10px; margin: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bildkarte img { image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); }
+  .bildkarte figcaption { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .bildkarte.fertig { border-color: var(--good); }
+  .resetoffen { margin-top: 4px; font-size: 13px; font-weight: 700; color: #8A6A38;
+    background: var(--sand); border-radius: 8px; padding: 3px 8px; display: inline-block; }
+  .bildgross { display: block; padding: 0; border: 0; background: none; border-radius: 8px; cursor: zoom-in; }
+  .bildgross:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+  .bildgross img { display: block; }
+  .bildlupe { position: fixed; inset: 0; z-index: 50; background: rgba(12, 58, 74, .72);
+    display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .lupeinhalt { background: #fff; border-radius: 22px; padding: 18px; max-width: min(92vw, 720px);
+    display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .lupeinhalt img { image-rendering: pixelated; border-radius: 14px; border: 2px solid var(--line);
+    width: 100%; height: auto; max-height: 68vh; object-fit: contain; background: #fff; }
+  .lupetext { font-size: 17px; font-weight: 700; color: var(--muted); text-align: center; }
+  @media print { .reiter, .lhead .rechts, .hinweis, .bildlupe { display: none; }
+    .bildkarte { break-inside: avoid; } }
+
+  .antw { font-size: 14px; margin-top: 4px; line-height: 1.5; }
+  .antw .richtig { color: var(--good-d); }
+  .antwzeile { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .antwzeile input[type=checkbox] { width: 24px; height: 24px; accent-color: var(--good); flex: none; }
+  .antwzeile input[type=text] { flex: 1; }
+  /* Kaestchen und Text bilden ein Klickziel; siehe f_stellen. */
+  .antwlabel { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; min-height: 44px; }
+  .merker { padding: 18px 0 8px; }
+  .chip { display: inline-block; background: #E4F1F7; color: var(--brand-d); border-radius: 99px;
+    padding: 4px 12px; font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .chip.aktiv { background: var(--good-bg); color: var(--good-d); }
+</style>
+</head>
+<body>
+<div id="app"><div class="lehrer"><p style="padding:40px 16px">Wird geladen …</p></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="js/config.js?v=49"></script>
+<script src="js/words.js?v=49"></script>
+<script src="js/bilder.js?v=49"></script>
+<script src="js/quiz.js?v=49"></script>
+<script src="js/mascot.js?v=49"></script>
+<script src="js/malen.js?v=49"></script>
+<script src="js/merge.js?v=49"></script>
+<script src="js/cloud.js?v=49"></script>
+<script>
+/* ==========================================================
+   Lehrerbereich
+   Reiter: Fortschritt | Lernwörter | Einstellungen | Kinder
+   Anmeldung mit Google. Wer in den Firestore-Regeln nicht als
+   Lehrkraft eingetragen ist, sieht hier nichts.
+   ========================================================== */
+(function () {
+  'use strict';
+  var $app = document.getElementById('app');
+  var auth, db, nutzer = null;
+  var kinder = [], staende = {}, woerter = [], fragen = [], einst = {}, klassenPerlen = null;
+  var wochen = [];   // [{ id: '2026-W41', perlen: 412 }], neueste zuerst
+  var reiter = 'fortschritt', filterListe = '', meldung = null;
+
+  var TYPNAMEN = {
+    buchstaben: 'Buchstaben ordnen', luecke: 'Fehlende Buchstaben', fehler: 'Richtige Schreibweise',
+    artikel: 'Artikel zuordnen', silben_zaehlen: 'Silben zählen', silben_ordnen: 'Silben ordnen',
+    trennen: 'Silben trennen', bild: 'Wort zum Bild', bedeutung: 'Bedeutung wählen', satz: 'Lückensatz'
+  };
+  var SPALTEN = ['wort', 'artikel', 'zahl', 'silben', 'trennung', 'wortart', 'gruppe', 'bild', 'bedeutung', 'satz', 'liste'];
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fmtCode(c) { return c.slice(0, 4).toUpperCase() + '-' + c.slice(4).toUpperCase(); }
+  function el(id) { return document.getElementById(id); }
+  // Der letzte echte Übungstag steht in lastDay als "2026-09-20".
+  // Nicht updatedAt nehmen: das ist nur der Zeitpunkt der letzten
+  // Änderung am Datensatz und ändert sich auch beim Zurücksetzen.
+  // Hat das Gerät des Kindes ein Zurücksetzen schon übernommen?
+  // Solange nicht, kann es alte Abzeichen und Rekorde nachtragen.
+  function resetOffen(f) {
+    return !!(f && f.resetAt && f.resetGesehen !== f.resetAt);
+  }
+
+  function letzterTag(f) {
+    if (!f || !f.lastDay) return 'noch nie';
+    var t = String(f.lastDay).split('-');
+    if (t.length !== 3) return 'noch nie';
+    return t[2].replace(/^0/, '') + '.' + t[1].replace(/^0/, '') + '.' + t[0];
+  }
+  function melde(text, art) { meldung = { text: text, art: art || 'ok' }; }
+
+  // Zeitstempel eines Bildes als Datum
+  function tagVon(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
+  }
+
+  /* Formulare und Ausgaben stehen unter der Tabelle. Bei langen Listen
+     liegen sie weit außerhalb des Bildschirms – ohne diesen Sprung sieht
+     es aus, als würde der Knopf nichts tun. */
+  function hinspringen(id) {
+    var e = el(id);
+    if (!e) return;
+    setTimeout(function () {
+      try { e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      catch (x) { e.scrollIntoView(); }
+    }, 30);
+  }
+
+  /* Text als Datei anbieten. Auf dem iPad landet sie in "Dateien". */
+  function alsDateiSichern(name, text) {
+    try {
+      // Bei CSV steht am Anfang ein unsichtbares Steuerzeichen, damit
+      // Excel die Umlaute richtig liest. Bei JSON darf es NICHT davor:
+      // strenge Leseprogramme brechen daran ab.
+      var json = /\.json$/i.test(name);
+      var blob = json
+        ? new Blob([text], { type: 'application/json;charset=utf-8' })
+        : new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function heuteFuerDateiname() {
+    var d = new Date(), z = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
+  }
+
+  if (typeof firebase === 'undefined') {
+    $app.innerHTML = '<div class="lehrer"><div class="melden fehler" style="margin:40px 16px">' +
+      'Firebase konnte nicht geladen werden. Bitte die Internetverbindung prüfen.</div></div>';
+    return;
+  }
+
+  firebase.initializeApp(WA.firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+
+  auth.onAuthStateChanged(function (u) {
+    nutzer = u;
+    if (!u) { zeigeAnmeldung(); return; }
+    laden();
+  });
+
+  // ==========================================================
+  //  Anmeldung
+  // ==========================================================
+  function zeigeAnmeldung() {
+    $app.innerHTML = '<div class="center"><div class="cardbig">' + WA.mascot('think', 130) +
+      '<h1>Lehrerbereich</h1>' +
+      '<p>Melde dich mit dem Google-Konto an, das in den Firestore-Regeln eingetragen ist.</p>' +
+      '<button class="btn big" id="google">Mit Google anmelden</button>' +
+      '<a class="btn ghost big" href="index.html" style="text-decoration:none">Zurück zur App</a>' +
+      '</div></div>';
+    el('google').onclick = function () {
+      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+        .catch(function (e) { alert('Anmeldung nicht möglich: ' + (e && e.message)); });
+    };
+  }
+
+  // ==========================================================
+  //  Laden
+  // ==========================================================
+  function laden() {
+    $app.innerHTML = '<div class="lehrer"><p style="padding:40px 16px">Daten werden geladen …</p></div>';
+    Promise.all([
+      db.collection('kinder').get(),
+      db.collection('lernwoerter').get(),
+      db.collection('einstellungen').doc('klasse').get(),
+      db.collection('klassenwochen').get().catch(function () { return null; }),
+      db.collection('quizfragen').get().catch(function () { return null; })
+    ]).then(function (r) {
+      kinder = [];
+      r[0].forEach(function (d) { kinder.push(Object.assign({ id: d.id }, d.data())); });
+      kinder.sort(function (a, b) { return String(a.vorname).localeCompare(String(b.vorname), 'de'); });
+
+      woerter = [];
+      r[1].forEach(function (d) { woerter.push(Object.assign({ id: d.id }, d.data())); });
+      woerter.sort(function (a, b) { return String(a.wort).localeCompare(String(b.wort), 'de'); });
+
+      fragen = [];
+      if (r[4]) r[4].forEach(function (d) { fragen.push(WA.frageAusDoc(d.id, d.data())); });
+      fragen.sort(function (a, b) {
+        return String(a.thema).localeCompare(String(b.thema), 'de') ||
+               String(a.bereich).localeCompare(String(b.bereich), 'de');
+      });
+
+      einst = (r[2] && r[2].exists) ? r[2].data() : {};
+      // Jede Kalenderwoche hat ein eigenes Dokument, alte bleiben stehen.
+      // Deshalb laesst sich der ganze Verlauf zeigen, nicht nur die
+      // laufende Woche.
+      wochen = [];
+      if (r[3]) r[3].forEach(function (d) {
+        if (/^[0-9]{4}-W[0-9]{2}$/.test(d.id)) wochen.push({ id: d.id, perlen: (d.data().perlen || 0) });
+      });
+      wochen.sort(function (a, b) { return b.id.localeCompare(a.id); });   // neueste zuerst
+      var jetzt = wochen.filter(function (w) { return w.id === WA.cloud.wochenSchluessel(); })[0];
+      klassenPerlen = jetzt ? jetzt.perlen : 0;
+
+      return Promise.all(kinder.map(function (k) {
+        return db.collection('fortschritt').doc(k.id).get()
+          .then(function (f) { staende[k.id] = f.exists ? f.data() : null; })
+          .catch(function () { staende[k.id] = null; });
+      }));
+    }).then(zeichnen).catch(zeigeFehler);
+  }
+
+  function zeigeFehler(e) {
+    var keinZugriff = e && e.code === 'permission-denied';
+    $app.innerHTML = '<div class="lehrer"><div class="lhead"><h1>Lehrerbereich</h1>' +
+      '<button class="btn ghost" id="abmelden">Abmelden</button></div>' +
+      '<div class="melden fehler">' + (keinZugriff
+        ? 'Das Konto <b>' + esc(nutzer && nutzer.email) + '</b> ist in den Firestore-Regeln nicht als Lehrkraft ' +
+          'eingetragen. Trag die Adresse in der Funktion istLehrer() ein und veröffentliche die Regeln erneut.'
+        : 'Fehler beim Laden: ' + esc(e && e.message)) + '</div></div>';
+    bindeKopf();
+  }
+
+  // ==========================================================
+  //  Rahmen
+  // ==========================================================
+  function listenNamen() {
+    var s = {};
+    woerter.forEach(function (w) { if (w.liste) s[w.liste] = (s[w.liste] || 0) + 1; });
+    return Object.keys(s).sort(function (a, b) { return a.localeCompare(b, 'de'); })
+      .map(function (n) { return { name: n, anzahl: s[n] }; });
+  }
+
+  function zeichnen() {
+    var inhalt = reiter === 'woerter' ? tabWoerter()
+      : reiter === 'einstellungen' ? tabEinstellungen()
+      : reiter === 'kinder' ? tabKinder()
+      : reiter === 'themen' ? tabThemen()
+      : reiter === 'auswertung' ? tabAuswertung()
+      : reiter === 'bilder' ? tabBilder()
+      : reiter === 'sicherung' ? tabSicherung()
+      : tabFortschritt();
+
+    var m = meldung ? '<div class="melden ' + meldung.art + '">' + meldung.text + '</div>' : '';
+    meldung = null;
+
+    $app.innerHTML = '<div class="lehrer">' +
+      '<div class="lhead"><h1>Lehrerbereich</h1><div class="rechts">' +
+      '<span class="muted">' + esc(nutzer.email) + '</span>' +
+      '<a class="btn ghost mini" href="datenschutz.html" style="text-decoration:none">Datenschutz</a>' +
+      '<a class="btn ghost mini" href="index.html" style="text-decoration:none">Zur App</a>' +
+      '<button class="btn ghost mini" id="abmelden">Abmelden</button></div></div>' +
+      '<div class="reiter">' +
+      knopf('fortschritt', 'Fortschritt') + knopf('auswertung', 'Auswertung') + knopf('woerter', 'Lernwörter (' + woerter.length + ')') +
+      knopf('themen', 'Sachthemen (' + fragen.length + ')') + knopf('einstellungen', 'Einstellungen') + knopf('kinder', 'Kinder (' + kinder.length + ')') +
+      knopf('bilder', 'Bilder') + knopf('sicherung', 'Sicherung') +
+      '</div>' + m + inhalt + '</div>';
+
+    bindeKopf();
+    document.querySelectorAll('[data-reiter]').forEach(function (b) {
+      b.onclick = function () { reiter = b.getAttribute('data-reiter'); zeichnen(); };
+    });
+    if (reiter === 'woerter') bindeWoerter();
+    if (reiter === 'einstellungen') bindeEinstellungen();
+    if (reiter === 'kinder') bindeKinder();
+    if (reiter === 'fortschritt') bindeFortschritt();
+    if (reiter === 'themen') bindeThemen();
+    if (reiter === 'auswertung') bindeAuswertung();
+    if (reiter === 'bilder') bindeBilder();
+    if (reiter === 'sicherung') bindeSicherung();
+  }
+
+  function knopf(id, text) {
+    return '<button data-reiter="' + id + '"' + (reiter === id ? ' class="an"' : '') + '>' + text + '</button>';
+  }
+  function bindeKopf() {
+    var b = el('abmelden');
+    if (b) b.onclick = function () { auth.signOut(); };
+  }
+
+  // ==========================================================
+  //  Reiter 1: Fortschritt
+  // ==========================================================
+  function tabFortschritt() {
+    var K = WA.config.klasse;
+    var ziel = (einst.kinder || K.kinder) * (einst.wochenzielProKind || K.wochenzielProKind);
+    var geuebt = kinder.filter(function (k) { return staende[k.id]; }).length;
+    var listen = listenNamen();
+
+    var zeilen = kinder.map(function (k) {
+      var f = staende[k.id], ok = 0, wr = 0, sicher = 0;
+      if (f && f.words) {
+        Object.keys(f.words).forEach(function (id) {
+          var w = f.words[id]; ok += w.ok || 0; wr += w.wr || 0;
+          if ((w.ok || 0) >= (WA.config.masteredAfter || 3)) sicher++;
+        });
+      }
+      var quote = (ok + wr) ? Math.round(ok / (ok + wr) * 100) + ' %' : '–';
+      return '<tr><td><button class="namensknopf" data-reset="' + esc(k.id) + '" ' +
+        'title="Fortschritt von ' + esc(k.vorname) + ' zurücksetzen"><b>' + esc(k.vorname) + '</b>' +
+        '<span class="code">' + esc(fmtCode(k.id)) + '</span></button>' +
+        (resetOffen(f) ? '<div class="resetoffen" title="Das Gerät des Kindes hat das ' +
+          'Zurücksetzen noch nicht übernommen. Es geschieht, sobald die App dort das nächste ' +
+          'Mal geöffnet wird oder speichert.">zurückgesetzt – Gerät noch nicht</div>' : '') + '</td>' +
+        '<td class="num">' + (f ? (f.xp || 0) : '–') + '</td>' +
+        '<td class="num">' + (f ? (f.lessons || 0) : '–') + '</td>' +
+        '<td class="num">' + quote + '</td>' +
+        '<td class="num">' + (f ? sicher : '–') + '</td>' +
+        '<td>' + stufenWahl(k) + '</td>' +
+        '<td>' + listenWahl(k, listen) + '</td>' +
+        '<td>' + letzterTag(f) + '</td></tr>';
+    }).join('');
+
+    return '<h2 class="nurvorlesen">Überblick</h2>' +
+      '<section class="stats">' +
+      '<div class="card stat"><h3>Kinder freigeschaltet</h3><div class="zahl">' + kinder.length + '</div></div>' +
+      '<div class="card stat"><h3>Davon schon geübt</h3><div class="zahl">' + geuebt + '</div></div>' +
+      '<div class="card stat"><h3>Klassenziel diese Woche</h3><div class="zahl">' + klassenPerlen +
+      ' <small style="font-size:15px;color:var(--muted)">/ ' + ziel + '</small></div></div></section>' +
+
+      '<h2 class="sec">Fortschritt der Klasse</h2>' +
+      '<div class="hinweis">Stufe und Liste gelten pro Kind. „wie Klasse“ bedeutet: die Einstellung ' +
+      'aus dem Reiter Einstellungen. Änderungen wirken, sobald das Kind die App neu lädt.<br>' +
+      'Auf einen <b>Namen</b> klicken, um den Fortschritt dieses Kindes zurückzusetzen.</div>' +
+      '<section class="card"><div class="tabwrap"><table class="tabelle"><thead><tr>' +
+      '<th>Kind</th><th>Perlen</th><th>Tauch&shy;gänge</th><th>Richtig</th><th>Sicher</th>' +
+      '<th>Stufe</th><th>Liste</th><th>Zuletzt</th></tr></thead><tbody>' +
+      (zeilen || '<tr><td colspan="8" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
+      '</tbody></table></div></section><div id="resetfeld"></div>' +
+      wochenVerlauf(ziel);
+  }
+
+  // ---------- Wochenverlauf ----------
+  // Aus "2026-W41" den Montag dieser ISO-Woche zurueckrechnen. Gegenstueck
+  // zu wochenSchluessel() in js/cloud.js: Der 4. Januar liegt immer in der
+  // ersten Kalenderwoche, von dort aus wird gezaehlt.
+  var MONATE = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni',
+                'Juli', 'Aug.', 'Sept.', 'Okt.', 'Nov.', 'Dez.'];
+
+  function wochenMontag(id) {
+    var jahr = parseInt(id.slice(0, 4), 10), w = parseInt(id.slice(6), 10);
+    var d = new Date(jahr, 0, 4);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + (w - 1) * 7);
+    return d;
+  }
+
+  function wochenZeitraum(id) {
+    var a = wochenMontag(id), b = new Date(a);
+    b.setDate(b.getDate() + 6);
+    var links = a.getDate() + '.';
+    if (a.getMonth() !== b.getMonth()) links += ' ' + MONATE[a.getMonth()];
+    // Woche ueber den Jahreswechsel: sonst stuende "29. Dez.–4. Jan. 2026",
+    // als laege auch der 29. Dezember in 2026.
+    if (a.getFullYear() !== b.getFullYear()) links += ' ' + a.getFullYear();
+    return links + '–' + b.getDate() + '. ' + MONATE[b.getMonth()] + ' ' + b.getFullYear();
+  }
+
+  function wochenVerlauf(ziel) {
+    if (!wochen.length) {
+      return '<h2 class="sec">Wochenverlauf</h2><section class="card">' +
+        '<p class="muted">Noch keine abgeschlossene Woche.</p></section>';
+    }
+    var jetzt = WA.cloud.wochenSchluessel();
+    var zeilen = wochen.map(function (w) {
+      var erreicht = ziel > 0 && w.perlen >= ziel;
+      // Nicht bei 100 deckeln: Eine Woche mit 130 %% sagt mehr aus als
+      // eine mit genau erreichtem Ziel.
+      var anteil = ziel > 0 ? Math.round(w.perlen / ziel * 100) : 0;
+      return '<tr' + (w.id === jetzt ? ' class="laufend"' : '') + '>' +
+        '<td>' + esc(wochenZeitraum(w.id)) + (w.id === jetzt ? ' <b>(läuft)</b>' : '') + '</td>' +
+        '<td class="num">' + w.perlen + '</td>' +
+        '<td class="num">' + (ziel || '–') + '</td>' +
+        '<td class="num">' + (ziel > 0 ? anteil + ' %' : '–') + '</td>' +
+        '<td>' + (w.id === jetzt ? '<span class="muted">läuft noch</span>'
+                 : (erreicht ? '<span class="geschafft">erreicht</span>'
+                             : '<span class="muted">nicht erreicht</span>')) + '</td></tr>';
+    }).join('');
+    return '<h2 class="sec">Wochenverlauf</h2>' +
+      '<div class="hinweis">Jede Kalenderwoche wird einzeln gezählt und bleibt dauerhaft ' +
+      'gespeichert – am Montag beginnt eine neue Woche, nichts geht verloren.<br>' +
+      'Das Ziel wird mit der <b>heutigen</b> Kinderzahl gerechnet. Hat sich die Klassengröße ' +
+      'geändert, stimmt es für ältere Wochen nicht genau.</div>' +
+      '<section class="card"><div class="tabwrap"><table class="tabelle"><thead><tr>' +
+      '<th>Woche</th><th>Perlen</th><th>Ziel</th><th>Anteil</th><th>Ergebnis</th>' +
+      '</tr></thead><tbody>' + zeilen + '</tbody></table></div></section>';
+  }
+
+  function stufenWahl(k) {
+    var opt = ['<option value="">wie Klasse</option>'].concat(
+      Object.keys(WA.config.stufen).map(function (s) {
+        return '<option value="' + s + '"' + (k.stufe === s ? ' selected' : '') + '>' + s + '</option>';
+      })).join('');
+    return '<select class="klein" data-kind="' + esc(k.id) + '" data-feld="stufe"' +
+      ' aria-label="Schwierigkeit für ' + esc(k.vorname) + '">' + opt + '</select>';
+  }
+
+  function listenWahl(k, listen) {
+    var opt = ['<option value="">wie Klasse</option>'].concat(
+      listen.map(function (l) {
+        return '<option value="' + esc(l.name) + '"' + (k.liste === l.name ? ' selected' : '') +
+          '>' + esc(l.name) + '</option>';
+      })).join('');
+    return '<select class="klein" data-kind="' + esc(k.id) + '" data-feld="liste"' +
+      ' aria-label="Wortliste für ' + esc(k.vorname) + '">' + opt + '</select>';
+  }
+
+  function bindeFortschritt() {
+    document.querySelectorAll('[data-reset]').forEach(function (b) {
+      b.onclick = function () { resetFragen(b.getAttribute('data-reset')); };
+    });
+    document.querySelectorAll('[data-kind]').forEach(function (s) {
+      s.onchange = function () {
+        var id = s.getAttribute('data-kind'), feld = s.getAttribute('data-feld');
+        var daten = {}; daten[feld] = s.value || null;
+        s.disabled = true;
+        db.collection('kinder').doc(id).set(daten, { merge: true })
+          .then(function () {
+            var k = kinder.filter(function (x) { return x.id === id; })[0];
+            if (k) k[feld] = s.value || null;
+            s.disabled = false;
+          })
+          .catch(function (e) { alert('Speichern fehlgeschlagen: ' + e.message); s.disabled = false; });
+      };
+    });
+  }
+
+  // ==========================================================
+  //  Reiter 2: Lernwörter
+  // ==========================================================
+  function tabWoerter() {
+    var listen = listenNamen();
+    if (!woerter.length) {
+      return '<section class="card"><h2 style="margin-bottom:10px">Noch keine Lernwörter in der Datenbank</h2>' +
+        '<p class="muted" style="margin-bottom:14px">Die App benutzt gerade die ' + WA.words.length +
+        ' mitgelieferten Merkwörter aus der Datei. Übernimm sie einmalig in die Datenbank, ' +
+        'danach kannst du sie hier bearbeiten.</p>' +
+        '<button class="btn" id="uebernehmen">Die ' + WA.words.length + ' Wörter übernehmen</button></section>';
+    }
+
+    var sichtbar = woerter.filter(function (w) { return !filterListe || w.liste === filterListe; });
+    var zeilen = sichtbar.map(function (w, i) {
+      // Ohne Bedeutung, Beispielsatz oder Bild entfallen einzelne
+      // Übungstypen für dieses Wort – das steht sonst nirgends.
+      var fehlt = [];
+      if (!(w.bedeutung && String(w.bedeutung).trim())) fehlt.push('Bedeutung');
+      if (!(w.satz && String(w.satz).indexOf(w.wort) >= 0)) fehlt.push('Beispielsatz');
+      if (!w.bild) fehlt.push('Bild');
+      return '<tr data-id="' + esc(w.id) + '">' +
+        '<td>' + (w.bild ? '<span style="font-size:22px">' + esc(w.bild) + '</span>' : '') + '</td>' +
+        '<td><b>' + esc((w.artikel ? w.artikel + ' ' : '') + w.wort) + '</b>' +
+        (fehlt.length ? '<div class="muted" style="font-size:13px">ohne ' + fehlt.join(', ') + '</div>' : '') + '</td>' +
+        '<td class="muted">' + esc(w.silben) + '</td>' +
+        '<td class="muted">' + esc(w.trennung || w.silben) + '</td>' +
+        '<td class="muted">' + esc(w.wortart) + '</td>' +
+        '<td><span class="chip' + (w.liste === einst.aktiveListe ? ' aktiv' : '') + '">' + esc(w.liste || '–') + '</span></td>' +
+        '<td style="white-space:nowrap">' +
+        '<button class="btn ghost mini" data-bearbeiten="' + esc(w.id) + '">Ändern</button> ' +
+        '<button class="btn ghost mini danger" data-loeschen="' + esc(w.id) + '">Löschen</button></td></tr>';
+    }).join('');
+
+    var filter = '<select class="klein" id="filter" aria-label="Nach Wortliste filtern"><option value="">alle Listen (' + woerter.length + ')</option>' +
+      listen.map(function (l) {
+        return '<option value="' + esc(l.name) + '"' + (filterListe === l.name ? ' selected' : '') +
+          '>' + esc(l.name) + ' (' + l.anzahl + ')</option>';
+      }).join('') + '</select>';
+
+    var ohneBedeutung = sichtbar.filter(function (w) {
+      return !(w.bedeutung && String(w.bedeutung).trim());
+    }).length;
+    var warnung = '';
+    if (ohneBedeutung) {
+      var mit = sichtbar.length - ohneBedeutung;
+      warnung = '<div class="hinweis">Bei <b>' + ohneBedeutung + ' von ' + sichtbar.length +
+        '</b> Wörtern fehlt die Bedeutung. Für diese Wörter entfällt die Übung ' +
+        '<b>Was bedeutet das Wort?</b>' +
+        (mit < 3 ? ' – und weil es weniger als drei Wörter <i>mit</i> Bedeutung gibt, entfällt sie ganz, ' +
+          'denn es braucht drei zur Auswahl.' : '.') +
+        ' In der Tabelle steht unter dem Wort, was fehlt.</div>';
+    }
+    return warnung + '<section class="card">' +
+      '<div class="knopfreihe" style="margin:0 0 14px">' + filter +
+      '<button class="btn mini" id="neu">Neues Wort</button>' +
+      '<button class="btn ghost mini" id="csvexport">Als CSV sichern</button>' +
+      '<button class="btn ghost mini" id="csvimport">CSV einfügen</button>' +
+      // Ganze Liste leeren: Nur sichtbar, wenn auf eine Liste gefiltert ist.
+      // Ohne Filter stuende hier ein Knopf, der den gesamten Bestand
+      // loescht - zu nah am Unfall.
+      (filterListe && sichtbar.length
+        ? '<button class="btn ghost mini danger" id="listeleeren">Diese Liste leeren (' +
+          sichtbar.length + ')</button>'
+        : '') +
+      '</div>' +
+      '<div class="tabwrap"><table class="tabelle"><thead><tr>' +
+      '<th></th><th>Wort</th><th>Sprechsilben</th><th>Worttrennung</th><th>Wortart</th><th>Liste</th><th></th>' +
+      '</tr></thead><tbody>' + (zeilen ||
+        '<tr><td colspan="7" class="muted">Keine Wörter in dieser Liste.</td></tr>') +
+      '</tbody></table></div></section>' +
+      '<div id="formular"></div>';
+  }
+
+  // Alle Woerter einer Liste loeschen. Firestore nimmt hoechstens 500
+  // Vorgaenge je Stapel, deshalb in Haeppchen. Geloescht wird nur, was
+  // gerade sichtbar ist, also die gefilterte Liste.
+  function listeLeeren(name) {
+    var raus = woerter.filter(function (w) { return w.liste === name; });
+    if (!raus.length) return;
+    var frage = 'Wirklich alle ' + raus.length + ' Wörter der Liste „' + name +
+      '" löschen?\n\nDas lässt sich nicht rückgängig machen. Tippe zur Bestätigung ' +
+      'die Anzahl ein: ' + raus.length;
+    var antwort = prompt(frage, '');
+    if (String(antwort).trim() !== String(raus.length)) {
+      melde('Abgebrochen – es wurde nichts gelöscht.');
+      return;
+    }
+    var haeppchen = [];
+    for (var i = 0; i < raus.length; i += 400) haeppchen.push(raus.slice(i, i + 400));
+    var p = Promise.resolve();
+    haeppchen.forEach(function (teil) {
+      p = p.then(function () {
+        var batch = db.batch();
+        teil.forEach(function (w) { batch.delete(db.collection('lernwoerter').doc(w.id)); });
+        return batch.commit();
+      });
+    });
+    p.then(function () { melde(raus.length + ' Wörter gelöscht.'); laden(); })
+     .catch(function (e) { alert('Fehler beim Löschen: ' + e.message); });
+  }
+
+  function bindeWoerter() {
+    if (el('listeleeren')) {
+      el('listeleeren').onclick = function () { listeLeeren(filterListe); };
+    }
+    if (el('uebernehmen')) {
+      el('uebernehmen').onclick = function () {
+        this.disabled = true; this.textContent = 'Wird übernommen …';
+        var batch = db.batch();
+        WA.words.forEach(function (w) {
+          batch.set(db.collection('lernwoerter').doc(w.id), {
+            wort: w.wort, artikel: w.artikel || null, zahl: w.zahl || null, silben: w.silben.join('-'),
+            trennung: (w.trennung || w.silben).join('-'),
+            wortart: w.wortart || '', gruppe: w.gruppe || '', bild: w.bild || null,
+            bedeutung: w.bedeutung || '', satz: w.satz || '', liste: w.liste || 'Merkwörter 1'
+          });
+        });
+        batch.commit().then(function () {
+          melde(WA.words.length + ' Wörter übernommen.'); laden();
+        }).catch(function (e) { alert('Fehler: ' + e.message); });
+      };
+      return;
+    }
+
+    el('filter').onchange = function () { filterListe = this.value; zeichnen(); };
+    el('neu').onclick = function () { formular(null); };
+    el('csvexport').onclick = csvExport;
+    el('csvimport').onclick = csvImportFormular;
+
+    document.querySelectorAll('[data-bearbeiten]').forEach(function (b) {
+      b.onclick = function () { formular(b.getAttribute('data-bearbeiten')); };
+    });
+    document.querySelectorAll('[data-loeschen]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-loeschen');
+        var w = woerter.filter(function (x) { return x.id === id; })[0];
+        if (!confirm('„' + w.wort + '“ wirklich löschen?\n\nDer Übungsfortschritt der Kinder zu diesem Wort bleibt gespeichert.')) return;
+        db.collection('lernwoerter').doc(id).delete()
+          .then(function () { melde('„' + esc(w.wort) + '“ gelöscht.'); laden(); })
+          .catch(function (e) { alert('Fehler: ' + e.message); });
+      };
+    });
+  }
+
+  function formular(id) {
+    var w = id ? woerter.filter(function (x) { return x.id === id; })[0] : null;
+    var listen = listenNamen().map(function (l) { return l.name; });
+    var f = el('formular');
+    f.innerHTML = '<h2 class="sec">' + (w ? 'Wort ändern' : 'Neues Wort') + '</h2><section class="card">' +
+      '<div class="raster">' +
+      feld('f_wort', 'Wort', w ? w.wort : '') +
+      feld('f_artikel', 'Artikel (leer bei Verben)', w ? (w.artikel || '') : '') +
+      '<label class="feld">Zahl<select id="f_zahl">' +
+        '<option value=""' + (w && w.zahl === 'mehrzahl' ? '' : ' selected') + '>Einzahl</option>' +
+        '<option value="mehrzahl"' + (w && w.zahl === 'mehrzahl' ? ' selected' : '') + '>' +
+        'nur Mehrzahl (keine Artikelfrage)</option></select></label>' +
+      feld('f_silben', 'Sprechsilben (Silbenbögen)', w ? w.silben : '') +
+      feld('f_trennung', 'Worttrennung nach Duden', w ? (w.trennung || w.silben) : '') +
+      feld('f_wortart', 'Wortart', w ? w.wortart : '') +
+      feld('f_gruppe', 'Gruppe', w ? w.gruppe : '') +
+      feld('f_bild', 'Bild (Emoji, optional)', w ? (w.bild || '') : '') +
+      '<label class="feld">Liste<input type="text" id="f_liste" list="listen" value="' +
+        esc(w ? w.liste : (filterListe || einst.aktiveListe || 'Merkwörter 1')) + '">' +
+        '<datalist id="listen">' + listen.map(function (n) { return '<option value="' + esc(n) + '">'; }).join('') +
+        '</datalist></label>' +
+      '</div><div class="raster" style="margin-top:14px">' +
+      feld('f_bedeutung', 'Bedeutung', w ? (w.bedeutung || '') : '') +
+      feld('f_satz', 'Beispielsatz (muss das Wort enthalten)', w ? (w.satz || '') : '') +
+      '</div>' +
+      '<div class="knopfreihe"><button class="btn" id="speichern">Speichern</button>' +
+      '<button class="btn ghost" id="abbrechen">Abbrechen</button></div>' +
+      '<div id="formfehler"></div></section>';
+    hinspringen('formular');
+    el('abbrechen').onclick = function () { f.innerHTML = ''; };
+    el('speichern').onclick = function () { speichereWort(id); };
+  }
+
+  function feld(id, label, wert) {
+    return '<label class="feld">' + esc(label) + '<input type="text" id="' + id + '" value="' + esc(wert) + '"></label>';
+  }
+
+  function speichereWort(id) {
+    var v = {}, fehler = [];
+    SPALTEN.forEach(function (k) { var e = el('f_' + k); if (e) v[k] = e.value.trim(); });
+
+    if (!v.wort) fehler.push('Das Wort fehlt.');
+    if (v.artikel && ['der', 'die', 'das'].indexOf(v.artikel) < 0) fehler.push('Der Artikel muss der, die oder das sein.');
+    if (v.zahl && v.zahl !== 'mehrzahl') fehler.push('Die Zahl muss leer oder „mehrzahl“ sein.');
+    if (v.zahl === 'mehrzahl' && v.artikel && v.artikel !== 'die') fehler.push('Ein Mehrzahlwort hat immer den Artikel „die“.');
+    if (!v.silben) v.silben = v.wort;
+    if (v.silben.replace(/-/g, '') !== v.wort) fehler.push('Die Sprechsilben ergeben zusammen nicht das Wort. „' +
+      v.silben.replace(/-/g, '') + '“ statt „' + v.wort + '“.');
+    if (!v.trennung) v.trennung = v.silben;
+    if (v.trennung.replace(/-/g, '') !== v.wort) fehler.push('Die Worttrennung ergibt zusammen nicht das Wort. „' +
+      v.trennung.replace(/-/g, '') + '“ statt „' + v.wort + '“.');
+    if (v.satz && v.satz.indexOf(v.wort) < 0) fehler.push('Das Wort kommt im Beispielsatz nicht genau so vor.');
+    if (!v.liste) fehler.push('Die Liste fehlt.');
+
+    var neueId = v.wort.toLowerCase();
+    if (!id && woerter.some(function (x) { return x.id === neueId; })) fehler.push('Dieses Wort gibt es schon.');
+
+    if (fehler.length) {
+      el('formfehler').innerHTML = '<div class="melden fehler">' + fehler.map(esc).join('<br>') + '</div>';
+      return;
+    }
+
+    var daten = { wort: v.wort, artikel: v.artikel || null, zahl: v.zahl || null, silben: v.silben, trennung: v.trennung, wortart: v.wortart,
+                  gruppe: v.gruppe, bild: v.bild || null, bedeutung: v.bedeutung, satz: v.satz, liste: v.liste };
+    var ziel = id || neueId;
+    var p = db.collection('lernwoerter').doc(ziel).set(daten);
+    if (id && id !== neueId) p = p.then(function () { return db.collection('lernwoerter').doc(id).delete(); });
+    p.then(function () { melde('„' + esc(v.wort) + '“ gespeichert.'); laden(); })
+     .catch(function (e) { el('formfehler').innerHTML = '<div class="melden fehler">' + esc(e.message) + '</div>'; });
+  }
+
+  // ---------- CSV ----------
+  function csvExport() {
+    var zeilen = [SPALTEN.join(';')].concat(woerter.map(function (w) {
+      return SPALTEN.map(function (k) {
+        var t = String(w[k] == null ? '' : w[k]);
+        return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+      }).join(';');
+    }));
+    var text = zeilen.join('\n');
+    el('formular').innerHTML = '<h2 class="sec">CSV zum Sichern</h2><section class="card">' +
+      '<div class="hinweis">„Als Datei laden“ legt die Datei in deinen Downloads ab. ' +
+      'Alternativ den Text unten kopieren. Dieselbe Form kannst du über „CSV einfügen“ ' +
+      'wieder zurückspielen.</div>' +
+      '<div class="knopfreihe" style="margin:0 0 12px">' +
+      '<button class="btn mini" id="csvdatei">Als Datei laden</button>' +
+      '<button class="btn ghost mini" id="csvkopie">Text kopieren</button></div>' +
+      '<textarea id="csvout" spellcheck="false" aria-label="Wörter als CSV" style="min-height:260px"></textarea>' +
+      '<div class="knopfreihe"><button class="btn ghost" id="zu">Schließen</button></div>' +
+      '<div id="csvmeldung"></div></section>';
+    el('csvout').value = text;
+    el('csvdatei').onclick = function () {
+      var ok = alsDateiSichern('lernwoerter-' + heuteFuerDateiname() + '.csv', text);
+      el('csvmeldung').innerHTML = '<div class="melden' + (ok ? '' : ' fehler') + '">' +
+        (ok ? 'Datei wurde erzeugt. Schau in deine Downloads.'
+            : 'Das hat nicht geklappt – kopiere stattdessen den Text unten.') + '</div>';
+    };
+    el('csvkopie').onclick = function () {
+      var fertig = function (ok) {
+        el('csvmeldung').innerHTML = '<div class="melden' + (ok ? '' : ' fehler') + '">' +
+          (ok ? (zeilen.length - 1) + ' Wörter kopiert.'
+              : 'Kopieren ging nicht – markiere den Text unten von Hand.') + '</div>';
+      };
+      el('csvout').focus(); el('csvout').select();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { fertig(true); },
+                                                 function () { fertig(false); });
+      } else { fertig(false); }
+    };
+    el('zu').onclick = function () { el('formular').innerHTML = ''; };
+    hinspringen('formular');
+  }
+
+  function csvImportFormular() {
+    el('formular').innerHTML = '<h2 class="sec">CSV einfügen</h2><section class="card">' +
+      '<div class="hinweis">Erste Zeile sind die Spaltennamen, getrennt mit Semikolon:<br>' +
+      '<b>' + SPALTEN.join(';') + '</b><br>' +
+      'Vorhandene Wörter werden überschrieben, neue kommen dazu. Nichts wird gelöscht.</div>' +
+      '<textarea id="csvin" spellcheck="false" aria-label="CSV zum Einlesen" placeholder="' + SPALTEN.join(';') + '&#10;Klee;der;Klee;Nomen;pflanze;🍀;eine Wiesenpflanze …;Im Gras wächst Klee.;Woche 5"></textarea>' +
+      '<div class="knopfreihe"><button class="btn" id="csvgo">Einlesen</button>' +
+      '<button class="btn ghost" id="zu">Abbrechen</button></div><div id="csvfehler"></div></section>';
+    el('zu').onclick = function () { el('formular').innerHTML = ''; };
+    el('csvgo').onclick = csvEinlesen;
+    hinspringen('formular');
+  }
+
+  function teileZeile(z) {
+    var out = [], akt = '', inQ = false;
+    for (var i = 0; i < z.length; i++) {
+      var c = z[i];
+      if (inQ) {
+        if (c === '"' && z[i + 1] === '"') { akt += '"'; i++; }
+        else if (c === '"') inQ = false;
+        else akt += c;
+      } else if (c === '"') inQ = true;
+      else if (c === ';') { out.push(akt); akt = ''; }
+      else akt += c;
+    }
+    out.push(akt);
+    return out.map(function (t) { return t.trim(); });
+  }
+
+  function csvEinlesen() {
+    var txt = el('csvin').value.replace(/\r/g, '').trim();
+    var zeilen = txt.split('\n').filter(function (z) { return z.trim(); });
+    if (zeilen.length < 2) { csvFehler(['Es fehlen Datenzeilen.']); return; }
+
+    var kopf = teileZeile(zeilen[0]).map(function (t) { return t.toLowerCase(); });
+    if (kopf.indexOf('wort') < 0) { csvFehler(['In der ersten Zeile fehlt die Spalte „wort“.']); return; }
+
+    var gut = [], fehler = [];
+    zeilen.slice(1).forEach(function (z, n) {
+      var t = teileZeile(z), o = {};
+      kopf.forEach(function (k, i) { if (SPALTEN.indexOf(k) >= 0) o[k] = t[i] || ''; });
+      var zeile = 'Zeile ' + (n + 2) + ': ';
+      if (!o.wort) { fehler.push(zeile + 'kein Wort'); return; }
+      if (o.artikel && ['der', 'die', 'das'].indexOf(o.artikel) < 0) { fehler.push(zeile + 'Artikel „' + o.artikel + '“ ist ungültig'); return; }
+      if (o.zahl && o.zahl !== 'mehrzahl') { fehler.push(zeile + 'Zahl „' + o.zahl + '“ ist ungültig, erlaubt ist nur „mehrzahl“'); return; }
+      if (o.zahl === 'mehrzahl' && o.artikel && o.artikel !== 'die') { fehler.push(zeile + 'Mehrzahlwort mit Artikel „' + o.artikel + '“'); return; }
+      if (!o.silben) o.silben = o.wort;
+      if (o.silben.replace(/-/g, '') !== o.wort) { fehler.push(zeile + 'Sprechsilben ergeben nicht „' + o.wort + '“'); return; }
+      if (!o.trennung) o.trennung = o.silben;
+      if (o.trennung.replace(/-/g, '') !== o.wort) { fehler.push(zeile + 'Worttrennung ergibt nicht „' + o.wort + '“'); return; }
+      if (o.satz && o.satz.indexOf(o.wort) < 0) { fehler.push(zeile + 'Beispielsatz enthält „' + o.wort + '“ nicht'); return; }
+      if (!o.liste) o.liste = einst.aktiveListe || 'Merkwörter 1';
+      gut.push(o);
+    });
+
+    if (fehler.length) { csvFehler(fehler.concat(['', 'Es wurde nichts gespeichert.'])); return; }
+    if (!gut.length) { csvFehler(['Keine gültigen Zeilen gefunden.']); return; }
+
+    var batch = db.batch();
+    gut.forEach(function (o) {
+      batch.set(db.collection('lernwoerter').doc(o.wort.toLowerCase()), {
+        wort: o.wort, artikel: o.artikel || null, zahl: o.zahl || null, silben: o.silben, trennung: o.trennung, wortart: o.wortart || '',
+        gruppe: o.gruppe || '', bild: o.bild || null, bedeutung: o.bedeutung || '',
+        satz: o.satz || '', liste: o.liste
+      }, { merge: true });
+    });
+    batch.commit().then(function () { melde(gut.length + ' Wörter eingelesen.'); laden(); })
+      .catch(function (e) { csvFehler([e.message]); });
+  }
+
+  function csvFehler(liste) {
+    el('csvfehler').innerHTML = '<div class="melden fehler">' + liste.map(esc).join('<br>') + '</div>';
+  }
+
+  // ==========================================================
+  //  Reiter 3: Einstellungen
+  // ==========================================================
+  function tabEinstellungen() {
+    var K = WA.config.klasse, listen = listenNamen();
+    var typen = einst.typen || {};
+    var stufe = einst.stufe || WA.config.stufe;
+
+    var typHtml = Object.keys(WA.config.types).map(function (t) {
+      var an = typen[t] !== false;
+      return '<label><input type="checkbox" data-typ="' + t + '"' + (an ? ' checked' : '') + '>' +
+        esc(TYPNAMEN[t] || t) + '</label>';
+    }).join('');
+
+    var stufenHtml = Object.keys(WA.config.stufen).map(function (s) {
+      var d = WA.config.stufen[s];
+      return '<option value="' + s + '"' + (stufe === s ? ' selected' : '') + '>' + s +
+        ' (' + d.luftblasen + ' Luftblasen, ' + d.aufgaben + ' Aufgaben' +
+        (d.hinweise ? ', mit Tipp' : ', ohne Tipp') + ')</option>';
+    }).join('');
+
+    return '<h2 class="sec">Wortliste der Woche</h2><section class="card">' +
+      '<div class="hinweis">Die aktive Liste bildet den Schwerpunkt. Ein Teil der Aufgaben kommt aus ' +
+      'früheren Listen, damit Gelerntes nicht verloren geht.</div>' +
+      '<div class="raster">' +
+      '<label class="feld">Aktive Liste<select id="e_liste"><option value="">alle Wörter gleichmäßig</option>' +
+      listen.map(function (l) {
+        return '<option value="' + esc(l.name) + '"' + (einst.aktiveListe === l.name ? ' selected' : '') +
+          '>' + esc(l.name) + ' (' + l.anzahl + (l.anzahl === 1 ? ' Wort' : ' Wörter') + ')</option>';
+      }).join('') + '</select></label>' +
+      '<label class="feld">Anteil Wiederholung<select id="e_wdh">' +
+      [0, 0.15, 0.25, 0.4, 0.5].map(function (p) {
+        var akt = (einst.wiederholungAnteil == null ? 0.25 : einst.wiederholungAnteil) === p;
+        return '<option value="' + p + '"' + (akt ? ' selected' : '') + '>' + Math.round(p * 100) + ' %</option>';
+      }).join('') + '</select></label>' +
+      '</div></section>' +
+
+      '<h2 class="sec">Schwierigkeit</h2><section class="card">' +
+      '<div class="raster" style="margin-bottom:16px">' +
+      '<label class="feld">Stufe der Klasse<select id="e_stufe">' + stufenHtml + '</select></label>' +
+      '<label class="feld">Tagesziel in Perlen<input type="number" id="e_tagesziel" min="20" max="1000" step="10" value="' +
+        (einst.dailyGoalXp || WA.config.dailyGoalXp) + '"></label>' +
+      '</div>' +
+      '<h3 style="font-size:15px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px">Übungstypen</h3>' +
+      '<div class="typen">' + typHtml + '</div>' +
+      '<p class="muted" style="margin-top:12px;font-size:15px">Abgeschaltete Typen kommen in keinem Tauchgang vor. ' +
+      'Ein Tauchrevier ohne aktive Typen zeigt keine Aufgaben mehr.</p></section>' +
+
+      '<h2 class="sec">Bedenkzeit</h2><section class="card">' +
+      '<div class="hinweis">Gegen reflexhaftes Durchklicken: Der Knopf ist für ein paar ' +
+      'Sekunden gesperrt und zeigt so lange einen Countdown. 0 schaltet die Sperre ab.</div>' +
+      '<div class="raster">' +
+      '<label class="feld">Vor dem Prüfen (Sekunden)<input type="number" id="e_denkAntwort" min="0" max="30" value="' +
+        (einst.denkAntwort == null ? WA.config.bedenkzeit.vorAntwort : einst.denkAntwort) + '"></label>' +
+      '<label class="feld">Vor dem Weiter (Sekunden)<input type="number" id="e_denkWeiter" min="0" max="30" value="' +
+        (einst.denkWeiter == null ? WA.config.bedenkzeit.vorWeiter : einst.denkWeiter) + '"></label>' +
+      '</div></section>' +
+
+      '<h2 class="sec">Klassenziel</h2><section class="card"><div class="raster">' +
+      '<label class="feld">Anzahl Kinder<input type="number" id="e_kinder" min="1" max="40" value="' +
+        (einst.kinder || K.kinder) + '"></label>' +
+      '<label class="feld">Wochenziel je Kind<input type="number" id="e_proKind" min="10" max="2000" step="10" value="' +
+        (einst.wochenzielProKind || K.wochenzielProKind) + '"></label>' +
+      '<label class="feld">Ergibt zusammen<input type="text" id="e_summe" value="" readonly></label>' +
+      '</div></section>' +
+
+      '<div class="merker"><button class="btn big" id="e_speichern">Einstellungen speichern</button></div>';
+  }
+
+  function bindeEinstellungen() {
+    function summe() {
+      el('e_summe').value = ((+el('e_kinder').value || 0) * (+el('e_proKind').value || 0)) + ' Perlen pro Woche';
+    }
+    el('e_kinder').oninput = summe;
+    el('e_proKind').oninput = summe;
+    summe();
+
+    el('e_speichern').onclick = function () {
+      var typen = {};
+      document.querySelectorAll('[data-typ]').forEach(function (c) { typen[c.getAttribute('data-typ')] = c.checked; });
+      if (!Object.keys(typen).some(function (k) { return typen[k]; })) {
+        melde('Mindestens ein Übungstyp muss aktiv bleiben.', 'fehler'); zeichnen(); return;
+      }
+      var daten = {
+        aktiveListe: el('e_liste').value || null,
+        wiederholungAnteil: parseFloat(el('e_wdh').value),
+        stufe: el('e_stufe').value,
+        typen: typen,
+        dailyGoalXp: Math.max(20, +el('e_tagesziel').value || 100),
+        denkAntwort: Math.min(30, Math.max(0, +el('e_denkAntwort').value || 0)),
+        denkWeiter: Math.min(30, Math.max(0, +el('e_denkWeiter').value || 0)),
+        kinder: Math.max(1, +el('e_kinder').value || 22),
+        wochenzielProKind: Math.max(10, +el('e_proKind').value || WA.config.klasse.wochenzielProKind)
+      };
+      this.disabled = true; this.textContent = 'Wird gespeichert …';
+      db.collection('einstellungen').doc('klasse').set(daten, { merge: true })
+        .then(function () { melde('Einstellungen gespeichert.'); laden(); })
+        .catch(function (e) { melde('Speichern fehlgeschlagen: ' + esc(e.message), 'fehler'); zeichnen(); });
+    };
+  }
+
+  // ==========================================================
+  //  Reiter 4: Kinder
+  // ==========================================================
+  // Wann war dieses Kind zuletzt aktiv? Grundlage fuer das Aufraeumen
+  // am Schuljahresende (Speicherbegrenzung, Art. 5 Abs. 1 lit. e DSGVO).
+  function letzterTag(f) {
+    if (!f) return null;
+    if (f.lastDay) return String(f.lastDay);
+    var tage = Object.keys(f.days || {});
+    return tage.length ? tage.sort().pop() : null;
+  }
+  function tageHer(tag) {
+    if (!tag) return null;
+    var t = new Date(tag + 'T00:00:00');
+    if (isNaN(t)) return null;
+    return Math.floor((Date.now() - t.getTime()) / 86400000);
+  }
+  function aktivText(f) {
+    var tag = letzterTag(f), d = tageHer(tag);
+    if (d === null) return '<span class="muted">nie</span>';
+    if (d <= 0) return 'heute';
+    if (d === 1) return 'gestern';
+    if (d < 60) return 'vor ' + d + ' Tagen';
+    return '<b style="color:var(--bad-d)">vor ' + d + ' Tagen</b>';
+  }
+
+  function tabKinder() {
+    var zeilen = kinder.map(function (k) {
+      var f = staende[k.id];
+      return '<tr><td><b>' + esc(k.vorname) + '</b></td><td class="code">' + esc(fmtCode(k.id)) + '</td>' +
+        '<td>' + (f ? (f.xp || 0) + ' Perlen' : 'noch nie angemeldet') + '</td>' +
+        '<td>' + aktivText(f) + '</td>' +
+        '<td style="white-space:nowrap">' +
+        '<button class="btn ghost mini" data-auskunft="' + esc(k.id) + '">Auskunft</button> ' +
+        (f ? '<button class="btn ghost mini" data-reset="' + esc(k.id) + '">Zurücksetzen</button> ' : '') +
+        '<button class="btn ghost mini" data-kindweg="' + esc(k.id) + '">Sperren</button> ' +
+        '<button class="btn ghost mini danger" data-kindloeschen="' + esc(k.id) + '">Löschen</button></td></tr>';
+    }).join('');
+
+    return '<h2 class="sec">Freigeschaltete Kinder</h2><section class="card">' +
+      '<div class="hinweis"><b>Sperren</b> macht nur den Aufkleber unbrauchbar; der Spielstand bleibt liegen. ' +
+      '<b>Löschen</b> entfernt Kind, Fortschritt und alle Bilder endgültig – das ist der Weg, wenn Eltern die ' +
+      'Löschung verlangen oder das Schuljahr zu Ende ist. <b>Auskunft</b> lädt alles herunter, was zu diesem Kind ' +
+      'gespeichert ist.</div>' +
+      '<div class="tabwrap">' +
+      '<table class="tabelle"><thead><tr><th>Vorname</th><th>Code</th><th>Stand</th><th>Zuletzt aktiv</th><th></th></tr></thead><tbody>' +
+      (zeilen || '<tr><td colspan="5" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
+      '</tbody></table></div>' +
+      '<div class="knopfreihe" style="margin-top:12px">' +
+      '<button class="btn ghost" id="alteraeumen">Lange inaktive Kinder löschen …</button></div>' +
+      '</section>' +
+
+      '<h2 class="sec">Kinder freischalten</h2><section class="card">' +
+      '<div class="hinweis">Hier fügst du den Inhalt der Datei <b>kinder.json</b> ein, die zusammen mit dem ' +
+      'Aufkleberbogen erzeugt wurde. Vorhandene Kinder werden nicht doppelt angelegt, ihr Spielstand bleibt erhalten.</div>' +
+      '<textarea id="json" spellcheck="false" aria-label="Kinderliste als JSON" placeholder=\'[{"vorname": "Lina", "code": "K7PM4XRT"}]\'></textarea>' +
+      '<div class="knopfreihe"><button class="btn" id="importieren">Kinder freischalten</button></div>' +
+      '<div id="ergebnis"></div></section><div id="resetfeld"></div>';
+  }
+
+  // ==========================================================
+  //  Reiter: Pixelbilder
+  //  Die Bilder liegen im Fortschritt des Kindes. Sie sind nur
+  //  hier und für das Kind selbst sichtbar, nicht für die Klasse.
+  // ==========================================================
+  // Zeichnen und Speicherformat stecken in js/malen.js,
+  // damit Kinder-App und Lehrerbereich dasselbe benutzen.
+  //
+  // Mit Zwischenspeicher: zeichnen() baut bei JEDEM Reiterwechsel alles
+  // neu, und jede Vorschau bedeutet eine Zeichenflaeche plus eine
+  // PNG-Kodierung. Bei 300 Bildern waren das 300 Kodierungen am Stück,
+  // jedes Mal von vorn. Der Schluessel enthaelt den Zeitstempel des
+  // Bildes, damit eine geaenderte Fassung nicht aus dem Speicher kommt.
+  var vorschauSpeicher = {};
+  function bildVorschau(b, px) {
+    var k = b.id + '|' + (b.ts || 0) + '|' + (px || 96) + '|' + ((b.px || b.striche || '').length);
+    if (vorschauSpeicher[k]) return vorschauSpeicher[k];
+    var d = WA.malen.vorschau(b, px);
+    vorschauSpeicher[k] = d;
+    return d;
+  }
+
+  // Die Bilder liegen in einer eigenen Sammlung und werden in EINER
+  // Abfrage geholt (bilderAlleHolen), damit die Vorschaubilder unter
+  // den Namen sofort da sind. Bei 22 Kindern ist das schneller als 22
+  // einzelne Abfragen.
+  var bilderVon = {};        // code -> Liste von Bildern
+
+  function tabBilder() {
+    var bloecke = kinder.map(function (k) {
+      var f = staende[k.id];
+      var rest = (f && f.mal && f.mal.rest) || 0;
+      var geladen = bilderVon[k.id];
+      var inhalt;
+
+      if (!geladen || geladen === 'laedt') {
+        inhalt = '<p class="muted">Wird geladen …</p>';
+      } else if (!geladen.length) {
+        inhalt = '<p class="muted">Dieses Kind hat noch nichts gemalt.</p>';
+      } else {
+        inhalt = '<div class="bildgalerie">' + geladen.slice()
+          .sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); })
+          .map(function (b) {
+            var frei = b.art === 'frei';
+            return '<figure class="bildkarte' + (b.fertig ? ' fertig' : '') + '">' +
+              '<button class="bildgross" data-gross="' + esc(k.id) + '" data-bnr="' + esc(String(b.id)) +
+              '" aria-label="Bild von ' + esc(k.vorname) + ' groß ansehen">' +
+              '<img src="' + bildVorschau(b, 120) + '" alt="' + (frei ? 'Zeichnung' : 'Pixelbild') +
+              '" width="120" height="120" loading="lazy"></button>' +
+              '<figcaption>' + (frei ? 'gezeichnet' : 'Pixel') + ' · ' + (b.fertig ? 'fertig' : 'in Arbeit') +
+              '</figcaption></figure>';
+          }).join('') + '</div>';
+      }
+
+      return '<h3 class="malname">' + esc(k.vorname) +
+        ' <span class="chip">' + Math.round(rest / 60) + ' Min. Malzeit übrig</span>' +
+        (Array.isArray(geladen) && geladen.length
+          ? ' <span class="muted" style="font-size:15px">' + geladen.length +
+            (geladen.length === 1 ? ' Bild' : ' Bilder') + '</span>' : '') +
+        '</h3>' + inhalt;
+    }).join('');
+
+    return '<h2 class="sec">Bilder der Kinder</h2>' +
+      '<div class="hinweis">Die Kinder bekommen für jedes erreichte Tagesziel ' +
+      esc(String(WA.config.malen.minutenProZiel)) + ' Minuten Malzeit, höchstens ' +
+      esc(String(WA.config.malen.maxGuthabenMinuten)) + ' Minuten Guthaben. ' +
+      'Die Bilder sehen nur das Kind selbst und du. Tippe ein Bild an, um es groß zu sehen. ' +
+      'Zum Ausdrucken einfach diese Seite drucken.</div>' +
+      (bloecke || '<section class="card"><p class="muted">Noch sind keine Kinder freigeschaltet.</p></section>') +
+      '<div id="bildschau"></div>';
+  }
+
+  // Das große Bild über der Seite
+  function bildSchau(code, nr) {
+    var liste = bilderVon[code];
+    if (!Array.isArray(liste)) return;
+    var b = liste.filter(function (x) { return String(x.id) === String(nr); })[0];
+    if (!b) return;
+    var k = kinder.filter(function (x) { return x.id === code; })[0];
+    var frei = b.art === 'frei';
+    el('bildschau').innerHTML =
+      '<div class="bildlupe" id="bildlupe"><div class="lupeinhalt">' +
+      '<img src="' + bildVorschau(b, 900) + '" alt="' + (frei ? 'Zeichnung' : 'Pixelbild') + '">' +
+      '<div class="lupetext"><b>' + esc(k ? k.vorname : '') + '</b> · ' +
+      (frei ? 'gezeichnet' : 'Pixelbild') + ' · ' + (b.fertig ? 'fertig' : 'in Arbeit') +
+      (b.ts ? ' · ' + esc(tagVon(b.ts)) : '') + '</div>' +
+      '<button class="btn ghost" id="lupezu">Schließen</button>' +
+      '</div></div>';
+    el('bildlupe').onclick = function (e) {
+      if (e.target === this || e.target.id === 'lupezu') el('bildschau').innerHTML = '';
+    };
+    el('lupezu').onclick = function () { el('bildschau').innerHTML = ''; };
+  }
+
+  // Alle Bilder in einem Rutsch holen: eine Abfrage statt einer je
+  // Kind. Löschmarken (geloescht) sind keine Bilder und fliegen raus.
+  var bilderLaufen = false;
+
+  function bilderAlleHolen() {
+    if (bilderLaufen) return Promise.resolve();
+    bilderLaufen = true;
+    kinder.forEach(function (k) { if (!bilderVon[k.id]) bilderVon[k.id] = 'laedt'; });
+    zeichnen();
+    return db.collection('bilder').get()
+      .then(function (snap) {
+        var nach = {};
+        kinder.forEach(function (k) { nach[k.id] = []; });
+        snap.forEach(function (d) {
+          var x = d.data();
+          if (x.geloescht || !x.code) return;
+          if (!nach[x.code]) nach[x.code] = [];
+          nach[x.code].push(x);
+        });
+        Object.keys(nach).forEach(function (code) { bilderVon[code] = nach[code]; });
+        zeichnen();
+      })
+      .catch(function (e) {
+        kinder.forEach(function (k) { if (bilderVon[k.id] === 'laedt') bilderVon[k.id] = []; });
+        bilderLaufen = false;
+        melde('Bilder konnten nicht geladen werden: ' + esc(e.message) +
+          (e.code === 'permission-denied'
+            ? ' Wahrscheinlich sind die Firestore-Regeln noch nicht aktualisiert.' : ''), 'fehler');
+        zeichnen();
+      });
+  }
+
+  // ==========================================================
+  //  Reiter: Sachthemen
+  //  Fragen für den Sachunterricht. Ein neues Thema entsteht
+  //  einfach dadurch, dass du Fragen mit einem neuen Themennamen
+  //  anlegst – dafür ist keine Änderung am Programm nötig.
+  // ==========================================================
+  var filterThema = '';
+
+  function themenNamen() {
+    var s = {};
+    fragen.forEach(function (f) { if (f.thema) s[f.thema] = (s[f.thema] || 0) + 1; });
+    return Object.keys(s).sort(function (a, b) { return a.localeCompare(b, 'de'); })
+      .map(function (n) { return { name: n, anzahl: s[n] }; });
+  }
+
+  function tabThemen() {
+    if (!fragen.length) {
+      return '<section class="card"><h2 style="margin-bottom:10px">Noch keine Fragen in der Datenbank</h2>' +
+        '<p class="muted" style="margin-bottom:14px">Die App benutzt gerade die ' + (WA.fragen || []).length +
+        ' mitgelieferten Fragen zum Thema Feuer aus der Datei. Übernimm sie einmalig in die Datenbank, ' +
+        'danach kannst du sie hier ändern, löschen und ergänzen.</p>' +
+        '<button class="btn" id="fragenuebernehmen">Die ' + (WA.fragen || []).length + ' Fragen übernehmen</button></section>';
+    }
+
+    var themen = themenNamen();
+    var sichtbar = fragen.filter(function (f) { return !filterThema || f.thema === filterThema; });
+    var zeilen = sichtbar.map(function (f) {
+      var richtige = Array.isArray(f.richtig) ? f.richtig : [f.richtig];
+      var art = ARTEN[f.art] ? f.art : 'wahl';
+      var ant;
+      if (art === 'beschriften') {
+        var g = WA.grafiken[f.grafik];
+        ant = g
+          ? '<b class="richtig">' + esc(g.titel) + '</b> · ' +
+            WA.grafikPunkte(f.grafik, f.antworten).map(function (p, i) {
+              return (i + 1) + ' ' + esc(p.label);
+            }).join(' · ')
+          : '<span class="muted">Bild „' + esc(f.grafik || '?') + '“ gibt es nicht mehr</span>';
+      } else if (art === 'merken') {
+        ant = '<span class="muted">' + esc(f.loesung || '') + '</span>';
+      } else if (art === 'reihenfolge') {
+        ant = (f.antworten || []).map(function (a) { return esc(a); }).join(' <b class="richtig">→</b> ');
+      } else {
+        ant = (f.antworten || []).map(function (a) {
+          return richtige.indexOf(a) >= 0
+            ? '<b class="richtig">' + esc(a) + '</b>'
+            : '<span class="muted">' + esc(a) + '</span>';
+        }).join(' · ');
+      }
+      return '<tr><td><span class="chip">' + esc(f.thema) + '</span></td>' +
+        '<td class="muted">' + esc(f.bereich) + '<div class="muted" style="font-size:13px">' +
+        esc(ARTEN[art].name) + '</div></td>' +
+        '<td><b>' + esc(f.frage) + '</b><div class="antw">' + ant + '</div>' +
+        (f.erklaerung ? '<div class="muted" style="font-size:14px">' + esc(f.erklaerung) + '</div>' : '') + '</td>' +
+        '<td class="num">' + esc(String(f.schwierigkeit || 2)) + '</td>' +
+        '<td style="white-space:nowrap">' +
+        '<button class="btn ghost mini" data-fbearbeiten="' + esc(f.id) + '">Ändern</button> ' +
+        '<button class="btn ghost mini danger" data-floeschen="' + esc(f.id) + '">Löschen</button></td></tr>';
+    }).join('');
+
+    var filter = '<select class="klein" id="fthema" aria-label="Nach Thema filtern"><option value="">alle Themen (' + fragen.length + ')</option>' +
+      themen.map(function (t) {
+        return '<option value="' + esc(t.name) + '"' + (filterThema === t.name ? ' selected' : '') +
+          '>' + esc(t.name) + ' (' + t.anzahl + ')</option>';
+      }).join('') + '</select>';
+
+    return '<div class="hinweis">Drei Arten von Aufgaben: <b>Antwortfrage</b> (auswählen), ' +
+      '<b>Reihenfolge</b> (Schritte ordnen) und <b>Erst denken</b> (selbst überlegen, dann mit der ' +
+      'Musterlösung vergleichen und sich einschätzen – ohne Perlen). ' +
+      'Die erste Antwort in der Liste ist nicht automatisch die richtige – ' +
+      'die richtige wird beim Anlegen ausgewählt und hier <b>fett</b> angezeigt. ' +
+      'Beim Üben werden die Antworten gemischt. Die <b>Erklärung</b> sehen die Kinder nach jeder Antwort; ' +
+      'sie ist der eigentliche Lerneffekt.</div>' +
+      '<section class="card">' +
+      '<div class="knopfreihe" style="margin:0 0 14px">' + filter +
+      '<button class="btn mini" id="fneu">Neue Aufgabe</button>' +
+      '<button class="btn ghost mini" id="fexport">Als CSV sichern</button>' +
+      '<button class="btn ghost mini" id="fabgleich">Mitgelieferte Fragen abgleichen</button></div>' +
+      '<div class="tabwrap"><table class="tabelle"><thead><tr>' +
+      '<th>Thema</th><th>Bereich</th><th>Frage und Antworten</th><th>Stufe</th><th></th>' +
+      '</tr></thead><tbody>' + (zeilen ||
+        '<tr><td colspan="5" class="muted">Keine Fragen in diesem Thema.</td></tr>') +
+      '</tbody></table></div></section><div id="fformular"></div>';
+  }
+
+  // Die drei Aufgabenarten im Sachunterricht.
+  var ARTEN = {
+    wahl:        { name: 'Antwortfrage',   hilfe: 'Die Kinder wählen aus mehreren Antworten aus.' },
+    reihenfolge: { name: 'Reihenfolge',    hilfe: 'Die Kinder bringen die Schritte in die richtige Reihenfolge. Schreibe sie hier in der richtigen Reihenfolge auf.' },
+    merken:      { name: 'Erst denken',    hilfe: 'Die Kinder überlegen selbst, lesen dann die Musterlösung und schätzen sich ein. Diese Aufgabe gibt keine Perlen.' },
+    beschriften: { name: 'Bild beschriften', hilfe: 'Die Kinder ordnen den nummerierten Stellen im Bild die richtigen Begriffe zu. Die Bilder sind fest eingebaut; neue kann ich ergänzen.' }
+  };
+  var ANTWORTFELDER = 6;
+
+  // Liest zusammen, was gerade im Formular steht – für den Wechsel der Art.
+  function formularLesen() {
+    if (!el('f_frage')) return null;
+    var ant = [], richtige = [];
+    for (var i = 0; i < ANTWORTFELDER; i++) {
+      var e = el('f_a' + i);
+      if (!e) continue;
+      var v = e.value.trim();
+      ant.push(v);
+      var r = el('f_r' + i);
+      if (v && r && r.checked) richtige.push(v);
+    }
+    if (el('f_grafik')) {
+      // Beim Beschriften stehen in "antworten" die angekreuzten Stellen.
+      ant = [];
+      document.querySelectorAll('[data-punkt]').forEach(function (c) {
+        if (c.checked) ant.push(c.getAttribute('data-punkt'));
+      });
+      richtige = [];
+    }
+    return {
+      thema: el('f_thema').value, bereich: el('f_bereich').value,
+      schwierigkeit: Number(el('f_stufe').value) || 2,
+      art: el('f_art') ? el('f_art').value : 'wahl',
+      frage: el('f_frage').value, antworten: ant, richtig: richtige,
+      loesung: el('f_loesung') ? el('f_loesung').value : '',
+      grafik: el('f_grafik') ? el('f_grafik').value : '',
+      erklaerung: el('f_erklaerung').value
+    };
+  }
+
+  /* Die Grafik im Formular zeigen, mit den Nummern der angekreuzten Stellen */
+  function grafikVorschau() {
+    var wo = el('f_vorschau');
+    if (!wo) return;
+    var key = el('f_grafik').value;
+    var ids = [];
+    document.querySelectorAll('[data-punkt]').forEach(function (c) {
+      if (c.checked) ids.push(c.getAttribute('data-punkt'));
+    });
+    var punkte = WA.grafikPunkte(key, ids), ma = WA.grafikMasse(key);
+    wo.innerHTML = '<div class="schildbild"><div class="schildflaeche" style="aspect-ratio:' +
+      ma.breite + '/' + ma.hoehe + ';width:min(100%, calc(240px * ' + ma.breite + ' / ' + ma.hoehe + '))">' +
+      WA.grafikSvg(key) + punkte.map(function (p, i) {
+        return '<span class="marke" style="left:' + p.x + '%;top:' + p.y + '%">' + (i + 1) + '</span>';
+      }).join('') + '</div></div>' +
+      '<p class="muted" style="font-size:15px">' + (punkte.length
+        ? punkte.map(function (p, i) { return (i + 1) + ' ' + esc(p.label); }).join(' · ')
+        : 'Es ist keine Stelle angekreuzt.') + '</p>';
+  }
+
+  function frageFormular(id, vorlage) {
+    var f = vorlage || fragen.filter(function (x) { return x.id === id; })[0] ||
+      { id: '', thema: filterThema || 'feuer', bereich: '', schwierigkeit: 2, art: 'wahl',
+        frage: '', antworten: ['', '', ''], richtig: [], loesung: '', grafik: '', erklaerung: '' };
+    var neu = !id;
+    var art = ARTEN[f.art] ? f.art : 'wahl';
+    var anzahl = art === 'reihenfolge' ? ANTWORTFELDER : 4;
+    var ant = (f.antworten || []).concat(['', '', '', '', '', '']).slice(0, anzahl);
+    var richtige = Array.isArray(f.richtig) ? f.richtig : (f.richtig ? [f.richtig] : []);
+
+    var mitte;
+    if (art === 'beschriften') {
+      var liste = WA.grafikListe();
+      var key = WA.grafiken[f.grafik] ? f.grafik : liste[0].id;
+      var gewaehlt = (f.antworten || []).filter(function (a) { return a; });
+      mitte = '<h3 class="merker">Bild und Stellen</h3>' +
+        '<p class="muted" style="margin-bottom:10px;font-size:15px">' + esc(ARTEN.beschriften.hilfe) +
+        ' Kreuze an, welche Stellen beschriftet werden sollen – mindestens zwei.</p>' +
+        '<label class="feld" style="max-width:360px">Bild<select id="f_grafik" style="width:100%">' +
+        liste.map(function (g) {
+          return '<option value="' + esc(g.id) + '"' + (key === g.id ? ' selected' : '') +
+            '>' + esc(g.titel) + ' (' + g.punkte + ' Stellen)</option>';
+        }).join('') + '</select></label>' +
+        '<div id="f_stellen">' + WA.grafiken[key].punkte.map(function (p) {
+          var an = !gewaehlt.length || gewaehlt.indexOf(p.id) >= 0;
+          // Der Text steht im <label>, nicht daneben. Sonst hat das
+          // Kaestchen keinen Namen, und ein Klick auf den Text schaltet
+          // es nicht mit - bei 24 Pixeln ein unnoetig kleines Ziel.
+          return '<div class="antwzeile"><label class="antwlabel">' +
+            '<input type="checkbox" data-punkt="' + esc(p.id) + '"' +
+            (an ? ' checked' : '') + '><span>' + esc(p.label) + '</span></label></div>';
+        }).join('') + '</div>' +
+        '<div id="f_vorschau" style="margin-top:12px;max-width:280px"></div>';
+    } else if (art === 'merken') {
+      mitte = '<h3 class="merker">Musterlösung</h3>' +
+        '<p class="muted" style="margin-bottom:10px;font-size:15px">' + esc(ARTEN.merken.hilfe) + '</p>' +
+        feld('f_loesung', 'So könnte die Antwort lauten', f.loesung || '');
+    } else if (art === 'reihenfolge') {
+      mitte = '<h3 class="merker">Schritte in der richtigen Reihenfolge</h3>' +
+        '<p class="muted" style="margin-bottom:10px;font-size:15px">' + esc(ARTEN.reihenfolge.hilfe) +
+        ' Beim Üben werden sie gemischt.</p>' +
+        ant.map(function (a, i) {
+          return '<div class="antwzeile"><span class="chip" aria-hidden="true">' + (i + 1) + '</span>' +
+            '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" aria-label="Schritt ' + (i + 1) +
+            '" placeholder="Schritt ' + (i + 1) +
+            (i > 2 ? ' (kann leer bleiben)' : '') + '"></div>';
+        }).join('');
+    } else {
+      mitte = '<h3 class="merker">Antworten – alle richtigen ankreuzen</h3>' +
+        '<p class="muted" style="margin-bottom:10px;font-size:15px">Meist ist genau eine Antwort richtig. ' +
+        'Es dürfen aber mehrere sein – dann zählt jede davon als richtig.</p>' +
+        ant.map(function (a, i) {
+          return '<div class="antwzeile"><input type="checkbox" id="f_r' + i + '"' +
+            ' aria-label="Antwort ' + (i + 1) + ' ist richtig"' +
+            ((a && richtige.indexOf(a) >= 0) || (neu && i === 0 && !richtige.length) ? ' checked' : '') + '>' +
+            '<input type="text" id="f_a' + i + '" value="' + esc(a) + '" aria-label="Antwort ' + (i + 1) +
+            '" placeholder="Antwort ' + (i + 1) +
+            (i > 1 ? ' (kann leer bleiben)' : '') + '"></div>';
+        }).join('');
+    }
+
+    el('fformular').innerHTML = '<h2 class="sec">' + (neu ? 'Neue Aufgabe' : 'Aufgabe ändern') + '</h2>' +
+      '<section class="card"><div class="raster">' +
+      feld('f_thema', 'Thema', f.thema) +
+      feld('f_bereich', 'Bereich (z. B. loeschen)', f.bereich) +
+      '<label class="feld">Stufe<select id="f_stufe" class="klein">' +
+      [1, 2, 3].map(function (n) {
+        return '<option value="' + n + '"' + (Number(f.schwierigkeit) === n ? ' selected' : '') + '>' + n + '</option>';
+      }).join('') + '</select></label>' +
+      '<label class="feld">Art<select id="f_art" class="klein">' +
+      Object.keys(ARTEN).map(function (k) {
+        return '<option value="' + k + '"' + (art === k ? ' selected' : '') + '>' + esc(ARTEN[k].name) + '</option>';
+      }).join('') + '</select></label>' +
+      '</div>' +
+      '<div style="margin-top:14px">' + feld('f_frage', 'Frage', f.frage) + '</div>' +
+      mitte +
+      '<div style="margin-top:14px">' + feld('f_erklaerung', 'Erklärung nach der Antwort', f.erklaerung) + '</div>' +
+      '<div class="knopfreihe"><button class="btn" id="fspeichern">Speichern</button>' +
+      '<button class="btn ghost" id="fzu">Abbrechen</button></div><div id="ffehler"></div></section>';
+
+    el('fzu').onclick = function () { el('fformular').innerHTML = ''; };
+    el('fspeichern').onclick = function () { frageSpeichern(id); };
+    el('f_art').onchange = function () {
+      var v = formularLesen();
+      // Antworten und Stellen lassen sich nicht ineinander übersetzen.
+      if ((v.art === 'beschriften') !== (art === 'beschriften')) v.antworten = [];
+      frageFormular(id, v);
+    };
+    if (el('f_grafik')) {
+      el('f_grafik').onchange = function () {
+        var v = formularLesen();
+        v.antworten = [];                // neues Bild, alle Stellen an
+        frageFormular(id, v);
+      };
+      document.querySelectorAll('[data-punkt]').forEach(function (c) { c.onchange = grafikVorschau; });
+      grafikVorschau();
+    }
+    el('f_frage').focus();
+    hinspringen('fformular');
+  }
+
+  function frageSpeichern(id) {
+    var art = el('f_art') ? el('f_art').value : 'wahl';
+    if (!ARTEN[art]) art = 'wahl';
+    var ant = [], richtige = [];
+    for (var i = 0; i < ANTWORTFELDER; i++) {
+      var e = el('f_a' + i);
+      if (!e) continue;
+      var v = e.value.trim();
+      var r = el('f_r' + i);
+      ant.push(v);
+      if (v && r && r.checked) richtige.push(v);
+    }
+    var frage = el('f_frage').value.trim();
+    var loesung = el('f_loesung') ? el('f_loesung').value.trim() : '';
+    var grafik = el('f_grafik') ? el('f_grafik').value : '';
+    if (art === 'beschriften') {
+      ant = [];
+      document.querySelectorAll('[data-punkt]').forEach(function (c) {
+        if (c.checked) ant.push(c.getAttribute('data-punkt'));
+      });
+      richtige = [];
+    }
+    var gefuellt = ant.filter(function (a) { return a; });
+    var doppelt = gefuellt.length !== gefuellt.filter(function (a, i2) { return gefuellt.indexOf(a) === i2; }).length;
+
+    var fehler = null;
+    if (!frage) fehler = 'Die Frage fehlt.';
+    else if (art === 'merken') {
+      if (!loesung) fehler = 'Die Musterlösung fehlt.';
+    } else if (art === 'beschriften') {
+      if (!WA.grafiken[grafik]) fehler = 'Es ist kein Bild ausgewählt.';
+      else if (gefuellt.length < 2) fehler = 'Es müssen mindestens zwei Stellen angekreuzt sein.';
+    } else if (art === 'reihenfolge') {
+      if (gefuellt.length < 3) fehler = 'Es braucht mindestens drei Schritte.';
+      else if (doppelt) fehler = 'Zwei Schritte sind gleich.';
+    } else {
+      if (gefuellt.length < 2) fehler = 'Es braucht mindestens zwei Antworten.';
+      else if (!richtige.length) fehler = 'Es ist keine richtige Antwort angekreuzt.';
+      else if (richtige.length === gefuellt.length) fehler = 'Es sind alle Antworten als richtig angekreuzt – dann gibt es nichts zu entscheiden.';
+      else if (doppelt) fehler = 'Zwei Antworten sind gleich.';
+    }
+    if (fehler) { el('ffehler').innerHTML = '<div class="melden fehler">' + esc(fehler) + '</div>'; return; }
+
+    var thema = (el('f_thema').value.trim() || 'feuer').toLowerCase();
+    var daten = {
+      thema: thema,
+      bereich: (el('f_bereich').value.trim() || 'allgemein').toLowerCase(),
+      schwierigkeit: Number(el('f_stufe').value) || 2,
+      art: art,
+      frage: frage,
+      antworten: art === 'merken' ? [] : gefuellt,
+      richtig: art === 'wahl' ? richtige : [],
+      loesung: art === 'merken' ? loesung : '',
+      grafik: art === 'beschriften' ? grafik : '',
+      erklaerung: el('f_erklaerung').value.trim(),
+      aktiv: true
+    };
+    var schluessel = id || (thema.slice(0, 4) + '-' + Date.now().toString(36));
+    el('ffehler').innerHTML = '<div class="melden">Wird gespeichert …</div>';
+    db.collection('quizfragen').doc(schluessel).set(daten)
+      .then(function () { melde('Frage gespeichert.'); el('fformular').innerHTML = ''; laden(); })
+      .catch(function (e) {
+        el('ffehler').innerHTML = '<div class="melden fehler">Fehlgeschlagen: ' + esc(e.message) +
+          (e.code === 'permission-denied'
+            ? '<br>Wahrscheinlich fehlt der Block für <b>quizfragen</b> in den Firestore-Regeln.' : '') + '</div>';
+      });
+  }
+
+  // Die mitgelieferten Fragen in die Datenbank schreiben. Fragen mit
+  // derselben Kennung werden überschrieben, neue kommen dazu, eigene
+  // bleiben unberührt. Nötig, wenn zu einer bestehenden Sammlung
+  // korrigierte oder neue Fragen dazukommen.
+  function fragenUebernehmen(abgleich) {
+    var liste = WA.fragen || [];
+    if (!liste.length) return;
+    if (abgleich) {
+      var vorhanden = {}, neue = 0, geaendert = 0;
+      fragen.forEach(function (f) { vorhanden[f.id] = f; });
+      liste.forEach(function (f) {
+        if (!vorhanden[f.id]) neue++;
+        else if (JSON.stringify(vorhanden[f.id].richtig) !== JSON.stringify(f.richtig) ||
+                 JSON.stringify(vorhanden[f.id].antworten) !== JSON.stringify(f.antworten) ||
+                 (vorhanden[f.id].art || 'wahl') !== (f.art || 'wahl') ||
+                 (vorhanden[f.id].loesung || '') !== (f.loesung || '') ||
+                 (vorhanden[f.id].grafik || '') !== (f.grafik || '') ||
+                 vorhanden[f.id].frage !== f.frage ||
+                 vorhanden[f.id].erklaerung !== f.erklaerung) geaendert++;
+      });
+      if (!neue && !geaendert) { melde('Alles ist schon auf dem neuesten Stand.'); zeichnen(); return; }
+      if (!confirm('Abgleich mit den mitgelieferten Fragen:\n\n' +
+        neue + ' neue Fragen kommen dazu\n' +
+        geaendert + ' vorhandene Fragen werden überschrieben\n\n' +
+        'Eigene Fragen bleiben unberührt. Fortfahren?')) return;
+    }
+    var paket = db.batch();
+    liste.forEach(function (f) {
+      paket.set(db.collection('quizfragen').doc(f.id), {
+        thema: f.thema, bereich: f.bereich, schwierigkeit: f.schwierigkeit,
+        art: f.art || 'wahl',
+        frage: f.frage, antworten: f.antworten, richtig: f.richtig,
+        loesung: f.loesung || '', grafik: f.grafik || '',
+        erklaerung: f.erklaerung, aktiv: true
+      });
+    });
+    paket.commit()
+      .then(function () { melde(liste.length + ' Fragen übernommen.'); laden(); })
+      .catch(function (e) {
+        melde('Fehlgeschlagen: ' + esc(e.message) +
+          (e.code === 'permission-denied'
+            ? ' Wahrscheinlich fehlt der Block für quizfragen in den Firestore-Regeln.' : ''), 'fehler');
+        zeichnen();
+      });
+  }
+
+  function fragenExport() {
+    var kopf = ['id', 'thema', 'bereich', 'schwierigkeit', 'art', 'frage', 'antworten (mit | getrennt)', 'richtig', 'loesung', 'grafik', 'erklaerung'];
+    var zeilen = [kopf.join(';')].concat(fragen.map(function (f) {
+      return [f.id, f.thema, f.bereich, f.schwierigkeit, f.art || 'wahl', f.frage,
+              (f.antworten || []).join('|'),
+              (Array.isArray(f.richtig) ? f.richtig : [f.richtig]).join('|'),
+              f.loesung || '', f.grafik || '', f.erklaerung]
+        .map(function (x) {
+          // Wie beim Wörter-Export: Semikolons und Anführungszeichen
+          // werden gequotet, nicht stillschweigend ersetzt. Vorher wurde
+          // aus einem ";" im Fragentext ein "," – die Frage kam also
+          // verändert aus dem Export zurück.
+          var t = String(x == null ? '' : x);
+          return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+        }).join(';');
+    }));
+    el('fformular').innerHTML = '<h2 class="sec">Fragen als CSV</h2><section class="card">' +
+      '<div class="hinweis">Zum Sichern oder zum Weiterarbeiten in einer Tabelle.</div>' +
+      '<textarea id="fcsv" spellcheck="false" aria-label="Fragen als CSV" style="min-height:260px"></textarea>' +
+      '<div class="knopfreihe"><button class="btn ghost" id="fzu2">Schließen</button></div></section>';
+    el('fcsv').value = zeilen.join('\n');
+    el('fcsv').select();
+    el('fzu2').onclick = function () { el('fformular').innerHTML = ''; };
+    hinspringen('fformular');
+  }
+
+  function bindeThemen() {
+    var u = el('fragenuebernehmen');
+    if (u) { u.onclick = function () { fragenUebernehmen(false); }; return; }
+    el('fabgleich').onclick = function () { fragenUebernehmen(true); };
+    el('fthema').onchange = function () { filterThema = this.value; zeichnen(); };
+    el('fneu').onclick = function () { frageFormular(null); };
+    el('fexport').onclick = fragenExport;
+    document.querySelectorAll('[data-fbearbeiten]').forEach(function (b) {
+      b.onclick = function () { frageFormular(b.getAttribute('data-fbearbeiten')); };
+    });
+    document.querySelectorAll('[data-floeschen]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-floeschen');
+        var f = fragen.filter(function (x) { return x.id === id; })[0];
+        if (!confirm('Diese Frage löschen?\n\n' + (f ? f.frage : ''))) return;
+        db.collection('quizfragen').doc(id).delete()
+          .then(function () { melde('Frage gelöscht.'); laden(); })
+          .catch(function (e) { alert('Fehler: ' + e.message); });
+      };
+    });
+  }
+
+  // ==========================================================
+  //  Reiter: Auswertung
+  //  Nicht "wer hat wie viel geübt", sondern "welche Wörter machen
+  //  der Klasse Mühe". Gerechnet wird über alle Kinder zusammen.
+  // ==========================================================
+  var auswListe = '';          // Filter auf eine Wortliste
+
+  function wortZahlen() {
+    var sicherAb = WA.config.masteredAfter || 3;
+    var proWort = {};
+    woerter.forEach(function (w) {
+      if (auswListe && w.liste !== auswListe) return;
+      proWort[w.id] = { wort: w, kinder: 0, ok: 0, wr: 0, sicher: 0, unsicher: 0 };
+    });
+    kinder.forEach(function (k) {
+      var f = staende[k.id];
+      if (!f || !f.words) return;
+      Object.keys(f.words).forEach(function (id) {
+        var z = proWort[id];
+        if (!z) return;
+        var st = f.words[id], ok = st.ok || 0, wr = st.wr || 0;
+        if (ok + wr === 0) return;
+        z.kinder++; z.ok += ok; z.wr += wr;
+        if (ok >= sicherAb) z.sicher++; else z.unsicher++;
+      });
+    });
+    return Object.keys(proWort).map(function (id) {
+      var z = proWort[id];
+      z.antworten = z.ok + z.wr;
+      z.quote = z.antworten ? z.ok / z.antworten : null;
+      return z;
+    });
+  }
+
+  function tabAuswertung() {
+    var alle = wortZahlen();
+    var geuebt = alle.filter(function (z) { return z.antworten > 0; });
+    var offen = alle.filter(function (z) { return z.antworten === 0; });
+    var listen = listenNamen();
+
+    if (!geuebt.length) {
+      return '<h2 class="sec">Auswertung</h2><section class="card"><p class="muted">' +
+        'Noch hat niemand genug geübt, um etwas auswerten zu können.</p></section>';
+    }
+
+    var gesamtOk = geuebt.reduce(function (s, z) { return s + z.ok; }, 0);
+    var gesamtWr = geuebt.reduce(function (s, z) { return s + z.wr; }, 0);
+
+    // Für die Rangliste nur Wörter mit etwas Substanz. Ein Wort, das
+    // ein einziges Kind einmal falsch hatte, sagt nichts über die Klasse.
+    var muehe = geuebt.filter(function (z) { return z.antworten >= 4 && z.kinder >= 2 && z.wr > 0; })
+      .sort(function (a, b) { return (a.quote - b.quote) || (b.wr - a.wr); })
+      .slice(0, 10);
+
+    var rang = muehe.length ? '<ol class="muehe">' + muehe.map(function (z) {
+      return '<li><span class="mwort">' + esc(z.wort.wort) + '</span>' +
+        '<span class="mbar"><i style="width:' + Math.round(z.quote * 100) + '%"></i></span>' +
+        '<span class="mzahl">' + Math.round(z.quote * 100) + ' %</span>' +
+        '<span class="muted">' + z.wr + ' Fehler bei ' + z.kinder + ' Kindern</span></li>';
+    }).join('') + '</ol>'
+      : '<p class="muted">Noch kein Wort, das mehreren Kindern Mühe macht. Das ist ein gutes Zeichen.</p>';
+
+    var zeilen = geuebt.slice().sort(function (a, b) {
+      return (a.quote - b.quote) || (b.wr - a.wr) ||
+             String(a.wort.wort).localeCompare(String(b.wort.wort), 'de');
+    }).map(function (z) {
+      return '<tr><td><b>' + esc(z.wort.wort) + '</b>' +
+        (z.wort.liste ? ' <span class="chip">' + esc(z.wort.liste) + '</span>' : '') + '</td>' +
+        '<td class="num">' + z.kinder + '</td>' +
+        '<td class="num">' + z.antworten + '</td>' +
+        '<td class="num">' + z.wr + '</td>' +
+        '<td class="num">' + Math.round(z.quote * 100) + ' %</td>' +
+        '<td class="num">' + z.sicher + '</td>' +
+        '<td class="num">' + z.unsicher + '</td></tr>';
+    }).join('');
+
+    return '<h2 class="sec">Was der Klasse Mühe macht</h2>' +
+      '<div class="hinweis">Gerechnet über alle Kinder zusammen, ohne Namen. ' +
+      'In der Rangliste stehen nur Wörter, die mindestens zwei Kinder und insgesamt ' +
+      'mindestens viermal bearbeitet haben – ein einzelner Fehltipp soll die Liste nicht verzerren. ' +
+      '<b>Sicher</b> heißt: ' + (WA.config.masteredAfter || 3) + ' mal richtig.</div>' +
+
+      '<section class="stats">' +
+      '<div class="card stat"><h3>Geübte Wörter</h3><div class="zahl">' + geuebt.length +
+      '</div><div class="sub muted">von ' + alle.length + ' in der Liste</div></div>' +
+      '<div class="card stat"><h3>Trefferquote der Klasse</h3><div class="zahl">' +
+      Math.round(gesamtOk / (gesamtOk + gesamtWr) * 100) + ' %</div>' +
+      '<div class="sub muted">' + (gesamtOk + gesamtWr) + ' Antworten</div></div>' +
+      '<div class="card stat"><h3>Noch nicht geübt</h3><div class="zahl">' + offen.length +
+      '</div><div class="sub muted">von keinem Kind angefasst</div></div>' +
+      '</section>' +
+
+      '<div class="knopfreihe"><label class="feld" style="flex-direction:row;align-items:center;gap:10px">' +
+      'Wortliste <select id="auswfilter" class="klein"><option value="">alle</option>' +
+      listen.map(function (l) {
+        return '<option value="' + esc(l.name) + '"' + (auswListe === l.name ? ' selected' : '') + '>' +
+          esc(l.name) + ' (' + l.anzahl + ')</option>';
+      }).join('') + '</select></label></div>' +
+
+      '<h2 class="sec">Die schwersten Wörter' + (muehe.length ? ' (' + muehe.length + ')' : '') +
+      '</h2><section class="card">' + rang + '</section>' +
+
+      (offen.length ? '<h2 class="sec">Noch nicht geübt</h2><section class="card"><div class="chips2">' +
+        offen.slice(0, 60).map(function (z) { return '<span class="chip">' + esc(z.wort.wort) + '</span>'; }).join('') +
+        (offen.length > 60 ? '<span class="muted"> … und ' + (offen.length - 60) + ' weitere</span>' : '') +
+        '</div></section>' : '') +
+
+      '<h2 class="sec">Alle geübten Wörter</h2><section class="card"><div class="tabwrap">' +
+      '<table class="tabelle"><thead><tr><th>Wort</th><th>Kinder</th><th>Antworten</th>' +
+      '<th>Fehler</th><th>richtig</th><th>sicher</th><th>noch nicht</th></tr></thead>' +
+      '<tbody>' + zeilen + '</tbody></table></div></section>';
+  }
+
+  function bindeAuswertung() {
+    var f = el('auswfilter');
+    if (f) f.onchange = function () { auswListe = f.value; zeichnen(); };
+  }
+
+  // ==========================================================
+  //  Reiter: Sicherung
+  //  Firestore legt im kostenlosen Tarif keine Sicherungen an.
+  //  Hier holst du dir alles als eine Datei und kannst sie
+  //  zurückspielen. Wiederhergestellt wird nur, was in der Datei
+  //  steht – nichts wird dabei gelöscht.
+  // ==========================================================
+  var SAMMLUNGEN = ['kinder', 'lernwoerter', 'quizfragen', 'einstellungen', 'klassenwochen', 'fortschritt', 'bilder'];
+  var sicherungInhalt = null;      // eingelesene Datei, noch nicht geschrieben
+
+  function tabSicherung() {
+    var stand = sicherungInhalt;
+    var pruefung = '';
+
+    if (stand) {
+      var zeilen = SAMMLUNGEN.map(function (c) {
+        var n = (stand.daten && stand.daten[c] ? Object.keys(stand.daten[c]).length : 0);
+        return '<tr><td>' + c + '</td><td class="num">' + n + '</td></tr>';
+      }).join('');
+      pruefung = '<h2 class="sec">Gelesene Datei</h2><section class="card">' +
+        '<div class="hinweis">Gesichert am <b>' + esc(stand.erstellt || 'unbekannt') + '</b>' +
+        (stand.mitBildern ? ' – mit Bildern.' : ' – ohne Bilder.') +
+        '<br>Beim Zurückspielen werden diese Datensätze überschrieben. Datensätze, die es ' +
+        'nur in der Datenbank gibt, bleiben unberührt. <b>Vorher am besten eine frische ' +
+        'Sicherung herunterladen.</b></div>' +
+        '<div class="tabwrap"><table class="tabelle"><thead><tr><th>Sammlung</th><th>Datensätze</th></tr></thead>' +
+        '<tbody>' + zeilen + '</tbody></table></div>' +
+        '<div class="knopfreihe"><button class="btn danger" id="spieleein">Jetzt zurückspielen</button>' +
+        '<button class="btn ghost" id="verwerfen">Abbrechen</button></div>' +
+        '<div id="einspielmeldung"></div></section>';
+    }
+
+    return '<h2 class="sec">Sicherung</h2>' +
+      '<div class="hinweis">Firebase legt im kostenlosen Tarif <b>keine</b> Sicherungen an. ' +
+      'Wenn hier etwas kaputtgeht, ist es weg. Lade dir deshalb regelmäßig – zum Beispiel ' +
+      'am Ende jeder Woche – eine Sicherung herunter und leg sie zu deinen Unterlagen.</div>' +
+      '<section class="card">' +
+      '<div class="raster">' +
+      '<div><b>Freigeschaltete Kinder:</b> ' + kinder.length + '<br>' +
+      '<b>Lernwörter:</b> ' + woerter.length + '</div>' +
+      '<div class="typen"><label><input type="checkbox" id="mitbildern" checked> ' +
+      'Bilder der Kinder mitsichern</label></div>' +
+      '</div>' +
+      '<div class="knopfreihe"><button class="btn" id="sicherungab">Sicherung herunterladen</button></div>' +
+      '<div id="sicherungmeldung"></div></section>' +
+
+      '<h2 class="sec">Zurückspielen</h2><section class="card">' +
+      '<div class="hinweis">Wähle eine zuvor heruntergeladene Datei. Du siehst erst, was darin ' +
+      'steht, und entscheidest dann.</div>' +
+      '<label class="nurvorlesen" for="sicherungdatei">Sicherungsdatei wählen</label>' +
+      '<input type="file" id="sicherungdatei" accept="application/json,.json">' +
+      '</section>' + pruefung;
+  }
+
+  function alleHolen(mitBildern) {
+    var aufgaben = SAMMLUNGEN.filter(function (c) { return c !== 'bilder' || mitBildern; })
+      .map(function (c) {
+        return db.collection(c).get().then(function (snap) {
+          var raus = {};
+          snap.forEach(function (d) { raus[d.id] = d.data(); });
+          return [c, raus];
+        });
+      });
+    return Promise.all(aufgaben).then(function (teile) {
+      var daten = {};
+      teile.forEach(function (t) { daten[t[0]] = t[1]; });
+      return daten;
+    });
+  }
+
+  function sicherungHerunterladen() {
+    var mitBildern = el('mitbildern').checked;
+    var m = el('sicherungmeldung');
+    m.innerHTML = '<div class="melden">Wird zusammengestellt …</div>';
+    alleHolen(mitBildern).then(function (daten) {
+      var jetzt = new Date();
+      var stempel = jetzt.getFullYear() + '-' + ('0' + (jetzt.getMonth() + 1)).slice(-2) +
+                    '-' + ('0' + jetzt.getDate()).slice(-2);
+      var paket = { format: 'perlentaucher-sicherung', version: 1,
+                    erstellt: jetzt.toLocaleString('de-DE'), mitBildern: mitBildern, daten: daten };
+      var text = JSON.stringify(paket);
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      a.download = 'perlentaucher-sicherung-' + stempel + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+      var anzahl = SAMMLUNGEN.reduce(function (s, c) {
+        return s + (daten[c] ? Object.keys(daten[c]).length : 0); }, 0);
+      m.innerHTML = '<div class="melden ok">Sicherung heruntergeladen: ' + anzahl +
+        ' Datensätze, ' + Math.round(text.length / 1024) + ' KB.</div>';
+    }).catch(function (e) {
+      m.innerHTML = '<div class="melden fehler">Fehlgeschlagen: ' + esc(e.message) + '</div>';
+    });
+  }
+
+  function dateiLesen(datei) {
+    var leser = new FileReader();
+    leser.onload = function () {
+      try {
+        var p = JSON.parse(leser.result);
+        if (p.format !== 'perlentaucher-sicherung') throw new Error('Das ist keine Perlentaucher-Sicherung.');
+        sicherungInhalt = p;
+        melde('Datei gelesen. Schau dir unten an, was darin steht.');
+      } catch (e) {
+        sicherungInhalt = null;
+        melde('Datei konnte nicht gelesen werden: ' + esc(e.message), 'fehler');
+      }
+      zeichnen();
+    };
+    leser.readAsText(datei);
+  }
+
+  // Firestore verkraftet 500 Schreibvorgänge je Paket.
+  function inPaketenSchreiben(liste, fertig, m) {
+    if (!liste.length) return Promise.resolve(fertig);
+    var teil = liste.slice(0, 400), rest = liste.slice(400);
+    var paket = db.batch();
+    teil.forEach(function (x) { paket.set(db.collection(x.c).doc(x.id), x.daten); });
+    return paket.commit().then(function () {
+      fertig += teil.length;
+      m.innerHTML = '<div class="melden">' + fertig + ' Datensätze geschrieben …</div>';
+      return inPaketenSchreiben(rest, fertig, m);
+    });
+  }
+
+  function zurueckspielen() {
+    var m = el('einspielmeldung');
+    var alles = [];
+    SAMMLUNGEN.forEach(function (c) {
+      var teil = sicherungInhalt.daten[c] || {};
+      Object.keys(teil).forEach(function (id) { alles.push({ c: c, id: id, daten: teil[id] }); });
+    });
+    if (!alles.length) { m.innerHTML = '<div class="melden fehler">Die Datei enthält keine Datensätze.</div>'; return; }
+    m.innerHTML = '<div class="melden">Wird zurückgespielt …</div>';
+    inPaketenSchreiben(alles, 0, m).then(function (n) {
+      sicherungInhalt = null;
+      melde(n + ' Datensätze zurückgespielt.');
+      bilderVon = {};
+      laden();
+    }).catch(function (e) {
+      m.innerHTML = '<div class="melden fehler">Abgebrochen nach einem Fehler: ' + esc(e.message) +
+        '<br>Es kann sein, dass ein Teil schon geschrieben wurde. Spiel die Datei noch einmal ein.</div>';
+    });
+  }
+
+  function bindeSicherung() {
+    el('sicherungab').onclick = sicherungHerunterladen;
+    el('sicherungdatei').onchange = function () { if (this.files[0]) dateiLesen(this.files[0]); };
+    var w = el('verwerfen');
+    if (w) w.onclick = function () { sicherungInhalt = null; zeichnen(); };
+    var s = el('spieleein');
+    if (s) s.onclick = function () {
+      if (s.getAttribute('data-sicher')) { zurueckspielen(); return; }
+      s.setAttribute('data-sicher', '1');
+      s.textContent = 'Wirklich überschreiben? Noch einmal tippen.';
+    };
+  }
+
+  function bindeBilder() {
+    // Beim Öffnen des Reiters einmal alles holen – ohne Knopfdruck.
+    if (!bilderLaufen) { bilderAlleHolen(); return; }
+    document.querySelectorAll('[data-gross]').forEach(function (b) {
+      b.onclick = function () {
+        bildSchau(b.getAttribute('data-gross'), b.getAttribute('data-bnr'));
+      };
+    });
+  }
+
+  function bindeKinder() {
+    el('importieren').onclick = importiereKinder;
+    document.querySelectorAll('[data-reset]').forEach(function (b) {
+      b.onclick = function () { resetFragen(b.getAttribute('data-reset')); };
+    });
+    document.querySelectorAll('[data-kindweg]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-kindweg');
+        var k = kinder.filter(function (x) { return x.id === id; })[0];
+        if (!confirm('Zugang von ' + k.vorname + ' sperren?\n\nDer Aufkleber funktioniert danach nicht mehr. ' +
+          'Der Spielstand bleibt gespeichert und kommt zurück, wenn du denselben Code erneut freischaltest.')) return;
+        db.collection('kinder').doc(id).delete()
+          .then(function () { melde('Zugang von ' + esc(k.vorname) + ' gesperrt.'); laden(); })
+          .catch(function (e) { alert('Fehler: ' + e.message); });
+      };
+    });
+    document.querySelectorAll('[data-auskunft]').forEach(function (b) {
+      b.onclick = function () { auskunft(b.getAttribute('data-auskunft')); };
+    });
+    document.querySelectorAll('[data-kindloeschen]').forEach(function (b) {
+      b.onclick = function () { kindLoeschenFragen(b.getAttribute('data-kindloeschen')); };
+    });
+    if (el('alteraeumen')) el('alteraeumen').onclick = alteAufraeumen;
+  }
+
+  // ==========================================================
+  //  Auskunft, Löschung, Aufräumen (DSGVO Art. 15, 17, 5 Abs. 1 lit. e)
+  // ==========================================================
+
+  // Alles, was zu einem Kind gespeichert ist, als Datei.
+  // Damit lässt sich ein Auskunftsersuchen in einem Schritt beantworten.
+  function auskunft(id) {
+    var k = kinder.filter(function (x) { return x.id === id; })[0];
+    if (!k) return;
+    melde('Auskunft für ' + esc(k.vorname) + ' wird zusammengestellt …');
+    Promise.all([
+      db.collection('kinder').doc(id).get(),
+      db.collection('fortschritt').doc(id).get(),
+      db.collection('bilder').where('code', '==', id).get()
+    ]).then(function (r) {
+      var bilder = [];
+      r[2].forEach(function (d) { bilder.push(Object.assign({ _id: d.id }, d.data())); });
+      var daten = {
+        hinweis: 'Alle Daten, die in der Lernplattform Perlentaucher zu diesem Kind gespeichert sind.',
+        erstellt: new Date().toISOString(),
+        kind: r[0].exists ? r[0].data() : null,
+        zugangscode: id.toUpperCase(),
+        fortschritt: r[1].exists ? r[1].data() : null,
+        bilder: bilder
+      };
+      alsDateiSichern('auskunft-' + k.vorname.toLowerCase().replace(/[^a-z0-9]/g, '') + '-' +
+        heuteFuerDateiname() + '.json', JSON.stringify(daten, null, 2));
+      melde('Auskunft für ' + esc(k.vorname) + ' heruntergeladen: ' +
+        (daten.fortschritt ? 'Fortschritt' : 'kein Fortschritt') + ', ' + bilder.length + ' Bilder.');
+    }).catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
+  }
+
+  // Endgültig löschen: Kindeintrag, Fortschritt und alle Bilder.
+  //
+  // Der Firebase-Anmeldezugang des Kindes bleibt bestehen – den kann nur
+  // die Firebase-Konsole entfernen. Er enthält aber nichts außer dem
+  // Code; ohne Eintrag in "kinder" kommt er an keine Daten mehr.
+  function kindLoeschen(id) {
+    var k = kinder.filter(function (x) { return x.id === id; })[0];
+    if (!k) return Promise.resolve();
+    return db.collection('bilder').where('code', '==', id).get()
+      .then(function (snap) {
+        var paket = db.batch();
+        snap.forEach(function (d) { paket.delete(d.ref); });
+        paket.delete(db.collection('fortschritt').doc(id));
+        paket.delete(db.collection('kinder').doc(id));
+        return paket.commit().then(function () { return snap.size; });
+      });
+  }
+
+  function kindLoeschenFragen(id) {
+    var k = kinder.filter(function (x) { return x.id === id; })[0];
+    if (!k) return;
+    if (!confirm('Alle Daten von ' + k.vorname + ' endgültig löschen?\n\n' +
+        'Fortschritt und alle gemalten Bilder werden entfernt, der Zugang erlischt. ' +
+        'Das lässt sich nicht rückgängig machen.\n\n' +
+        'Tipp: Vorher „Auskunft" anklicken, wenn du eine Kopie behalten willst.')) return;
+    if (!confirm('Wirklich sicher? ' + k.vorname + ' wird vollständig gelöscht.')) return;
+    melde('Wird gelöscht …');
+    kindLoeschen(id)
+      .then(function (n) { melde(esc(k.vorname) + ' gelöscht: Fortschritt und ' + n + ' Bilder entfernt.'); laden(); })
+      .catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
+  }
+
+  // Aufräumen am Schuljahresende: alle Kinder, die seit X Tagen nicht
+  // mehr geübt haben, in einem Zug löschen.
+  function alteAufraeumen() {
+    var eingabe = prompt('Kinder löschen, die seit wie vielen Tagen nicht mehr geübt haben?\n\n' +
+      'Ein Schuljahr sind etwa 200 Tage. Kinder, die sich noch nie angemeldet haben, zählen mit.', '200');
+    if (eingabe === null) return;
+    var grenze = parseInt(eingabe, 10);
+    if (!(grenze >= 0)) { melde('Das war keine Zahl.', 'fehler'); return; }
+
+    var treffer = kinder.filter(function (k) {
+      var d = tageHer(letzterTag(staende[k.id]));
+      return d === null || d >= grenze;
+    });
+    if (!treffer.length) { melde('Kein Kind ist so lange inaktiv. Es wurde nichts gelöscht.'); return; }
+    if (!confirm('Diese ' + treffer.length + ' Kinder endgültig löschen?\n\n' +
+        treffer.map(function (k) { return '• ' + k.vorname; }).join('\n') +
+        '\n\nFortschritt und Bilder werden entfernt. Das lässt sich nicht rückgängig machen.')) return;
+    if (!confirm('Wirklich sicher? ' + treffer.length + ' Kinder werden vollständig gelöscht.')) return;
+
+    melde(treffer.length + ' Kinder werden gelöscht …');
+    var kette = Promise.resolve(0);
+    treffer.forEach(function (k) {
+      kette = kette.then(function (summe) {
+        return kindLoeschen(k.id).then(function (n) { return summe + n; });
+      });
+    });
+    kette.then(function (bilder) {
+      melde(treffer.length + ' Kinder gelöscht, dabei ' + bilder + ' Bilder entfernt.'); laden();
+    }).catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
+  }
+
+  // ---------- Fortschritt zurücksetzen ----------
+  // Es wird nicht gelöscht, sondern ein leerer Stand mit aktuellem
+  // Zeitstempel geschrieben. Sonst würde das iPad des Kindes seinen
+  // zwischengespeicherten Stand beim nächsten Start zurückschreiben.
+  function wochenBeitrag(f) {
+    if (!f || !f.days) return 0;
+    var now = new Date(), dow = (now.getDay() + 6) % 7, summe = 0;
+    for (var i = 0; i <= dow; i++) {
+      var d = new Date(); d.setDate(d.getDate() - i);
+      var k = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+      summe += f.days[k] || 0;
+    }
+    return summe;
+  }
+
+  function resetFragen(id) {
+    var k = kinder.filter(function (x) { return x.id === id; })[0];
+    if (!staende[id]) {
+      melde(esc(k.vorname) + ' hat noch nie geübt, es gibt nichts zurückzusetzen.', 'fehler');
+      zeichnen(); return;
+    }
+    var f = staende[id];
+    var woerter = f.words ? Object.keys(f.words).length : 0;
+    var abz = f.badges ? Object.keys(f.badges).length : 0;
+    var feld = el('resetfeld');
+    feld.innerHTML = '<h2 class="sec">' + esc(k.vorname) + ' zurücksetzen</h2><section class="card">' +
+      '<div class="hinweis">Aktueller Stand: <b>' + (f.xp || 0) + ' Perlen</b>, ' +
+      (f.lessons || 0) + ' Tauchgänge, ' + woerter + ' geübte Wörter, ' + abz + ' Abzeichen.<br>' +
+      'Davon in dieser Woche: <b>' + wochenBeitrag(f) + ' Perlen</b>. Diese werden auch vom Klassenziel abgezogen.</div>' +
+      '<div class="knopfreihe">' +
+      '<button class="btn" data-tun="perlen" data-id="' + esc(id) + '">Nur die Perlen zurücksetzen</button>' +
+      '<button class="btn bad" data-tun="alles" data-id="' + esc(id) + '">Alles zurücksetzen</button>' +
+      '<button class="btn ghost" id="resetab">Abbrechen</button></div>' +
+      '<p class="muted" style="margin-top:12px;font-size:15px">' +
+      '<b>Nur die Perlen:</b> Perlen, Tagesziele und Rekorde gehen auf null. Welche Wörter schon ' +
+      'sitzen und welche Abzeichen verdient sind, bleibt erhalten.<br>' +
+      '<b>Alles:</b> Das Kind fängt bei null an, auch die Wortstatistik und die Abzeichen sind weg.</p>' +
+      '<div id="resetmeldung"></div></section>';
+    feld.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el('resetab').onclick = function () { feld.innerHTML = ''; };
+    feld.querySelectorAll('[data-tun]').forEach(function (b) {
+      b.onclick = function () { zuruecksetzen(b.getAttribute('data-id'), b.getAttribute('data-tun') === 'alles'); };
+    });
+  }
+
+  function zuruecksetzen(id, alles) {
+    var f = staende[id] || {}, woche = wochenBeitrag(f), jetzt = Date.now();
+    var meld = el('resetmeldung');
+    meld.innerHTML = '<div class="melden">Wird zurückgesetzt …</div>';
+
+    // resetAt sagt dem Gerät des Kindes: Das hier ist kein normaler
+    // Abgleich, sondern ein gewolltes Zurücksetzen. Ohne diese Marke
+    // holt der Dreiwege-Vergleich Abzeichen und Rekorde zurück.
+    // Das Schema steht in js/config.js (WA.leererStand) – nur dort
+    // pflegen, sonst schreibt das Zurücksetzen unvollständige Sätze.
+    var leer = Object.assign(WA.leererStand(jetzt), { resetAt: jetzt, updatedAt: jetzt });
+    // Die gemalten Bilder liegen in einer eigenen Sammlung und
+    // bleiben unberührt. Nur das Zeitguthaben wird auf null gesetzt.
+    if (f.mal) { leer.mal = Object.assign({}, f.mal, { rest: 0, frisch: 0 }); }
+    var neu = alles ? leer : Object.assign({}, f, {
+      xp: 0, xpGemeldet: 0, days: {}, best: { day: 0, lesson: 0 },
+      resetAt: jetzt, updatedAt: jetzt });
+
+    var p = Promise.resolve();
+    if (woche > 0 && klassenPerlen !== null) {
+      p = db.collection('klassenwochen').doc(WA.cloud.wochenSchluessel())
+            .set({ perlen: Math.max(0, klassenPerlen - woche) }, { merge: true });
+    }
+    p.then(function () { return db.collection('fortschritt').doc(id).set(neu); })
+     .then(function () {
+       var k = kinder.filter(function (x) { return x.id === id; })[0];
+       melde(esc(k.vorname) + ' zurückgesetzt' + (woche > 0 ? ', ' + woche + ' Perlen vom Klassenziel abgezogen.' : '.') +
+             ' Das Gerät des Kindes übernimmt es, sobald die App dort geöffnet wird oder speichert – ' +
+             'solange steht in der Tabelle „Gerät noch nicht".');
+       el('resetfeld').innerHTML = '';
+       laden();
+     })
+     .catch(function (e) {
+       meld.innerHTML = '<div class="melden fehler">Fehlgeschlagen: ' + esc(e.message) +
+         (e.code === 'permission-denied'
+           ? '<br>Wahrscheinlich sind die Firestore-Regeln noch nicht aktualisiert.' : '') + '</div>';
+     });
+  }
+
+  function importiereKinder() {
+    var erg = el('ergebnis'), txt = el('json').value.trim(), liste;
+    try {
+      liste = JSON.parse(txt);
+      if (!Array.isArray(liste)) throw new Error('Es wird eine Liste erwartet.');
+    } catch (e) {
+      erg.innerHTML = '<div class="melden fehler">Die Datei konnte nicht gelesen werden: ' + esc(e.message) + '</div>';
+      return;
+    }
+
+    var gut = [], schlecht = [];
+    liste.forEach(function (k, i) {
+      var code = String(k && k.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var name = String(k && k.vorname || '').trim();
+      if (!/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/.test(code) || !name) schlecht.push(i + 1);
+      else gut.push({ id: code.toLowerCase(), vorname: name });
+    });
+
+    if (schlecht.length) {
+      erg.innerHTML = '<div class="melden fehler">Fehlerhafte Einträge an Position ' + schlecht.join(', ') +
+        '. Es wurde nichts gespeichert.</div>';
+      return;
+    }
+
+    erg.innerHTML = '<div class="melden">Wird gespeichert …</div>';
+    var batch = db.batch();
+    gut.forEach(function (k) {
+      batch.set(db.collection('kinder').doc(k.id), { vorname: k.vorname, angelegt: Date.now() }, { merge: true });
+    });
+    batch.commit().then(function () { melde(gut.length + ' Kinder freigeschaltet.'); laden(); })
+      .catch(function (e) { erg.innerHTML = '<div class="melden fehler">Speichern fehlgeschlagen: ' + esc(e.message) + '</div>'; });
+  }
+})();
+</script>
+</body>
+</html>

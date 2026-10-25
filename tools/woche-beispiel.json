@@ -1,0 +1,58 @@
+{
+  "liste": "Merkwörter Klasse 3",
+  "kommentar": "Lernwörter der Woche vom TT.MM.JJJJ",
+  "csv": "",
+  "woerter": [
+    {
+      "wort": "Festlichkeit",
+      "artikel": "die",
+      "silben": "Fest-lich-keit",
+      "wortart": "Nomen",
+      "gruppe": "zeit",
+      "bedeutung": "ein großes Fest, das man zusammen feiert",
+      "satz": "Zu der Festlichkeit kamen alle Nachbarn.",
+      "duden": "Fest-lich-keit|die"
+    },
+    {
+      "wort": "gespenstisch",
+      "silben": "ge-spens-tisch",
+      "wortart": "Adjektiv",
+      "gruppe": "adjektiv",
+      "bild": "👻",
+      "bedeutung": "so unheimlich, als wäre ein Geist in der Nähe",
+      "satz": "Im Nebel sieht der Garten gespenstisch aus.",
+      "duden": "ge-spens-tisch|"
+    },
+    {
+      "wort": "Kelten",
+      "artikel": "die",
+      "zahl": "mehrzahl",
+      "silben": "Kel-ten",
+      "wortart": "Nomen",
+      "gruppe": "person",
+      "bedeutung": "die Menschen, die vor langer Zeit in Europa lebten",
+      "satz": "Die Kelten feierten schon vor langer Zeit ein Fest im Herbst.",
+      "ohne_beleg": "Duden führt nur die Einzahl Kel|te (der Kelte, Plural die Kelten). Trennung daraus flektiert; zahl=mehrzahl, damit die Artikelfrage entfällt."
+    },
+    {
+      "wort": "Video",
+      "silben": "Vi-de-o",
+      "trennung": "Vi-deo",
+      "artikel": "das",
+      "wortart": "Nomen",
+      "gruppe": "technik",
+      "bedeutung": "ein kurzer Film, den man auf einem Bildschirm anschaut",
+      "satz": "Wir haben im Unterricht ein Video angeschaut.",
+      "duden": "Vi-deo|das"
+    },
+    {
+      "wort": "viel",
+      "silben": "viel",
+      "wortart": "anderes",
+      "gruppe": "zahl",
+      "funktionswort": true,
+      "satz": "Heute habe ich viel geschafft.",
+      "duden": "viel|"
+    }
+  ]
+}
