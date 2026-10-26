@@ -28,6 +28,8 @@ Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukom
 | `css/style.css` | Das gesamte Aussehen |
 | `tools/qr_aufkleber.py` | Erzeugt den Druckbogen mit den QR-Zugangsaufklebern |
 | `tools/silben.py` | Sprechsilben und Worttrennung nach Duden |
+| `tools/rauchtest.html` | Rauchtest der Kinder-App: Anmeldung, Tauchgänge, Speichern – mit Firebase-Attrappe, ohne echte Datenbank |
+| `tools/server.ps1` | Kleiner Webserver für den Rauchtest: `powershell -ExecutionPolicy Bypass -File tools\server.ps1`, dann `http://localhost:8123/tools/rauchtest.html` |
 
 ## Fächer und Sachthemen
 
