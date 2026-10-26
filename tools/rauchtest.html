@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<title>Perlentaucher – Rauchtest</title>
+<!--
+  Rauchtest für die Kinder-App (index.html).
+
+  Starten:   powershell -ExecutionPolicy Bypass -File tools\server.ps1
+  Öffnen:    http://localhost:8123/tools/rauchtest.html
+
+  Die App läuft hier mit einer Firebase-Attrappe (tools/test/
+  firebase-attrappe.js). Nichts geht an die echte Datenbank.
+  Geprüft wird das echte index.html mit allen echten Skripten; nur die
+  drei Firebase-Skripte werden beim Laden ausgetauscht.
+
+  Ergebnis: Liste auf der Seite, Seitentitel beginnt mit OK oder FEHLER,
+  und window.RAUCHTEST hält { fertig, ok, fehler, liste } für Werkzeuge.
+-->
+<style>
+  body { font: 15px/1.45 system-ui, sans-serif; margin: 16px; background: #F4F9FB; color: #13323B; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  #stand { font-weight: 700; margin: 8px 0 12px; }
+  #stand.ok { color: #1F7A3A; } #stand.fehler { color: #B3261E; }
+  ol { padding-left: 22px; } li { margin: 3px 0; }
+  li.ok::marker { color: #1F7A3A; } li.fehler { color: #B3261E; }
+  li small { color: #5A7680; display: block; }
+  iframe { width: 390px; height: 700px; border: 1px solid #B9D3DC; border-radius: 8px; background: #fff; }
+  .raster { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+  .raster > div { flex: 1 1 320px; min-width: 0; }
+</style>
+</head>
+<body>
+<h1>Perlentaucher – Rauchtest</h1>
+<div id="stand">läuft …</div>
+<div class="raster">
+  <div><ol id="liste"></ol></div>
+  <iframe id="app" title="App im Test"></iframe>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var CODE = 'TEST2345';                        // passt zum Code-Format der App
+  var MAIL = CODE.toLowerCase() + '@lernplattform-44aa1.firebaseapp.com';
+  var FREMD = 'ZZZZ9999';                        // nicht freigeschaltet
+  var rahmen = document.getElementById('app');
+  var ergebnis = window.RAUCHTEST = { fertig: false, ok: 0, fehler: 0, liste: [] };
+  var quelltext = null;                          // index.html, einmal geholt
+
+  // ---------- Hilfen ----------
+  function pause(ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); }
+
+  function warteAuf(beschreibung, f, ms) {
+    var bis = Date.now() + (ms || 8000);
+    return new Promise(function (ok, nein) {
+      (function versuch() {
+        var x; try { x = f(); } catch (e) { x = null; }
+        if (x) return ok(x);
+        if (Date.now() > bis) return nein(new Error('Zeit abgelaufen: ' + beschreibung));
+        setTimeout(versuch, 40);
+      })();
+    });
+  }
+
+  function win() { return rahmen.contentWindow; }
+  function doc() { return rahmen.contentDocument; }
+  function q(sel) { return doc().querySelector(sel); }
+  function klick(sel) {
+    var el = typeof sel === 'string' ? q(sel) : sel;
+    if (!el) throw new Error('Nicht gefunden: ' + sel);
+    if (el.disabled) throw new Error('Gesperrt: ' + sel);
+    el.click();
+  }
+  function pruefe(bed, text) { if (!bed) throw new Error(text); }
+
+  function eintragen(name, ok, info) {
+    var li = document.createElement('li');
+    li.className = ok ? 'ok' : 'fehler';
+    li.textContent = (ok ? 'OK  ' : 'FEHLER  ') + name;
+    if (info) { var s = document.createElement('small'); s.textContent = info; li.appendChild(s); }
+    document.getElementById('liste').appendChild(li);
+    ergebnis.liste.push({ name: name, ok: ok, info: info || '' });
+    if (ok) ergebnis.ok++; else ergebnis.fehler++;
+  }
+
+  // Ein Test = ein Name und eine async-Funktion. Am Ende wird geprüft,
+  // ob in der App ein Skriptfehler aufgetreten ist.
+  function test(name, f) {
+    return Promise.resolve().then(f).then(function (info) {
+      var fe = (win() && win().FEHLER) || [];
+      if (fe.length) throw new Error('Skriptfehler in der App: ' + fe.join(' | '));
+      eintragen(name, true, info);
+    }, function (e) {
+      eintragen(name, false, e && e.message ? e.message : String(e));
+    });
+  }
+
+  // ---------- App laden ----------
+  // modus: 'attrappe' (Firebase-Attrappe) oder 'offline' (gar kein Firebase)
+  function appLaden(opt) {
+    opt = opt || {};
+    try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+    window.SZENARIO = { daten: opt.daten || {}, konten: opt.konten || {} };
+
+    var html = quelltext;
+    var fb = /<script src="https:\/\/www\.gstatic\.com\/firebasejs\/[^"]+"><\/script>\s*/g;
+    var treffer = html.match(fb) || [];
+    if (treffer.length !== 3) {
+      return Promise.reject(new Error('index.html bindet ' + treffer.length +
+        ' statt 3 Firebase-Skripte ein – Test und App passen nicht mehr zusammen.'));
+    }
+    var ersatz = opt.modus === 'offline' ? '' :
+      '<script>window.ATTRAPPE = parent.SZENARIO;<\/script>' +
+      '<script src="tools/test/firebase-attrappe.js"><\/script>\n';
+    var n = 0;
+    html = html.replace(fb, function () { return n++ === 0 ? ersatz : ''; });
+
+    // Fehlerfänger und Basisadresse ganz nach oben, damit alle relativen
+    // Pfade (js/…, css/…) wie im Betrieb vom Projektordner aus laden.
+    html = html.replace(/<head>/i, '<head><base href="/">' +
+      '<script>window.FEHLER = [];' +
+      'addEventListener("error", function (e) { FEHLER.push(e.message + " (" + (e.filename || "") + ":" + e.lineno + ")"); });' +
+      'addEventListener("unhandledrejection", function (e) { FEHLER.push("Promise: " + (e.reason && e.reason.message || e.reason)); });' +
+      '<\/script>');
+
+    // tools/test/leer.html holt sich den Text und schreibt ihn selbst.
+    window.RAUCHTEST_HTML = html;
+    // Die vorige Seite steht noch kurz im Rahmen und hat auch schon ein
+    // WA.debug. Erkennbar ist die neue am neuen Dokument – nicht an der
+    // Adresse, die räumt die App nach einem QR-Scan selbst auf, und nicht
+    // am Fenster, das ist von außen immer dasselbe Objekt.
+    var alt = doc();
+    rahmen.src = '/tools/test/leer.html?t=' + Date.now() + (opt.hash || '');
+    return warteAuf('App geladen', function () {
+      var w = win();
+      return doc() !== alt && w.WA && w.WA.debug;
+    });
+  }
+
+  // Bedenkzeit aus, sonst dauert jede Aufgabe acht Sekunden.
+  function grunddaten(extra) {
+    var d = { 'einstellungen/klasse': { denkAn: false } };
+    d['kinder/' + CODE.toLowerCase()] = { vorname: 'Testkind' };
+    Object.keys(extra || {}).forEach(function (k) { d[k] = extra[k]; });
+    return d;
+  }
+
+  function angemeldetAufStart() {
+    return warteAuf('Startseite nach dem Anmelden', function () {
+      return q('[data-action="settings"]') && q('.fach');
+    });
+  }
+
+  // ---------- Eine Aufgabe richtig (oder absichtlich falsch) lösen ----------
+  // Geklickt wird über die echten Knöpfe, damit der Klick-Empfänger der
+  // App mitgeprüft wird. Die Lösung kommt aus der Aufgabe selbst.
+  function richtigeKachelfolge(aufg) {
+    var n = aufg.blanks || aufg.tiles.length, frei = aufg.tiles.map(function () { return true; });
+    var LUECKE = '\u0000';
+    function passt(teil) {
+      var rest = []; for (var i = teil.length; i < n; i++) rest.push(LUECKE);
+      var s = aufg.assemble(teil.map(function (i) { return aufg.tiles[i]; }).concat(rest));
+      var bis = s.indexOf(LUECKE); if (bis < 0) bis = s.length;
+      return s.slice(0, bis) === aufg.answerWord.slice(0, bis);
+    }
+    function suche(teil) {
+      if (teil.length === n) {
+        return aufg.assemble(teil.map(function (i) { return aufg.tiles[i]; })) === aufg.answerWord ? teil : null;
+      }
+      for (var i = 0; i < aufg.tiles.length; i++) {
+        if (!frei[i]) continue;
+        var neu = teil.concat(i);
+        if (!passt(neu)) continue;
+        frei[i] = false;
+        var r = suche(neu);
+        frei[i] = true;
+        if (r) return r;
+      }
+      return null;
+    }
+    return suche([]);
+  }
+
+  function istRichtig(aufg, wert) {
+    return Array.isArray(aufg.correct) ? aufg.correct.indexOf(wert) >= 0 : wert === aufg.correct;
+  }
+
+  function aufgabeLoesen(L, falsch) {
+    var a = L.q;
+    if (a.kind === 'offen') {
+      klick('[data-action="check"]');
+      return warteAuf('Selbsteinschätzung', function () { return q('[data-action="selbst"][data-ok="1"]:not([disabled])'); })
+        .then(function (k) { k.click(); return 'offen'; });
+    }
+    if (a.kind === 'choice') {
+      var idx = -1;
+      a.options.forEach(function (o, i) { if (idx < 0 && istRichtig(a, o.value) !== !!falsch) idx = i; });
+      pruefe(idx >= 0, 'Keine passende Antwort in Aufgabe ' + a.type);
+      klick('[data-action="pick"][data-i="' + idx + '"]');
+    } else if (a.kind === 'build') {
+      var folge = richtigeKachelfolge(a);
+      pruefe(folge, 'Aufgabe ' + a.type + ' „' + a.answerWord + '“ ist mit ihren Kacheln nicht lösbar');
+      if (falsch) folge = folge.slice().reverse();
+      folge.forEach(function (i) { klick('[data-action="tile"][data-i="' + i + '"]'); });
+    } else if (a.kind === 'schild') {
+      a.punkte.forEach(function (p, stelle) {
+        var ti = -1;
+        a.tiles.forEach(function (t, i) { if (ti < 0 && t === p.label && L.slots.indexOf(i) < 0) ti = i; });
+        pruefe(ti >= 0, 'Begriff fehlt: ' + p.label);
+        klick('[data-action="marke"][data-i="' + stelle + '"]');
+        klick('[data-action="tile"][data-i="' + ti + '"]');
+      });
+    } else if (a.kind === 'cut') {
+      var pos = falsch ? [1] : a.solution;
+      if (falsch && a.solution.join(',') === '1') pos = [a.word.length - 1];
+      pos.forEach(function (p) { klick('[data-action="cut"][data-i="' + p + '"]'); });
+    } else {
+      throw new Error('Unbekannte Aufgabenart: ' + a.kind);
+    }
+    klick('[data-action="check"]');
+    pruefe(L.answered, 'Nach „Prüfen“ gilt die Aufgabe nicht als beantwortet (' + a.type + ')');
+    if (!falsch) pruefe(L.res.ok, 'Richtige Lösung als falsch gewertet: ' + a.type + ' „' + (a.answerWord || a.correct) + '“');
+    else pruefe(!L.res.ok, 'Falsche Lösung als richtig gewertet: ' + a.type);
+    klick('[data-action="next"]');
+    return Promise.resolve(a.type);
+  }
+
+  // Einen ganzen Tauchgang bis zum Ergebnis spielen.
+  function tauchgang(einFehler) {
+    var L = win().WA.debug.L, typen = {}, runde = 0, fehlerGemacht = false;
+    pruefe(L && L.queue && L.queue.length, 'Kein Tauchgang gestartet');
+    var laenge = L.queue.length;
+    function schritt() {
+      if (q('.res')) return Promise.resolve();
+      pruefe(++runde <= 40, 'Tauchgang endet nicht');
+      L = win().WA.debug.L;
+      // Absichtlich falsch nur bei Auswahlaufgaben: Dort ist eine falsche
+      // Antwort sicher falsch, bei Kacheln könnte sie zufällig stimmen.
+      var falsch = einFehler && !fehlerGemacht && L.q.kind === 'choice';
+      if (falsch) fehlerGemacht = true;
+      return aufgabeLoesen(L, falsch).then(function (typ) { typen[typ] = 1; return pause(20); }).then(schritt);
+    }
+    return schritt().then(function () {
+      return { aufgaben: runde, geplant: laenge, typen: Object.keys(typen), xp: L.xp };
+    });
+  }
+
+  function startReviere() {
+    return Object.keys(win().WA.config.categories).filter(function (k) {
+      return win().WA.config.categories[k].enabled;
+    });
+  }
+
+  // ==========================================================
+  //  Die Tests
+  // ==========================================================
+  var A = function () { return win().ATTRAPPE; };
+  var reviere = [];
+
+  fetch('/index.html', { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error('index.html: HTTP ' + r.status); return r.text(); })
+    .then(function (t) { quelltext = t; })
+
+    .then(function () { return test('Seite lädt und zeigt die Anmeldung', function () {
+      return appLaden({ daten: grunddaten() })
+        .then(function () { return warteAuf('Anmeldeseite', function () { return q('#codefeld'); }); })
+        .then(function () {
+          pruefe(win().WA.words && win().WA.words.length > 50, 'Wortliste fehlt oder ist zu kurz');
+          return win().WA.words.length + ' Wörter aus js/words.js geladen';
+        });
+    }); })
+
+    .then(function () { return test('Falsch geformter Code wird abgelehnt', function () {
+      q('#codefeld').value = 'ABC';
+      klick('[data-action="login"]');
+      return warteAuf('Fehlermeldung', function () { return q('.loginfehler'); })
+        .then(function (m) { pruefe(/8 Zeichen/.test(m.textContent), 'Unerwartete Meldung: ' + m.textContent); });
+    }); })
+
+    .then(function () { return test('Nicht freigeschalteter Code wird abgelehnt', function () {
+      q('#codefeld').value = FREMD;
+      klick('[data-action="login"]');
+      // Die Meldung des vorigen Tests steht noch da – auf die neue warten.
+      return warteAuf('Meldung „nicht freigeschaltet“', function () {
+        var m = q('.loginfehler'); return m && /nicht freigeschaltet/.test(m.textContent);
+      }).then(function () {}, function () {
+        var m = q('.loginfehler');
+        throw new Error('Unerwartete Meldung: ' + (m ? m.textContent : 'keine'));
+      });
+    }); })
+
+    .then(function () { return test('Anmeldung mit getipptem Code (erstes Mal, Konto wird angelegt)', function () {
+      var f = q('#codefeld');
+      f.value = CODE.slice(0, 4) + '-' + CODE.slice(4);
+      klick('[data-action="login"]');
+      return angemeldetAufStart().then(function () {
+        pruefe(A().konten[MAIL] === CODE, 'Konto wurde nicht angelegt');
+        pruefe(doc().body.textContent.indexOf('Testkind') >= 0, 'Vorname des Kindes fehlt auf der Startseite');
+        pruefe(win().WA.config.bedenkzeit.enabled === false, 'Klassen-Einstellungen nicht übernommen');
+      });
+    }); })
+
+    .then(function () { return test('Ein Tauchgang läuft bis zum Ergebnis (Artikel-Lagune)', function () {
+      klick('[data-action="fach"][data-f="deutsch"]');
+      return warteAuf('Tauchreviere', function () { return q('[data-action="start"][data-w="artikel"]'); })
+        .then(function (k) { k.click(); return tauchgang(false); })
+        .then(function (r) {
+          pruefe(r.xp > 0, 'Keine Perlen bekommen');
+          return r.aufgaben + ' Aufgaben, +' + r.xp + ' Perlen';
+        });
+    }); })
+
+    .then(function () { return test('Spielstand und Klassenziel werden gespeichert', function () {
+      var pfad = 'fortschritt/' + CODE.toLowerCase();
+      var lokal = win().WA.store.snapshot().xp;
+      var woche = 'klassenwochen/' + win().WA.cloud.wochenSchluessel();
+      // Gespeichert wird 2,5 s nach der letzten Änderung, daher warten.
+      return warteAuf('Spielstand und Klassenziel in der Datenbank', function () {
+        var s = A().daten[pfad], wk = A().daten[woche];
+        return s && s.xp === lokal && wk && wk.perlen === lokal && s;
+      }, 10000).catch(function () {
+        var s = A().daten[pfad] || {}, wk = A().daten[woche] || {};
+        throw new Error('Gerät ' + lokal + ' Perlen, Datenbank ' + s.xp + ', Klassenziel ' + wk.perlen);
+      }).then(function (s) {
+        pruefe(win().WA.cloud.speicher().zustand === 'ok', 'Speicheranzeige: ' + win().WA.cloud.speicher().zustand);
+        return s.xp + ' Perlen in fortschritt/ und klassenwochen/';
+      });
+    }); })
+
+    .then(function () { return test('Falsche Antwort kostet eine Luftblase und kommt noch einmal', function () {
+      klick('[data-action="home"]');
+      klick('[data-action="fach"][data-f="deutsch"]');
+      var vorher = win().WA.store.hearts().count;
+      return warteAuf('Tauchreviere', function () { return q('[data-action="start"][data-w="gemischt"]'); })
+        .then(function (k) { k.click(); return tauchgang(true); })
+        .then(function (r) {
+          var nachher = win().WA.store.hearts().count;
+          pruefe(nachher === vorher - 1, 'Luftblasen ' + vorher + ' → ' + nachher);
+          pruefe(r.aufgaben === r.geplant + 1, r.aufgaben + ' Aufgaben statt ' + (r.geplant + 1));
+          return 'Typen: ' + r.typen.join(', ');
+        });
+    }); })
+
+    .then(function () {
+      reviere = startReviere();
+      return reviere.reduce(function (p, w) {
+        return p.then(function () { return test('Tauchgang im Revier „' + w + '“', function () {
+          win().WA.store.refillHearts();
+          klick('[data-action="home"]');
+          klick('[data-action="fach"][data-f="deutsch"]');
+          return warteAuf('Revier ' + w, function () { return q('[data-action="start"][data-w="' + w + '"]'); })
+            .then(function (k) { k.click(); return tauchgang(false); })
+            .then(function (r) { return r.aufgaben + ' Aufgaben: ' + r.typen.join(', '); });
+        }); });
+      }, Promise.resolve());
+    })
+
+    .then(function () { return test('Sachunterricht: Tauchgang zum ersten Thema', function () {
+      win().WA.store.refillHearts();
+      klick('[data-action="home"]');
+      klick('[data-action="fach"][data-f="sachunterricht"]');
+      return warteAuf('Sachthema', function () { return q('[data-action="startthema"]'); })
+        .then(function (k) { k.click(); return tauchgang(false); })
+        .then(function (r) { return r.aufgaben + ' Aufgaben: ' + r.typen.join(', '); });
+    }); })
+
+    .then(function () { return test('QR-Scan: Code in der Adresse meldet an und verschwindet daraus', function () {
+      var konten = {}; konten[MAIL] = CODE;      // Konto gibt es schon
+      return appLaden({ daten: grunddaten(), konten: konten, hash: '#c=' + CODE })
+        .then(angemeldetAufStart)
+        .then(function () {
+          pruefe(!/c=/.test(win().location.href), 'Code steht noch in der Adresse: ' + win().location.href);
+        });
+    }); })
+
+    .then(function () { return test('Ohne Firebase läuft die App im Übungsmodus', function () {
+      return appLaden({ modus: 'offline' })
+        .then(function () { return warteAuf('Startseite ohne Anmeldung', function () { return q('.fach'); }); })
+        .then(function () {
+          pruefe(!q('#codefeld'), 'Anmeldeseite erscheint trotz Übungsmodus');
+          // Ohne Datenbank gibt es keine Klassen-Einstellungen; die
+          // Bedenkzeit hier von Hand aus, sonst dauert es acht Sekunden je Aufgabe.
+          win().WA.config.bedenkzeit.enabled = false;
+          klick('[data-action="fach"][data-f="deutsch"]');
+          return warteAuf('Revier', function () { return q('[data-action="start"][data-w="silben"]'); });
+        })
+        .then(function (k) { k.click(); return tauchgang(false); })
+        .then(function (r) { return r.aufgaben + ' Aufgaben ohne Datenbank'; });
+    }); })
+
+    .catch(function (e) { eintragen('Testlauf abgebrochen', false, e && e.message || String(e)); })
+    .then(function () {
+      ergebnis.fertig = true;
+      var st = document.getElementById('stand');
+      var gut = ergebnis.fehler === 0;
+      st.className = gut ? 'ok' : 'fehler';
+      st.textContent = (gut ? 'Alles in Ordnung: ' : 'Fehler: ') + ergebnis.ok + ' bestanden, ' + ergebnis.fehler + ' fehlgeschlagen';
+      document.title = (gut ? 'OK' : 'FEHLER') + ' – Perlentaucher-Rauchtest';
+    });
+})();
+</script>
+</body>
+</html>
