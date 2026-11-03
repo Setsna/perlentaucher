@@ -135,7 +135,22 @@ window.WA = window.WA || {};
     ['gruselig', null, 'gru-se-lig', 'Adjektiv', 'adjektiv', null, 'so, dass man dabei Angst bekommt', 'Die dunkle Straße ist richtig gruselig.'],
     ['schnitzen', null, 'schnit-zen', 'Verb', 'verb', null, 'mit einem Messer eine Form aus Holz oder einem Kürbis schneiden', 'Wir schnitzen ein Gesicht in den Kürbis.'],
     ['gespenstisch', null, 'ge-spens-tisch', 'Adjektiv', 'adjektiv', '👻', 'so unheimlich, als wäre ein Geist in der Nähe', 'Im Nebel sieht der Garten gespenstisch aus.'],
-    ['hinzufügen', null, 'hin-zu-fü-gen', 'Verb', 'verb', null, 'etwas zu dem dazulegen, was schon da ist', 'Zum Teig musst du noch Zucker hinzufügen.']
+    ['hinzufügen', null, 'hin-zu-fü-gen', 'Verb', 'verb', null, 'etwas zu dem dazulegen, was schon da ist', 'Zum Teig musst du noch Zucker hinzufügen.'],
+    // Lernwörter der Woche vom 04.11.2026
+    ['Photosynthese', 'die', 'Pho-to-syn-the-se', 'Nomen', 'pflanze', null, 'die Art, wie grüne Pflanzen mit Sonnenlicht aus Wasser und Luft ihre Nahrung machen', 'Bei der Photosynthese geben Pflanzen Sauerstoff an die Luft ab.'],
+    ['Sauerstoff', 'der', 'Sau-er-stoff', 'Nomen', 'ding', null, 'ein unsichtbarer Teil der Luft, den Menschen und Tiere zum Atmen brauchen', 'Ohne Sauerstoff könnten wir nicht atmen.'],
+    ['Grundwasser', 'das', 'Grund-was-ser', 'Nomen', 'ort', null, 'das Wasser, das sich tief unter der Erde sammelt', 'Der Brunnen holt Grundwasser aus der Tiefe.'],
+    ['Querschnitt', 'der', 'Quer-schnitt', 'Nomen', 'ding', null, 'die Fläche, die man sieht, wenn man etwas quer durchschneidet', 'Am Querschnitt des Baumstamms zählen wir die Jahresringe.'],
+    ['Bonsai', 'der', 'Bon-sai', 'Nomen', 'pflanze', null, 'ein winziger Baum, den man in einer flachen Schale wachsen lässt', 'Mein Opa schneidet seinen Bonsai mit einer kleinen Schere.'],
+    ['November', 'der', 'No-vem-ber', 'Nomen', 'zeit', null, 'der elfte Monat im Jahr, er kommt nach dem Oktober', 'Im November werden die Tage immer kürzer.'],
+    ['Temperatur', 'die', 'Tem-pe-ra-tur', 'Nomen', 'wetter', '🌡️', 'wie warm oder wie kalt etwas ist', 'Am Abend sinkt die Temperatur.'],
+    ['Wetter', 'das', 'Wet-ter', 'Nomen', 'wetter', null, 'wie es gerade draußen ist, zum Beispiel sonnig, windig oder regnerisch', 'Bei schönem Wetter gehen wir auf den Spielplatz.'],
+    ['Wind', 'der', 'Wind', 'Nomen', 'wetter', '🌬️', 'die Luft, die sich bewegt und die man auf der Haut spürt', 'Der Wind bläst die Blätter vom Baum.'],
+    ['fröhlich', null, 'fröh-lich', 'Adjektiv', 'gefuehl', '😄', 'gut gelaunt und voller Freude', 'Nach der Pause sind alle wieder fröhlich.'],
+    ['anziehen', null, 'an-zie-hen', 'Verb', 'verb', null, 'sich Kleidung über den Körper ziehen, zum Beispiel eine Jacke oder Schuhe', 'Bei Regen muss ich eine Jacke anziehen.'],
+    ['viele', null, 'vie-le', 'anderes', 'wort', null, '', 'Im Wald wohnen viele Tiere.'],
+    ['heiß', null, 'heiß', 'Adjektiv', 'wetter', '🥵', 'sehr warm, manchmal so warm, dass man sich verbrennen kann', 'Vorsicht, die Suppe ist heiß!'],
+    ['Kaffee', 'der', 'Kaf-fee', 'Nomen', 'essen', '☕', 'ein dunkles, bitteres Getränk aus gerösteten Bohnen', 'Mama trinkt morgens eine Tasse Kaffee.']
   ];
 
   WA.words = rows.map(function (r) {
