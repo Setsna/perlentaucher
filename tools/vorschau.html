@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perlentaucher – lokale Vorschau</title>
+</head>
+<body>
+<!-- ==========================================================
+     Lokale Vorschau der Kinder-App, ohne echtes Firebase.
+
+     Laedt das echte index.html mit allen echten Skripten und tauscht
+     nur die drei Firebase-Skripte gegen tools/test/firebase-attrappe.js
+     (dieselbe Attrappe wie im Rauchtest). Nichts geht an die echte
+     Datenbank.
+
+     Angemeldet ist automatisch ein Testkind "Mila" (Code TEST2345).
+     Der Spielstand dieses Testkinds bleibt in diesem Browser erhalten.
+
+       tools/vorschau.html          normal
+       tools/vorschau.html?neu      Testkind von vorn (alles geloescht)
+       tools/vorschau.html?login    Anmeldebildschirm zeigen
+       tools/vorschau.html?offline  Uebungsmodus ganz ohne Firebase
+
+     Start: powershell -ExecutionPolicy Bypass -File tools\server.ps1
+     ========================================================== -->
+<script>
+(function () {
+  var SPEICHER = 'vorschau-attrappe';
+  var CODE = 'TEST2345';
+  var MAIL = CODE.toLowerCase() + '@lernplattform-44aa1.firebaseapp.com';
+  var p = new URLSearchParams(location.search);
+
+  if (p.has('neu')) { try { localStorage.clear(); } catch (e) {} }
+
+  var szen;
+  try { szen = JSON.parse(localStorage.getItem(SPEICHER)); } catch (e) { szen = null; }
+  if (!szen) {
+    szen = { daten: { 'einstellungen/klasse': {} }, konten: {} };
+    szen.daten['kinder/' + CODE.toLowerCase()] = { vorname: 'Mila' };
+    szen.konten[MAIL] = CODE;
+  }
+  window.VORSCHAU_SZENARIO = szen;
+
+  fetch('/index.html?t=' + Date.now()).then(function (r) { return r.text(); }).then(function (html) {
+    var fb = /<script src="https:\/\/www\.gstatic\.com\/firebasejs\/[^"]+"><\/script>\s*/g;
+    var n = 0;
+    var ersatz = p.has('offline') ? '' :
+      // Der Speicher-Lauscher muss im neuen Dokument stehen: document.open()
+      // loescht alle vorher angemeldeten Lauscher des Fensters.
+      '<script>window.ATTRAPPE = window.VORSCHAU_SZENARIO;' +
+      'addEventListener("pagehide", function () { try { localStorage.setItem("' + SPEICHER + '", ' +
+      'JSON.stringify({ daten: ATTRAPPE.daten, konten: ATTRAPPE.konten })); } catch (e) {} });<\/script>' +
+      '<script src="tools/test/firebase-attrappe.js"><\/script>\n';
+    html = html.replace(fb, function () { return n++ === 0 ? ersatz : ''; });
+    html = html.replace(/<head>/i, '<head><base href="/">');
+
+    // Testkind beim ersten Mal automatisch anmelden (QR-Weg), ausser
+    // der Anmeldebildschirm soll gezeigt werden.
+    if (!p.has('login') && !p.has('offline') && !location.hash) history.replaceState(null, '', location.pathname + location.search + '#c=' + CODE);
+
+    document.open(); document.write(html); document.close();
+  });
+})();
+</script>
+</body>
+</html>
