@@ -362,15 +362,22 @@
       '<div class="tools"><div class="pill" id="heartchip">' + heartChip() + '</div>' +
       '<div class="pill"><span class="pearl"></span> <b>' + st.xp + '</b> Perlen</div>' +
       '<button class="icon-btn" data-action="settings" aria-label="Einstellungen">' + ico('zahnrad') + '</button></div></header>' +
+      // Einstieg: Otti und die Fächer zuerst. Das Kind kommt zum Üben;
+      // Statistik steht darunter. Im Querformat stehen beide Blöcke
+      // nebeneinander, damit die Fächer ohne Scrollen zu sehen sind.
+      '<div class="einstieg">' +
       '<section class="hero">' + WA.mascot(today >= goal ? 'cheer' : 'happy', 120) + '<div class="bubble">' + msg + '</div></section>' +
-      // Die drei Karten sind h3. Ohne diese Zwischenueberschrift
+      '<section class="wahl"><h2 class="sec">Was möchtest du üben?</h2><div class="faecher">' + faecher + '</div></section>' +
+      '</div>' +
+      // Die drei Werte sind h3. Ohne diese Zwischenueberschrift
       // folgte auf h1 direkt h3.
       '<h2 class="nurvorlesen">Dein Stand</h2>' +
-      '<section class="stats">' +
-      '<div class="card stat"><h3>Tagesziel</h3><div class="big">' + Math.min(today, 9999) + ' <small>/ ' + goal + ' Perlen</small></div>' + bar(Math.min(1, today / goal), 'var(--coral)') + '</div>' +
-      '<div class="card stat"><h3>Dein Rekord</h3><div class="big">' + ico('perle') + ' ' + st.best.day + ' <small>Perlen an einem Tag</small></div><div class="sub">Bester Tauchgang: <b>' + st.best.lesson + ' Perlen</b></div></div>' +
-      '<div class="card stat"><h3>Serie</h3><div class="big">' + ico('welle') + ' ' + st.streakDays + ' <small>' + (st.streakDays === 1 ? 'Tag' : 'Tage') + ' in Folge</small></div><div class="sub">Tauchgänge gesamt: <b>' + st.lessons + '</b></div></div>' +
+      '<section class="card status">' +
+      '<div class="stat ziel"><h3>Tagesziel</h3><div class="big">' + Math.min(today, 9999) + ' <small>/ ' + goal + ' Perlen</small></div>' + bar(Math.min(1, today / goal), 'var(--coral)') + '</div>' +
+      '<div class="stat"><h3>Serie</h3><div class="big">' + ico('welle') + ' ' + st.streakDays + ' <small>' + (st.streakDays === 1 ? 'Tag' : 'Tage') + ' in Folge</small></div><div class="sub">Tauchgänge gesamt: <b>' + st.lessons + '</b></div></div>' +
+      '<div class="stat"><h3>Dein Rekord</h3><div class="big">' + ico('perle') + ' ' + st.best.day + ' <small>Perlen an einem Tag</small></div><div class="sub">Bester Tauchgang: <b>' + st.best.lesson + ' Perlen</b></div></div>' +
       '</section>' +
+      weakHtml +
       malKarteHtml() +
       '<section class="navrow">' +
       '<button class="navbtn" data-action="progress"><span class="nic">' + ico('fortschritt') + '</span>' +
@@ -378,8 +385,6 @@
       '<button class="navbtn" data-action="klasse"><span class="nic">' + ico('schwarm') + '</span>' +
       '<span class="ntext"><b>Klassenziel</b><small>Was die Klasse zusammen schafft</small></span></button>' +
       '</section>' +
-      '<h2 class="sec">Was möchtest du üben?</h2><section class="faecher">' + faecher + '</section>' +
-      weakHtml +
       '<h2 class="sec">Diese Woche</h2><section class="card week">' + weekHtml + '</section>' +
       '<h2 class="sec">Abzeichen</h2><section class="badges">' + badges + '</section>' +
       '<footer class="foot">' + fusstext() +
@@ -1290,7 +1295,9 @@
   function settings() {
     showModal('<h2>Einstellungen</h2>' +
       '<button class="btn big wide" data-action="sound">Ton: ' + (S.state.sound ? 'an ' + ico('lautsprecher') : 'aus ' + ico('lautsprecher_aus')) + '</button>' +
-      '<button class="btn ghost big wide" data-action="refill">Luftblasen auffüllen (nur Prototyp)</button>' +
+      // Der Knopf „Luftblasen auffüllen (nur Prototyp)“ ist entfernt
+      // (Ingo, 07.11.2026): Kinder konnten damit die Luftblasen selbst
+      // wieder füllen. Die Funktion S.refillHearts bleibt bestehen.
       ((WA.cloud && WA.cloud.angemeldet && WA.cloud.angemeldet())
         ? '<button class="btn ghost big wide" data-action="logout">Abmelden (für ein anderes Kind)</button>'
         : '<button class="btn ghost big wide danger" data-action="reset">Spielstand löschen</button>') +

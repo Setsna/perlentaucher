@@ -6,10 +6,25 @@
      und benutzen deshalb --line-akt (3,1:1). Nicht vertauschen. */
   --line-akt: #6F97AB;
   --brand: #0C7A8C; --brand-d: #085A69; --coral: #F2766B; --coral-d: #D4554A;
-  --sand: #F7EAD0; --sand-d: #EFDDBB; --sand-ink: #8A6A38;
+  /* --sand-ink: vorher #8A6A38 (4,2:1 auf --sand), jetzt 5,3:1 */
+  --sand: #F7EAD0; --sand-d: #EFDDBB; --sand-ink: #7A5A2C;
   --good: #14915A; --good-d: #0E7347; --good-bg: #D6F5E6;
   --bad: #DC4A4A; --bad-d: #B33636; --bad-bg: #FDE5E3;
   --r: 20px; --wc: #0C7A8C;
+
+  /* ---------- Designsystem (UX-Überarbeitung 2026/11) ----------
+     Neue und überarbeitete Teile benutzen nur diese Werte. Ältere
+     Regeln weiter unten werden nach und nach darauf umgestellt. */
+  /* Schriftgrößen: sieben Stufen statt 22 Einzelwerte */
+  --fs-xs: 14px; --fs-s: 16px; --fs-m: 18px; --fs-l: 22px;
+  --fs-xl: 28px; --fs-2xl: 36px; --fs-3xl: 48px;
+  /* Abstände */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
+  /* Ecken */
+  --r-s: 12px; --r-m: 16px; --r-l: 20px; --r-xl: 28px;
+  /* Platzhalter in Eingabefeldern: 4,6:1 auf Weiß */
+  --placeholder: #557A8E;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; min-height: 100%; color: var(--ink);
@@ -284,7 +299,7 @@ h1, h2, h3, p { margin: 0; }
   background: #fff; color: var(--ink); font-family: ui-monospace, "SF Mono", Menlo, monospace;
   text-transform: uppercase; -webkit-user-select: text; user-select: text; }
 .codefeld:focus { border-color: var(--brand); background: #F2FAFC; }
-.codefeld::placeholder { color: #A8C3D0; letter-spacing: .12em; }
+.codefeld::placeholder { color: var(--placeholder); letter-spacing: .12em; }
 .loginfehler { background: var(--bad-bg); color: var(--bad-d); border-radius: 14px;
   padding: 12px 16px; font-weight: 700; font-size: 17px; }
 
@@ -505,3 +520,40 @@ body.sync-an #app { min-height: calc(100vh - var(--synch, 0px)); }
 .loesungsfeld h3 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
 .loesungsfeld p { font-size: 21px; font-weight: 700; line-height: 1.35; }
 .offen .muted { margin-top: 12px; font-size: 16px; font-weight: 600; }
+
+/* ==========================================================
+   Startseite: Einstieg und Statusleiste (UX-Überarbeitung 2026/11)
+   Erst Otti und die Fächer, dann der Stand. Im Querformat stehen
+   Otti und die Fächer nebeneinander, damit das Kind ohne Scrollen
+   loslegen kann.
+   ========================================================== */
+.einstieg { display: grid; gap: var(--sp-2); }
+.einstieg .hero { margin: var(--sp-2) 0 0; }
+.wahl .sec { margin: var(--sp-3) 0 var(--sp-3); }
+.wahl .fach { min-height: 136px; }
+
+.status { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+  padding: 0; margin-top: var(--sp-5); }
+.status .stat { padding: var(--sp-4) var(--sp-4) var(--sp-4) var(--sp-5); min-width: 0; }
+.status .stat + .stat { border-left: 2px solid var(--line); }
+.status .stat h3 { font-size: var(--fs-xs); }
+.status .stat .big { font-size: var(--fs-xl); margin-bottom: var(--sp-2); }
+.status .stat .big small { font-size: var(--fs-xs); }
+.status .stat .sub { font-size: var(--fs-xs); }
+.status .ziel .bar { height: 16px; }
+.home .weak { margin-top: var(--sp-3); }
+.home .malcard { margin: var(--sp-3) 0 0; }
+
+@media (max-width: 719px) {
+  .status { grid-template-columns: 1fr; }
+  .status .stat + .stat { border-left: 0; border-top: 2px solid var(--line); }
+}
+
+@media (min-width: 1024px) {
+  .einstieg { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: center;
+    gap: var(--sp-5); margin-top: var(--sp-3); }
+  .einstieg .hero { margin: 0; }
+  .wahl .sec { margin-top: 0; }
+  .wahl .faecher { grid-template-columns: 1fr; gap: var(--sp-3); }
+  .wahl .fach { min-height: 120px; }
+}

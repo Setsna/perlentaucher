@@ -129,7 +129,7 @@ WA.config = {
   faecher: {
     deutsch: {
       title: 'Deutsch', sub: 'Lernwörter üben', icon: 'buchstabe',
-      color: '#D4554A', art: 'woerter', enabled: true
+      color: '#C0453B', art: 'woerter', enabled: true
     },
     sachunterricht: {
       title: 'Sachunterricht', sub: 'Unsere Themen', icon: 'lupe',
@@ -155,7 +155,7 @@ WA.config = {
   themen: {
     feuer: {
       fach: 'sachunterricht', title: 'Feuer', sub: 'Brennen, Löschen, Feuerwehr',
-      icon: 'flamme', color: '#E2631F', enabled: true
+      icon: 'flamme', color: '#B54A12', enabled: true
     }
   },
 
@@ -166,9 +166,9 @@ WA.config = {
                     types: ['buchstaben', 'luecke', 'fehler'] },
     artikel:      { title: 'Artikel-Lagune',    sub: 'Artikel',         icon: 'muschel', color: '#7A4FD1', enabled: true,
                     types: ['artikel'] },
-    silben:       { title: 'Silben-Strömung',   sub: 'Silben',          icon: 'wellen', color: '#0C8F86', enabled: true,
+    silben:       { title: 'Silben-Strömung',   sub: 'Silben',          icon: 'wellen', color: '#0A7A72', enabled: true,
                     types: ['silben_zaehlen', 'silben_ordnen', 'trennen'] },
-    verstehen:    { title: 'Schatztruhe',       sub: 'Wortverständnis', icon: 'truhe', color: '#C77A06', enabled: true,
+    verstehen:    { title: 'Schatztruhe',       sub: 'Wortverständnis', icon: 'truhe', color: '#9C5E00', enabled: true,
                     types: ['bild', 'bedeutung', 'satz'] },
     gemischt:     { title: 'Tiefsee-Mix',       sub: 'Gemischte Wiederholung', icon: 'anglerfisch', color: '#AC3670', enabled: true,
                     types: ['buchstaben', 'luecke', 'fehler', 'artikel', 'silben_zaehlen', 'silben_ordnen', 'trennen', 'bild', 'bedeutung', 'satz'] }
