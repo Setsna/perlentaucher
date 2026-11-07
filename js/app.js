@@ -414,8 +414,8 @@
       'autocomplete="off" spellcheck="false" maxlength="9" placeholder="ABCD-2345" aria-label="Zugangscode">' +
       '<button class="btn big wide" data-action="login">Los geht\'s</button>' +
       '<p class="muted klein">Du bleibst angemeldet. Den Code brauchst du nur einmal.</p>' +
-      '<a class="lehrerlink" href="datenschutz.html">Datenschutz</a> · ' +
-      '<a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a>' +
+      '<p class="loginlinks"><a class="lehrerlink" href="datenschutz.html">Datenschutz</a> · ' +
+      '<a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a></p>' +
       '</div></div>';
     var f = $('#codefeld');
     if (f) {
@@ -773,7 +773,8 @@
     var worlds = ['schreibweise', 'artikel', 'silben', 'verstehen'].map(function (k) {
       var c = C.categories[k], p = S.worldProgress(k);
       return '<div class="prow2"><span class="pic">' + ico(c.icon) + '</span>' +
-        '<span class="pname">' + esc(c.sub) + '</span>' +
+        // Reviername wie auf der Revierseite, darunter das Lernziel
+        '<span class="pname"><b>' + esc(c.title) + '</b><small>' + esc(c.sub) + '</small></span>' +
         '<span class="pbar">' + bar(p, c.color) + '</span><b>' + pct(p) + '%</b></div>';
     }).join('');
 
@@ -795,9 +796,9 @@
       '<div class="acculist">' +
       '<div><b>' + t.practiced + '</b> von ' + t.words + ' Wörtern geübt</div>' +
       '<div><b>' + t.mastered + '</b> Wörter sitzen sicher</div>' +
-      '<div><b>' + t.total + '</b> Aufgaben beantwortet</div>' +
-      '<div><b>' + t.ok + '</b> richtig, <b>' + t.wrong + '</b> falsch</div>' +
       '<div><b>' + st.lessons + '</b> Tauchgänge, <b>' + st.xp + '</b> Perlen gesamt</div>' +
+      // Die Feinzahlen bleiben, stehen aber kleiner darunter.
+      '<div class="acclein">' + t.total + ' Aufgaben beantwortet: ' + t.ok + ' richtig, ' + t.wrong + ' falsch</div>' +
       '</div></section>' +
       '<h2 class="sec">Fortschritt je Revier</h2><section class="card">' + worlds + '</section>' +
       '<h2 class="sec">Deine kniffeligsten Wörter</h2><section class="card">' + topHtml + '</section>' +

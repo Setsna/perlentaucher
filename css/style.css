@@ -707,3 +707,50 @@ body.meer::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer
    die falsche Wahl ist durchgestrichen. */
 .opt.right { border-width: 3px; border-bottom-width: 6px; box-shadow: 0 0 0 4px rgba(20, 145, 90, .18); }
 .opts.typ-fehler .opt.wrong, .opts.typ-artikel .opt.wrong { text-decoration: line-through; text-decoration-thickness: 3px; }
+
+/* ==========================================================
+   Etappe 3: restliche Ansichten, Übergänge, Tafel (UX 2026/11)
+   ========================================================== */
+/* Mein Fortschritt: Reviername mit Lernziel, Feinzahlen kleiner */
+.pname { display: flex; flex-direction: column; gap: 2px; line-height: 1.2; width: 200px; }
+.pname b { font-size: var(--fs-m); }
+.pname small { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; }
+.acclein { font-size: var(--fs-s); color: var(--muted); font-weight: 600; }
+
+/* Unterseiten füllen die Höhe, die Fußzeile steht am Ende statt
+   mitten im Bildschirm. */
+.meer .page { display: flex; flex-direction: column; min-height: 100vh; }
+@supports (height: 100dvh) { .meer .page { min-height: 100dvh; } }
+.meer .page > * { flex: none; }
+.meer .page > .sec { align-self: flex-start; }
+.meer .page > .foot { margin-top: auto; }
+.meer .page > .card + .card { margin-top: var(--sp-3); }
+
+/* Anmeldung: Links bleiben zusammen in einer Zeile */
+.loginlinks { margin: 0; color: var(--muted); }
+.loginlinks .lehrerlink { margin-top: 0; }
+
+/* Sanftes Auftauchen beim Wechsel der Ansicht. Startet schon fast
+   sichtbar, damit nichts flackert; bei „Bewegung reduzieren“ aus. */
+#app > * { animation: auftauchen .2s cubic-bezier(.2, .8, .2, 1); }
+@keyframes auftauchen { from { opacity: .4; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.dialog { animation: auftauchen .18s cubic-bezier(.2, .8, .2, 1); }
+
+/* ---------- Interaktive Tafel und große Bildschirme ----------
+   Alles wird um ein Viertel größer (1024 px Inhalt erscheinen als
+   1280 px). zoom skaliert auch vh mit; die Höhen werden deshalb hier
+   durch 1,25 geteilt, sonst ragt der Tauchgang über den Bildschirm.
+   Das Malen rechnet mit elementFromPoint bzw. getBoundingClientRect
+   und funktioniert deshalb auch vergrößert. */
+@media (min-width: 1600px) and (min-height: 860px) {
+  #app, #modal .dialog { zoom: 1.25; }
+  #app { max-width: 1024px; }
+  #app, #app > .lesson, #app > .center, .meer #app > .page { min-height: calc(100vh / 1.25); }
+  @supports (height: 100dvh) {
+    #app, #app > .lesson, #app > .center, .meer #app > .page { min-height: calc(100dvh / 1.25); }
+  }
+  .malfeld, .malblatt { width: min(100%, 520px, calc(54vh / 1.25)); }
+}
+/* Platzhalter im Codefeld: dünner als eine echte Eingabe, damit kein
+   Kind „ABCD-2345“ für schon eingetragen hält. */
+.codefeld::placeholder { font-weight: 500; }
