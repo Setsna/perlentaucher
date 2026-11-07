@@ -315,10 +315,15 @@
           '</div></section>' : '');
     }
 
-    $app.innerHTML = '<div class="page" style="--wc:' + f.color + '">' +
+    // Luftblasen und Perlen stehen auch hier im Kopf: Das Kind sieht vor
+    // dem Tauchgang, wie viel Luft es noch hat.
+    $app.innerHTML = '<div class="page fachseite" style="--wc:' + f.color + '">' +
       '<header class="ptop"><button class="icon-btn" data-action="home" aria-label="Zurück">' + ico('zurueck') + '</button>' +
-      '<h1>' + esc(f.title) + '</h1></header>' +
+      '<h1>' + esc(f.title) + '</h1>' +
+      '<div class="tools"><div class="pill" id="heartchip">' + heartChip() + '</div>' +
+      '<div class="pill"><span class="pearl"></span> <b>' + S.state.xp + '</b> Perlen</div></div></header>' +
       '<p class="fachsub">' + esc(f.sub) + '</p>' + inhalt + '</div>';
+    timer = setInterval(function () { var el = $('#heartchip'); if (el) el.innerHTML = heartChip(); }, 1000);
     window.scrollTo(0, 0);
   }
 
@@ -919,7 +924,9 @@
       // ein Screenreader las die Zeile immer wieder vor.
       if (rest > 0 && zahl && balken) {
         zahl.textContent = Math.ceil(rest);
-        balken.style.width = Math.min(100, Math.max(0, (1 - rest / bedenkSoll(phase)) * 100)).toFixed(1) + '%';
+        var fuell = Math.min(100, Math.max(0, (1 - rest / bedenkSoll(phase)) * 100)).toFixed(1) + '%';
+        balken.style.width = fuell;
+        f.querySelectorAll('.wartet').forEach(function (wk) { wk.style.setProperty('--fill', fuell); });
         denkUhrStarten();
         return;
       }
@@ -947,7 +954,15 @@
     $('#lbar').innerHTML = bar(L.i / L.queue.length, 'var(--wc)');
     var lh = $('#lhearts');
     if (L.practice) { lh.removeAttribute('aria-label'); lh.innerHTML = '<span class="practice">Üben</span>'; }
-    else { lh.setAttribute('role', 'img'); lh.setAttribute('aria-label', blasenText(h.count, h.max)); lh.innerHTML = heartsHtml(h.count, h.max); }
+    else {
+      lh.setAttribute('role', 'img'); lh.setAttribute('aria-label', blasenText(h.count, h.max)); lh.innerHTML = heartsHtml(h.count, h.max);
+      // Eben eine Luftblase verloren: Sie zerplatzt sichtbar (nur Optik).
+      if (L.blasenVorher != null && h.count < L.blasenVorher) {
+        var weg = lh.querySelectorAll('.bub')[h.count];
+        if (weg) weg.classList.add('platzt');
+      }
+      L.blasenVorher = h.count;
+    }
     $('#stage').innerHTML = stageHtml();
     $('#footer').innerHTML = footerHtml();
     denkUhrStarten();
@@ -974,7 +989,7 @@
     }
 
     if (q.kind === 'choice') {
-      h += '<div class="opts ' + q.layout + '">' + q.options.map(function (o, i) {
+      h += '<div class="opts ' + q.layout + ' typ-' + esc(q.type || '') + '">' + q.options.map(function (o, i) {
         var cls = 'opt ' + (o.cls || '') + (L.sel === i ? ' sel' : '');
         if (L.answered) {
           var istRichtig = Array.isArray(q.correct) ? q.correct.indexOf(o.value) >= 0 : o.value === q.correct;
@@ -1048,17 +1063,27 @@
           '<p>Überlege in Ruhe. Sag die Antwort leise vor dich hin oder zähl sie an den Fingern ab. ' +
           'Wenn du fertig bist, tippe auf <b>Auflösen</b>.</p></div>') + '</div>';
     } else if (q.kind === 'build') {
-      var bi = 0;
-      h += '<div class="slots">' + q.slots.map(function (s) {
+      var bi = 0, danebenBau = L.answered && !L.res.ok;
+      // Nach einem Fehler steht die richtige Lösung groß in der Aufgabe,
+      // der eigene Versuch klein und durchgestrichen darüber.
+      h += '<div class="slots' + (danebenBau ? ' versuch' : '') + '">' + q.slots.map(function (s) {
         if (s !== null) return '<span class="slot fixed">' + esc(s) + '</span>';
         var idx = bi++, ti = L.slots[idx];
         var cls = 'slot' + (ti !== null ? ' filled' : '') + (L.answered ? (L.res.ok ? ' ok' : ' no') : '');
         return '<button class="' + cls + (q.sylTiles ? ' wide' : '') + '" data-action="unslot" data-i="' + idx + '"' + (L.answered ? ' disabled' : '') + '>' + (ti !== null ? esc(q.tiles[ti]) : '') + '</button>';
       }).join('') + '</div>';
-      h += '<div class="tiles">' + q.tiles.map(function (t, i) {
-        var used = L.slots.indexOf(i) >= 0;
-        return '<button class="tile' + (used ? ' used' : '') + (q.sylTiles ? ' wide' : '') + '" data-action="tile" data-i="' + i + '"' + (used || L.answered ? ' disabled' : '') + '>' + esc(t) + '</button>';
-      }).join('') + '</div>';
+      if (danebenBau) {
+        h += '<div class="loesungwort"><small>So ist es richtig:</small>' +
+          '<b>' + esc(q.solutionText || q.answerWord || '') + '</b></div>';
+      }
+      // Nach dem Prüfen werden die Kacheln nicht mehr gebraucht. Ausgegraut
+      // standen sie vorher als zweite, verwirrende Kopie da.
+      if (!L.answered) {
+        h += '<div class="tiles">' + q.tiles.map(function (t, i) {
+          var used = L.slots.indexOf(i) >= 0;
+          return '<button class="tile' + (used ? ' used' : '') + (q.sylTiles ? ' wide' : '') + '" data-action="tile" data-i="' + i + '"' + (used ? ' disabled' : '') + '>' + esc(t) + '</button>';
+        }).join('') + '</div>';
+      }
     } else if (q.kind === 'cut') {
       if (L.answered) {
         h += '<div class="bigword cutdone">' + sylHtml(q.teile || getWord(q.wordId).silben) + '</div>';
@@ -1082,6 +1107,10 @@
   }
 
   var PRAISE = ['Super!', 'Genau!', 'Stark getaucht!', 'Richtig!', 'Prima gemacht!', 'Perlentaucher!', 'Klasse!'];
+  // Zeichen vor der Rückmeldung: Richtig und falsch sind nicht nur an der
+  // Farbe zu erkennen (die Artikelfarbe von „die" ist ebenfalls rot).
+  var ZEICHEN_OK = '<span class="fbzeichen ok">' + ico('haken') + '</span>';
+  var ZEICHEN_NEIN = '<span class="fbzeichen nein">' + ico('schliessen') + '</span>';
 
   // Ein Knopf, der erst nach Ablauf der Bedenkzeit gedrückt werden kann.
   // Die Zahl und der Balken zeigen, dass gewartet wird und nichts klemmt.
@@ -1094,8 +1123,10 @@
     // data-action bleibt dran, damit der Knopf an derselben Stelle steht
     // und sich nur der Zustand ändert. Gegen den Klick schützen das
     // disabled und zusätzlich die Prüfung im Klick-Empfänger.
+    // Der Knopf behält beim Warten seine Farbe; ein heller Streifen am
+    // unteren Rand füllt sich (--fill). Grau wirkte er wie kaputt.
     return '<div class="denkzeit"><div class="denkbalken"><i style="width:' + anteil.toFixed(1) + '%"></i></div>' +
-      '<button class="' + klasse + ' off" data-action="' + aktion + '" disabled>' + esc(text) +
+      '<button class="' + klasse + ' wartet" style="--fill:' + anteil.toFixed(1) + '%" data-action="' + aktion + '" disabled>' + esc(text) +
       ' <span class="denkzahl">' + Math.ceil(rest) + '</span></button></div>';
   }
 
@@ -1115,9 +1146,9 @@
         var anteilM = Math.min(100, Math.max(0, (1 - restM / bedenkSoll('weiter')) * 100));
         return '<div class="footer"><div class="fb"><b>Lies erst die Lösung.</b></div>' +
           '<div class="denkzeit"><div class="denkbalken"><i style="width:' + anteilM.toFixed(1) + '%"></i></div>' +
-          '<button class="btn good big off" data-action="selbst" data-ok="1" disabled>Wusste ich ' +
+          '<button class="btn good big wartet" style="--fill:' + anteilM.toFixed(1) + '%" data-action="selbst" data-ok="1" disabled>Wusste ich ' +
           '<span class="denkzahl">' + Math.ceil(restM) + '</span></button>' +
-          '<button class="btn ghost big off" data-action="selbst" data-ok="0" disabled>Noch nicht</button>' +
+          '<button class="btn ghost big wartet" style="--fill:' + anteilM.toFixed(1) + '%" data-action="selbst" data-ok="0" disabled>Noch nicht</button>' +
           '</div></div>';
       }
       return '<div class="footer"><div class="fb"><b>Wusstest du das?</b></div>' +
@@ -1129,7 +1160,9 @@
     var erkl = L.q.erklaerung ? '<span class="erkl">' + esc(L.q.erklaerung) + '</span>' : '';
     if (L.res.ok) {
       var x = L.res.xp;
-      return '<div class="footer good"><div class="fb"><b>' + (L.streak >= C.xp.streakBonusFrom ? L.streak + ' in Folge!' : PRAISE[Math.floor(Math.random() * PRAISE.length)]) + '</b>' +
+      // Der Spruch wird in check() einmal ausgewürfelt. Vorher wurde er
+      // bei jedem Neuaufbau neu gewählt und sprang nach der Bedenkzeit um.
+      return '<div class="footer good"><div class="fb"><b>' + ZEICHEN_OK + (L.streak >= C.xp.streakBonusFrom ? L.streak + ' in Folge!' : L.res.lob) + '</b>' +
         (x.total ? '<span class="xpgain">+' + x.total + ' Perlen' + (x.bonus ? ' <small>(Serien-Bonus +' + x.bonus + ')</small>' : '') + '</span>' : '') +
         (L.q.richtigGeschrieben ? '<span class="sol">So wird es geschrieben: ' +
           esc(L.q.richtigGeschrieben) + '</span>' : '') +
@@ -1141,14 +1174,14 @@
     var t = L.res.teil;
     if (t) {
       var gx = L.res.xp;
-      return '<div class="footer bad"><div class="fb"><b>' +
+      return '<div class="footer bad"><div class="fb"><b>' + ZEICHEN_NEIN +
         (t.richtig * 2 >= t.gesamt ? 'Fast!' : 'Nicht ganz.') + '</b> <span class="sol">' +
         t.richtig + ' von ' + t.gesamt + ' sitzen.</span>' +
         (gx.total ? '<span class="xpgain">+' + gx.total + ' Perlen</span>' : '') +
         erkl + '</div>' +
         wartenKnopf('weiter', 'btn bad big', 'next', 'Weiter') + '</div>';
     }
-    return '<div class="footer bad"><div class="fb"><b>Nicht ganz.</b> Richtig ist: <span class="sol">' + esc(L.q.solutionText) + '</span>' +
+    return '<div class="footer bad"><div class="fb"><b>' + ZEICHEN_NEIN + 'Nicht ganz.</b> Richtig ist: <span class="sol">' + esc(L.q.solutionText) + '</span>' +
       erkl + '</div>' +
       wartenKnopf('weiter', 'btn bad big', 'next', 'Weiter') + '</div>';
   }
@@ -1216,7 +1249,7 @@
           : EX.makeQuestion(q.type, getWord(q.wordId)));
       }
     }
-    L.res = { ok: ok, xp: xp, teil: teil };
+    L.res = { ok: ok, xp: xp, teil: teil, lob: PRAISE[Math.floor(Math.random() * PRAISE.length)] };
     updateLesson();
 
     // Für Screenreader: Was sichtbar im Fuß steht, wird hier angesagt.

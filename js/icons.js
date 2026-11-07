@@ -217,6 +217,11 @@ window.WA = window.WA || {};
       '<path d="M28 28 L72 72 M72 28 L28 72" stroke="currentColor" stroke-width="11" stroke-linecap="round"/>'
     ),
 
+    // Richtig: Haken (Gegenstück zu "schliessen" für falsch)
+    haken: svg(
+      '<path d="M24 52 L42 70 L76 32" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>'
+    ),
+
     zurueck: svg(
       '<path d="M58 22 L30 50 L58 78" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>'
     ),
