@@ -603,3 +603,18 @@ body.meer::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer
    sie auch über Korallen und Sand lesbar. */
 .meer .sec, .meer .ptop h1, .meer .fachsub, .meer .hint, .meer .sentence, .meer .bigword {
   text-shadow: 0 0 2px rgba(232, 248, 250, .9), 0 0 10px rgba(232, 248, 250, .85); }
+
+/* ---------- Sand statt Weiß (Ingo, 07.11.2026) ----------
+   Sprechblase, Symbolkacheln und Überschriften-Schilder in Sand.
+   Schrift --ink auf --sand: 10,3:1. Antwortknöpfe, Kacheln und
+   Codefeld im Tauchgang bleiben weiß, weil dort gelesen wird. */
+.meer { --sand-rand: #D9BC82; }
+.meer .bubble, .meer .bubble::before { background: var(--sand); border-color: var(--sand-rand); }
+.meer .wicon { background: var(--sand); }
+.meer .nic { background: var(--sand); }
+/* Überschriften auf dem Bild stehen auf einem kleinen Sandschild.
+   Der weiche Schein von vorher wird dafür nicht mehr gebraucht. */
+.meer .sec, .meer .ptop h1 { display: inline-block; background: var(--sand); color: var(--ink);
+  border: 2px solid var(--sand-rand); border-radius: var(--r-m); padding: var(--sp-1) var(--sp-4);
+  text-shadow: none; }
+.meer .ptop h1 { font-size: var(--fs-l); }
