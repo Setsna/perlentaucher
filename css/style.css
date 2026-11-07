@@ -618,3 +618,92 @@ body.meer::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer
   border: 2px solid var(--sand-rand); border-radius: var(--r-m); padding: var(--sp-1) var(--sp-4);
   text-shadow: none; }
 .meer .ptop h1 { font-size: var(--fs-l); }
+
+/* ==========================================================
+   Etappe 2: Revierseite, Tauchgang, Rückmeldung (UX 2026/11)
+   ========================================================== */
+/* Revierseite: Kopf mit Luftblasen und Perlen, große Kacheln */
+.fachseite .ptop { flex-wrap: wrap; }
+.fachseite .ptop .tools { margin-left: auto; }
+.fachseite .fachsub { margin: var(--sp-2) 0 var(--sp-4); font-size: var(--fs-m); }
+.fachseite .worlds { gap: var(--sp-4); }
+.fachseite .world { min-height: 150px; padding: var(--sp-5) var(--sp-4); }
+.fachseite .wtext b { font-size: var(--fs-l); }
+.fachseite .wicon { width: 80px; height: 80px; }
+.fachseite .wicon .ic { width: 62px; height: 62px; }
+@media (min-width: 1024px) { .fachseite .worlds { grid-template-columns: repeat(3, 1fr); } }
+
+/* Tauchgang: Luftblasen größer, Verlust sichtbar */
+.ltop .bubbles.small .bub { width: 28px; height: 28px; }
+.bub.platzt { animation: platzt .6s ease-out; }
+@keyframes platzt {
+  0%   { transform: scale(1); background: radial-gradient(circle at 34% 28%, #fff 0 12%, #A6E0F5 45%, #2FA2CB 100%); border-color: transparent; }
+  45%  { transform: scale(1.5); opacity: .7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Tauchgang auf dem iPad und größer: mehr Raum für Bild, Wort, Antworten.
+   Kein Zentrieren in der Höhe: Wenn nach dem Prüfen die Rückmeldung
+   unten aufgeht, würde die Aufgabe sonst springen. */
+@media (min-width: 720px) {
+  .stage { padding-top: clamp(8px, 4vh, 48px); gap: var(--sp-5); }
+  .stage > .prow { max-width: 760px; }
+  .bubble.q { font-size: var(--fs-l); }
+  .emoji { font-size: 128px; }
+  .bigword { font-size: 56px; }
+  .hint { font-size: var(--fs-m); }
+  .sentence { font-size: 34px; }
+  .opts { width: 100%; max-width: 760px; margin: 0 auto; gap: var(--sp-4); }
+  .opt { min-height: 88px; font-size: 30px; }
+  .opts.row3 .opt, .opts.row4 .opt { min-height: 112px; font-size: 40px; }
+  .opts.list .opt { font-size: 24px; }
+  .slot { width: 60px; height: 74px; font-size: 36px; }
+  .tile { width: 66px; height: 78px; font-size: 38px; }
+}
+/* Hinweis unter dem Bild: aufrecht statt kursiv (leichter zu lesen) */
+.hint { font-style: normal; }
+
+/* Richtige Schreibweise wählen: die Wörter groß und mittig zum Vergleichen */
+.opts.typ-fehler .opt { text-align: center; font-size: 30px; font-weight: 800; letter-spacing: .03em; }
+@media (min-width: 720px) { .opts.typ-fehler .opt { font-size: 38px; min-height: 96px; } }
+
+/* Nach einem Fehler: eigener Versuch klein, Lösung groß */
+.slots.versuch { min-height: 0; border-bottom: 0; opacity: .75; }
+.slots.versuch .slot { width: 40px; height: 48px; font-size: 22px; text-decoration: line-through; }
+.slots.versuch .slot.wide { width: auto; min-width: 48px; }
+.slots.versuch .slot.fixed { font-size: 22px; }
+.loesungwort { display: flex; flex-direction: column; align-items: center; gap: var(--sp-1);
+  background: var(--good-bg); border: 3px solid var(--good); border-radius: var(--r-l);
+  padding: var(--sp-3) var(--sp-5); margin: 0 auto; color: var(--good-d); }
+.loesungwort small { font-size: var(--fs-s); font-weight: 700; }
+.loesungwort b { font-size: 48px; font-weight: 900; letter-spacing: .03em; line-height: 1.1; }
+@media (min-width: 720px) { .loesungwort b { font-size: 60px; } }
+
+/* Zeichen vor „Super!“ / „Nicht ganz.“ */
+.fb b { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.fbzeichen { display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 34px; height: 34px; border-radius: 50%; color: #fff; }
+.fbzeichen.ok { background: var(--good); } .fbzeichen.nein { background: var(--bad); }
+.fbzeichen .ic { width: 22px; height: 22px; }
+
+/* Bedenkzeit: Knopf behält seine Farbe, unten füllt sich ein Streifen */
+.btn.wartet { position: relative; overflow: hidden; cursor: default; }
+.btn.wartet[disabled] { opacity: 1; }
+.btn.wartet::after { content: ""; position: absolute; left: 0; bottom: 0; height: 6px;
+  width: var(--fill, 0%); background: rgba(255, 255, 255, .75); transition: width .2s linear; }
+.btn.ghost.wartet::after { background: var(--brand); }
+.denkzeit .denkbalken { display: none; }
+
+/* Silben trennen: Wortbild zusammenhalten, Tippfläche trotzdem 44 px */
+.cl { width: auto; min-width: 0; padding: 0 1px; }
+.gap { position: relative; width: 12px; }
+.gap::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 44px; transform: translateX(-50%); }
+.gap i { width: 3px; height: 40px; background: #C9E2EC; }
+.gap.on i { width: 7px; height: 66px; }
+
+/* Bild beschriften: Nummernpunkte groß genug zum Antippen */
+.marke { width: 44px; height: 44px; font-size: 19px; }
+/* Nach dem Prüfen: Die richtige Antwort ist die stärkste Fläche,
+   die falsche Wahl ist durchgestrichen. */
+.opt.right { border-width: 3px; border-bottom-width: 6px; box-shadow: 0 0 0 4px rgba(20, 145, 90, .18); }
+.opts.typ-fehler .opt.wrong, .opts.typ-artikel .opt.wrong { text-decoration: line-through; text-decoration-thickness: 3px; }
