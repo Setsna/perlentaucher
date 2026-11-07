@@ -732,25 +732,32 @@ body.meer::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer
 
 /* Sanftes Auftauchen beim Wechsel der Ansicht. Startet schon fast
    sichtbar, damit nichts flackert; bei „Bewegung reduzieren“ aus. */
-#app > * { animation: auftauchen .2s cubic-bezier(.2, .8, .2, 1); }
+.meer #app > * { animation: auftauchen .2s cubic-bezier(.2, .8, .2, 1); }
 @keyframes auftauchen { from { opacity: .4; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.dialog { animation: auftauchen .18s cubic-bezier(.2, .8, .2, 1); }
+.meer .dialog { animation: auftauchen .18s cubic-bezier(.2, .8, .2, 1); }
 
 /* ---------- Interaktive Tafel und große Bildschirme ----------
    Alles wird um ein Viertel größer (1024 px Inhalt erscheinen als
    1280 px). zoom skaliert auch vh mit; die Höhen werden deshalb hier
    durch 1,25 geteilt, sonst ragt der Tauchgang über den Bildschirm.
+   Nur Kinder-App; Lehrerbereich und Datenschutz bleiben normal groß.
    Das Malen rechnet mit elementFromPoint bzw. getBoundingClientRect
    und funktioniert deshalb auch vergrößert. */
 @media (min-width: 1600px) and (min-height: 860px) {
-  #app, #modal .dialog { zoom: 1.25; }
-  #app { max-width: 1024px; }
-  #app, #app > .lesson, #app > .center, .meer #app > .page { min-height: calc(100vh / 1.25); }
+  .meer #app, .meer #modal .dialog { zoom: 1.25; }
+  .meer #app { max-width: 1024px; }
+  .meer #app, .meer #app > .lesson, .meer #app > .center, .meer #app > .page { min-height: calc(100vh / 1.25); }
   @supports (height: 100dvh) {
-    #app, #app > .lesson, #app > .center, .meer #app > .page { min-height: calc(100dvh / 1.25); }
+    .meer #app, .meer #app > .lesson, .meer #app > .center, .meer #app > .page { min-height: calc(100dvh / 1.25); }
   }
-  .malfeld, .malblatt { width: min(100%, 520px, calc(54vh / 1.25)); }
+  .meer .malfeld, .meer .malblatt { width: min(100%, 520px, calc(54vh / 1.25)); }
 }
 /* Platzhalter im Codefeld: dünner als eine echte Eingabe, damit kein
    Kind „ABCD-2345“ für schon eingetragen hält. */
 .codefeld::placeholder { font-weight: 500; }
+/* Merkfrage (Sachunterricht): Texte, die sonst direkt auf dem Bild
+   stünden, bekommen eine ruhige Fläche. */
+.meer .offen .muted { background: var(--flaeche); border: 2px solid var(--flaeche-rand); border-radius: var(--r-m);
+  padding: var(--sp-3) var(--sp-4); color: var(--muted); }
+.meer .footer:not(.good):not(.bad) .fb { background: var(--sand); border: 2px solid var(--sand-rand);
+  border-radius: var(--r-m); padding: var(--sp-2) var(--sp-4); }
