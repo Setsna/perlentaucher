@@ -29,6 +29,8 @@ Aufgebaut ist sie fachneutral, damit später weitere Inhalte und Fächer dazukom
 | `tools/qr_aufkleber.py` | Erzeugt den Druckbogen mit den QR-Zugangsaufklebern |
 | `tools/silben.py` | Sprechsilben und Worttrennung nach Duden |
 | `tools/rauchtest.html` | Rauchtest der Kinder-App: Anmeldung, Tauchgänge, Speichern – mit Firebase-Attrappe, ohne echte Datenbank |
+| `tools/vorschau.html` | Lokale Vorschau der Kinder-App mit Firebase-Attrappe und Testkind „Mila“: `http://localhost:8123/tools/vorschau.html` (`?neu` = von vorn, `?login` = Anmeldebildschirm) |
+| `img/riff-hoch.webp`, `img/riff-quer.webp` | Riff-Hintergrund der Kinder-App (in Canva erzeugt), hoch für iPad hochkant, quer für iPad quer und Tafel |
 | `tools/server.ps1` | Kleiner Webserver für den Rauchtest: `powershell -ExecutionPolicy Bypass -File tools\server.ps1`, dann `http://localhost:8123/tools/rauchtest.html` |
 
 ## Fächer und Sachthemen
@@ -439,7 +441,7 @@ das nächste Kind unbemerkt auf dem Konto des vorigen weiter.
 ## Nach einer Änderung: Versionsnummer hochzählen
 
 Browser merken sich `js` und `css` und liefern sonst tagelang die alte Fassung aus.
-Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=50`.
+Deshalb hängt hinter jeder lokalen Datei in `index.html` und `lehrer.html` ein `?v=51`.
 **Wenn du etwas am Programm änderst, zähl diese Zahl in beiden Dateien um eins hoch.**
 Dann laden alle Geräte beim nächsten Aufruf die neue Fassung.
 
