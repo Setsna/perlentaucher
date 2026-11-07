@@ -761,3 +761,7 @@ body.meer::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer
   padding: var(--sp-3) var(--sp-4); color: var(--muted); }
 .meer .footer:not(.good):not(.bad) .fb { background: var(--sand); border: 2px solid var(--sand-rand);
   border-radius: var(--r-m); padding: var(--sp-2) var(--sp-4); }
+/* Fußleiste: Abstand zwischen Meldung und Knöpfen; zwei Knöpfe
+   (Merkfrage) stehen nebeneinander, auch während der Wartezeit. */
+.footer { gap: var(--sp-3); align-items: center; }
+.footer .denkzeit { flex-direction: row; align-items: center; gap: var(--sp-3); }
