@@ -557,3 +557,49 @@ body.sync-an #app { min-height: calc(100vh - var(--synch, 0px)); }
   .wahl .faecher { grid-template-columns: 1fr; gap: var(--sp-3); }
   .wahl .fach { min-height: 120px; }
 }
+
+/* ==========================================================
+   Meereswelt: Riff-Hintergrund und Flächen in Wasserfarben
+   (UX-Überarbeitung 2026/11). Gilt nur für die Kinder-App
+   (<body class="meer"> in index.html), nicht für Lehrerbereich
+   und Datenschutzseite.
+   Bilder: in Canva erzeugt, img/riff-hoch.webp und riff-quer.webp.
+   Das Bild liegt in einer festen Ebene hinter allem. Direkt mit
+   background-attachment: fixed geht es nicht: iPad-Safari ignoriert
+   das und zieht das Bild dann über die ganze Seitenlänge.
+   ========================================================== */
+body.meer { background: #8FD9E0; }
+body.meer::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: #8FD9E0 url("../img/riff-hoch.webp") center bottom / cover no-repeat; }
+@media (min-aspect-ratio: 1/1) {
+  body.meer::before { background-image: url("../img/riff-quer.webp"); }
+}
+.meer {
+  /* Flächen: helles Wasser statt Weiß. Schrift darauf: --ink 10,6:1,
+     --muted 5,9:1. Knopfränder bleiben --line-akt. */
+  --card: #DCF3F5; --flaeche: #DCF3F5; --flaeche-rand: #A6DCE2;
+  --line: #A6DCE2;
+}
+.meer .card, .meer .werbinich, .meer .pill, .meer .badge, .meer .denkfeld,
+.meer .schildbild, .meer .malkarte, .meer .maluhr { background: var(--flaeche); border-color: var(--flaeche-rand); }
+.meer .werbinich { border-color: var(--flaeche-rand); }
+.meer .navbtn, .meer .icon-btn { background: var(--flaeche); }
+.meer .nic { background: #fff; }
+.meer .wcol { background: #C3E8ED; }
+.meer .bar { background: #BFE6EB; }
+/* Abzeichen: noch nicht erreicht = ruhig, nicht blass gestrichelt */
+.meer .badge { opacity: 1; border-style: solid; color: var(--muted); }
+.meer .badge:not(.got) span { opacity: .55; }
+.meer .badge.got { background: #FFF6E3; border-color: #E9C36A; color: var(--ink); }
+/* Malzeit ist eine Belohnung: Sand */
+.meer .malcard { background: var(--sand); border-color: var(--sand-d); }
+.meer .malcard .maltext small { color: var(--sand-ink); }
+/* Großkarten (Anmeldung, Ergebnis, keine Luftblasen) */
+.meer .cardbig { background: var(--flaeche); border-color: var(--flaeche-rand); }
+.meer .codefeld { background: #fff; }
+/* Fußzeile: Sand auf dem Sand des Bildes */
+.meer .foot { background: rgba(247, 234, 208, .94); }
+/* Überschriften stehen direkt auf dem Bild: ein heller Schein hält
+   sie auch über Korallen und Sand lesbar. */
+.meer .sec, .meer .ptop h1, .meer .fachsub, .meer .hint, .meer .sentence, .meer .bigword {
+  text-shadow: 0 0 2px rgba(232, 248, 250, .9), 0 0 10px rgba(232, 248, 250, .85); }
