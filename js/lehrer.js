@@ -1918,37 +1918,78 @@
       .catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); zeichnen(); });
   }
 
-  // Aufräumen am Schuljahresende: alle Kinder, die seit X Tagen nicht
-  // mehr geübt haben, in einem Zug löschen.
+  // Letzte Aktivität in den anderen Plattformen (PLATTFORMEN): je Kind der
+  // jüngste Zeitstempel aus allen Ständen, in Millisekunden. Hat ein Stand
+  // keinen brauchbaren Zeitstempel, zählt das Kind als heute aktiv: Im
+  // Zweifel wird nicht gelöscht.
+  function plattformAktiv() {
+    return Promise.all(PLATTFORMEN.map(function (pf) { return db.collection(pf.sammlung).get(); }))
+      .then(function (r) {
+        var zuletzt = {}, jetzt = Date.now();
+        r.forEach(function (snap) {
+          snap.forEach(function (d) {
+            var s = d.data() || {};
+            var t = Number(s.geaendert);
+            if (!(isFinite(t) && t > 0)) t = Number(s.angelegt);
+            if (!(isFinite(t) && t > 0)) t = jetzt;
+            if (t > (zuletzt[d.id] || 0)) zuletzt[d.id] = t;
+          });
+        });
+        return zuletzt;
+      });
+  }
+
+  // Wer hat seit mindestens "grenze" Tagen nirgends geübt? Gezählt wird die
+  // jüngste Aktivität aus dem Perlentaucher und aus allen anderen
+  // Plattformen (zuletzt aus plattformAktiv). tage === null heißt: nie.
+  function inaktiveKinder(grenze, zuletzt) {
+    var liste = [];
+    kinder.forEach(function (k) {
+      var d = tageHer(letzterTag(staende[k.id]));
+      var t = zuletzt[k.id];
+      var p = t ? Math.max(0, Math.floor((Date.now() - t) / 86400000)) : null;
+      var tage = d === null ? p : (p === null ? d : Math.min(d, p));
+      if (tage === null || tage >= grenze) liste.push({ kind: k, tage: tage });
+    });
+    return liste;
+  }
+
+  // Aufräumen am Schuljahresende: alle Kinder, die seit X Tagen in keiner
+  // Plattform mehr geübt haben, in einem Zug löschen.
   function alteAufraeumen() {
     var eingabe = prompt('Kinder löschen, die seit wie vielen Tagen nicht mehr geübt haben?\n\n' +
+      'Gezählt wird die letzte Aktivität im Perlentaucher und in ' + plattformNamen() + '.\n' +
       'Ein Schuljahr sind etwa 200 Tage. Kinder, die sich noch nie angemeldet haben, zählen mit.', '200');
     if (eingabe === null) return;
     var grenze = parseInt(eingabe, 10);
     if (!(grenze >= 0)) { melde('Das war keine Zahl.', 'fehler'); return; }
 
-    var treffer = kinder.filter(function (k) {
-      var d = tageHer(letzterTag(staende[k.id]));
-      return d === null || d >= grenze;
-    });
-    if (!treffer.length) { melde('Kein Kind ist so lange inaktiv. Es wurde nichts gelöscht.'); return; }
-    if (!confirm('Diese ' + treffer.length + ' Kinder endgültig löschen?\n\n' +
-        treffer.map(function (k) { return '• ' + k.vorname; }).join('\n') +
-        '\n\nFortschritt, Bilder und die Stände in ' + plattformNamen() + ' werden entfernt. ' +
-        'Das lässt sich nicht rückgängig machen.')) return;
-    if (!confirm('Wirklich sicher? ' + treffer.length + ' Kinder werden vollständig gelöscht.')) return;
+    melde('Die Stände aller Plattformen werden geprüft …');
+    plattformAktiv().then(function (zuletzt) {
+      var liste = inaktiveKinder(grenze, zuletzt);
+      if (!liste.length) { melde('Kein Kind ist so lange inaktiv. Es wurde nichts gelöscht.'); return; }
+      if (!confirm('Diese ' + liste.length + ' Kinder endgültig löschen?\n\n' +
+          liste.map(function (x) {
+            return '• ' + x.kind.vorname + ' (' + (x.tage === null ? 'nie aktiv' : 'zuletzt vor ' + x.tage + ' Tagen') + ')';
+          }).join('\n') +
+          '\n\nFortschritt, Bilder und die Stände in ' + plattformNamen() + ' werden entfernt. ' +
+          'Das lässt sich nicht rückgängig machen.')) { melde('Abgebrochen. Es wurde nichts gelöscht.'); return; }
+      if (!confirm('Wirklich sicher? ' + liste.length + ' Kinder werden vollständig gelöscht.')) { melde('Abgebrochen. Es wurde nichts gelöscht.'); return; }
 
-    melde(treffer.length + ' Kinder werden gelöscht …');
-    var kette = Promise.resolve(0);
-    treffer.forEach(function (k) {
-      kette = kette.then(function (summe) {
-        return kindLoeschen(k.id).then(function (n) { return summe + n; });
+      melde(liste.length + ' Kinder werden gelöscht …');
+      var kette = Promise.resolve(0);
+      liste.forEach(function (x) {
+        kette = kette.then(function (summe) {
+          return kindLoeschen(x.kind.id).then(function (n) { return summe + n; });
+        });
       });
+      return kette.then(function (bilder) {
+        melde(liste.length + ' Kinder gelöscht, dabei ' + bilder + ' Bilder entfernt. ' +
+          'Auch die Stände in ' + plattformNamen() + ' sind gelöscht.'); laden();
+      });
+    }).catch(function (e) {
+      melde('Fehler: ' + esc(e.message) + ' Bitte in der Kinderliste prüfen, ob schon Kinder gelöscht wurden.', 'fehler');
     });
-    kette.then(function (bilder) {
-      melde(treffer.length + ' Kinder gelöscht, dabei ' + bilder + ' Bilder entfernt. ' +
-        'Auch die Stände in ' + plattformNamen() + ' sind gelöscht.'); laden();
-    }).catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
   }
 
   // ---------- Fortschritt zurücksetzen ----------

@@ -297,6 +297,61 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   });
   pruefe('keine Zeile setzt zs_stand oder fp_stand in innerHTML ein', treffer.length === 0);
 
+  // ---- „Lange inaktive Kinder löschen“ zählt alle Plattformen ----
+  // letzterTag gibt es in lehrer.js zweimal; es gilt die zweite Fassung
+  // (Reiter Kinder), deshalb wird ab dort ausgeschnitten.
+  var TAG = 86400000, jetzt = Date.now();
+  function tagText(vorTagen) { return new Date(jetzt - vorTagen * TAG).toISOString().slice(0, 10); }
+  function aufraeumer(dbA, kinderA, staendeA) {
+    var ab = quelle.indexOf('Reiter 4: Kinder');
+    var lt = quelle.indexOf('  function letzterTag(', ab);
+    var ltText = quelle.slice(lt, quelle.indexOf('\n  }', lt) + 4);
+    var koerper = plattformenZeile + '\n' + ltText + '\n' +
+      ['tageHer', 'plattformAktiv', 'inaktiveKinder'].map(funktion).join('\n') +
+      '\nreturn { plattformAktiv: plattformAktiv, inaktiveKinder: inaktiveKinder };';
+    return new Function('db', 'kinder', 'staende', koerper)(dbA, kinderA, staendeA);
+  }
+  var kinderA = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vorname: 'Tom' },
+                 { id: 'cccc3333', vorname: 'Ada' }, { id: 'dddd4444', vorname: 'Ben' }, { id: 'eeee5555', vorname: 'Kai' }];
+  // Mila: Perlentaucher vor 300 Tagen, Zahlenschwarm vor 3 Tagen  -> bleibt
+  // Tom:  nie im Perlentaucher, Riff-Akten vor 10 Tagen           -> bleibt
+  // Ada:  Perlentaucher vor 300 Tagen, Flaschenpost vor 250 Tagen -> inaktiv (250)
+  // Ben:  nirgends ein Stand                                      -> inaktiv (nie)
+  // Kai:  nie im Perlentaucher, Stand ohne Zeitstempel            -> bleibt (im Zweifel nicht löschen)
+  var staendeA = { aaaa1111: { lastDay: tagText(300) }, bbbb2222: null, cccc3333: { lastDay: tagText(300) }, dddd4444: null, eeee5555: null };
+  var inhaltA = {
+    zs_stand: { aaaa1111: { geaendert: jetzt - 3 * TAG } },
+    fp_stand: { cccc3333: { geaendert: jetzt - 250 * TAG, angelegt: jetzt - 280 * TAG } },
+    ra_stand: { bbbb2222: { geaendert: 0, angelegt: jetzt - 10 * TAG } },
+    sw_stand: { eeee5555: { geaendert: 'kaputt' } },
+    kr_stand: {}
+  };
+  var dbA = attrappe(inhaltA);
+  var A = aufraeumer(dbA, kinderA, staendeA);
+  var zuletztA = await A.plattformAktiv();
+  var listeA = A.inaktiveKinder(200, zuletztA);
+  var namenA = listeA.map(function (x) { return x.kind.vorname; }).sort().join(',');
+  pruefe('Aufräumen: Kind mit frischem Zahlenschwarm-Stand bleibt, obwohl der Perlentaucher alt ist', namenA.indexOf('Mila') < 0);
+  pruefe('Aufräumen: Kind nur in den Riff-Akten aktiv bleibt (Zeitstempel aus angelegt)', namenA.indexOf('Tom') < 0);
+  pruefe('Aufräumen: Kind mit Stand ohne Zeitstempel bleibt', namenA.indexOf('Kai') < 0);
+  pruefe('Aufräumen: überall alt und nie aktiv werden gefunden, sonst niemand', namenA === 'Ada,Ben');
+  var adaA = listeA.filter(function (x) { return x.kind.vorname === 'Ada'; })[0];
+  var benA = listeA.filter(function (x) { return x.kind.vorname === 'Ben'; })[0];
+  pruefe('Aufräumen: es zählt die jüngste Aktivität (250 statt 300 Tage), nie aktiv ist null',
+    adaA && adaA.tage >= 249 && adaA.tage <= 250 && benA && benA.tage === null);
+  pruefe('Aufräumen: Grenze 0 trifft alle außer niemandem (alle fünf)', A.inaktiveKinder(0, zuletztA).length === 5);
+  pruefe('Aufräumen: Prüfen löscht nichts', dbA.log.length === 0);
+  // Gegenprobe: ohne die anderen Plattformen würden Mila, Tom und Kai mitgelöscht
+  pruefe('Gegenprobe: ohne Plattform-Stände wären es alle fünf', A.inaktiveKinder(200, {}).length === 5);
+  // Lässt sich eine Plattform nicht lesen, bricht das Prüfen ab (es wird nichts gelöscht)
+  var dbKaputt = attrappe(inhaltA), echt = dbKaputt.collection;
+  dbKaputt.collection = function (c) { return c === 'sw_stand' ? { get: function () { return Promise.reject(new Error('gesperrt')); } } : echt(c); };
+  var kaputt = await aufraeumer(dbKaputt, kinderA, staendeA).plattformAktiv().then(function () { return 'durch'; }, function () { return 'abgebrochen'; });
+  pruefe('Aufräumen: Lesefehler in einer Plattform bricht ab', kaputt === 'abgebrochen');
+  pruefe('alteAufraeumen fragt erst die Plattformen ab und nutzt inaktiveKinder',
+    /plattformAktiv\(\)\.then/.test(funktion('alteAufraeumen')) && /inaktiveKinder\(grenze, zuletzt\)/.test(funktion('alteAufraeumen')) &&
+    !/tageHer\(letzterTag\(staende\[k\.id\]\)\)/.test(funktion('alteAufraeumen')));
+
   console.log('\n' + (schlecht ? 'FEHLER' : 'OK') + ': ' + gut + ' von ' + (gut + schlecht) + ' Prüfungen bestanden.');
   process.exit(schlecht ? 1 : 0);
 })().catch(function (e) { console.error('FEHLER im Testlauf:', e); process.exit(1); });
