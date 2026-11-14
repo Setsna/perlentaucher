@@ -10,7 +10,7 @@
    wird nie berührt.
 
    Geprüft wird nur, was mit den Ständen der anderen Plattformen
-   (zs_stand Zahlenschwarm, fp_stand Flaschenpost, ra_stand Riff-Akten, sw_stand Seesternwerkstatt) zu tun hat:
+   (zs_stand Zahlenschwarm, fp_stand Flaschenpost, ra_stand Riff-Akten, sw_stand Seesternwerkstatt, kr_stand KI-Korallenriff) zu tun hat:
    Sicherung, Auskunft, Kind löschen, Zurücksetzen.
    NICHT geprüft: die Seite selbst, Knöpfe, Nachfragen, Anmeldung,
    die echten Firestore-Regeln.
@@ -120,6 +120,8 @@ function frisch() {
                 bbbb2222: { erledigt: {}, stempel: {}, zeit: {}, eintraege: {}, abzeichen: '', angelegt: 2, geaendert: 2 } },
     sw_stand: { aaaa1111: { tangram: { geloest: { 'wal:knifflig': 9 } }, spiegeln: { runden: { leicht: 1 } }, band: { runden: {} }, stempel: { 'spiegeln:leicht': 9 }, angelegt: 1, geaendert: 9 },
                 bbbb2222: { tangram: { geloest: {} }, spiegeln: { runden: {} }, band: { runden: {} }, stempel: {}, angelegt: 2, geaendert: 2 } },
+    kr_stand: { aaaa1111: { done: { a1: 2 }, stempel: { a1: 9 }, zeit: { a1: 300 }, ziele: { 'm1-0': 'kann' }, angelegt: 1, geaendert: 9 },
+                bbbb2222: { done: {}, stempel: {}, zeit: {}, ziele: {}, angelegt: 2, geaendert: 2 } },
     ra_faelle: { demo: { titel: 'Akte', nr: 1 } },
     ra_loesungen: { demo: { aufgaben: {} } }
   };
@@ -186,7 +188,10 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
     datei && datei.daten.flaschenpost && datei.daten.flaschenpost.stempel['wer-1'] === 5);
   pruefe('Hinweis nennt die Flaschenpost und dass Einträge nur auf dem Gerät liegen',
     datei && /Flaschenpost/.test(datei.daten.hinweis) && /nur auf den Geräten/.test(datei.daten.hinweis));
-  pruefe('Meldung nennt beide Stände', /, Zahlenschwarm-Stand, Flaschenpost-Stand, Riff-Akten-Stand, Seesternwerkstatt-Stand\.$/.test(meldungen[meldungen.length - 1]));
+  pruefe('Meldung nennt beide Stände', /, Zahlenschwarm-Stand, Flaschenpost-Stand, Riff-Akten-Stand, Seesternwerkstatt-Stand, KI-Korallenriff-Stand\.$/.test(meldungen[meldungen.length - 1]));
+  pruefe('Auskunft enthält den Korallenriff-Stand ohne Einträge, Hinweis nennt das Riff',
+    datei && datei.daten.korallenriff && datei.daten.korallenriff.done.a1 === 2 && !('eintraege' in datei.daten.korallenriff) &&
+    /KI-Korallenriff liegen nur auf den Geräten/.test(datei.daten.hinweis));
   pruefe('Auskunft hat nichts gelöscht', db.log.length === 0);
 
   neu(); delete inhalt.zs_stand.aaaa1111;
@@ -194,7 +199,7 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   pruefe('ohne Stand: zahlenschwarm ist null',
     datei && datei.daten.zahlenschwarm === null && 'zahlenschwarm' in datei.daten);
   pruefe('ohne Stand: Meldung sagt kein Zahlenschwarm-Stand',
-    /kein Zahlenschwarm-Stand, Flaschenpost-Stand, Riff-Akten-Stand, Seesternwerkstatt-Stand\.$/.test(meldungen[meldungen.length - 1]));
+    /kein Zahlenschwarm-Stand, Flaschenpost-Stand, Riff-Akten-Stand, Seesternwerkstatt-Stand, KI-Korallenriff-Stand\.$/.test(meldungen[meldungen.length - 1]));
   neu(); delete inhalt.fp_stand.aaaa1111;
   L.auskunft('aaaa1111'); await warte();
   pruefe('ohne Flaschenpost-Stand: flaschenpost ist null',
@@ -205,13 +210,13 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   var n = await L.kindLoeschen('aaaa1111');
   pruefe('Löschen entfernt kinder, fortschritt, bilder, zs_stand und fp_stand des Kindes',
     n === 1 && !inhalt.kinder.aaaa1111 && !inhalt.fortschritt.aaaa1111 &&
-    !inhalt.bilder.aaaa1111_1 && !inhalt.zs_stand.aaaa1111 && !inhalt.fp_stand.aaaa1111 && !inhalt.ra_stand.aaaa1111 && !inhalt.sw_stand.aaaa1111 && !!inhalt.sw_stand.bbbb2222 &&
+    !inhalt.bilder.aaaa1111_1 && !inhalt.zs_stand.aaaa1111 && !inhalt.fp_stand.aaaa1111 && !inhalt.ra_stand.aaaa1111 && !inhalt.sw_stand.aaaa1111 && !!inhalt.sw_stand.bbbb2222 && !inhalt.kr_stand.aaaa1111 && !!inhalt.kr_stand.bbbb2222 &&
     !!inhalt.ra_faelle.demo && !!inhalt.ra_loesungen.demo);
   pruefe('Löschen lässt das andere Kind unberührt',
     !!inhalt.kinder.bbbb2222 && !!inhalt.fortschritt.bbbb2222 && !!inhalt.bilder.bbbb2222_1 &&
     !!inhalt.zs_stand.bbbb2222 && !!inhalt.fp_stand.bbbb2222);
   pruefe('zs_stand und fp_stand gehen im letzten Paket mit fortschritt und kinder weg',
-    db.log[db.log.length - 1] === 'paket fortschritt/aaaa1111 zs_stand/aaaa1111 fp_stand/aaaa1111 ra_stand/aaaa1111 sw_stand/aaaa1111 kinder/aaaa1111');
+    db.log[db.log.length - 1] === 'paket fortschritt/aaaa1111 zs_stand/aaaa1111 fp_stand/aaaa1111 ra_stand/aaaa1111 sw_stand/aaaa1111 kr_stand/aaaa1111 kinder/aaaa1111');
 
   // ---- Zahlenschwarm zurücksetzen ----
   neu();
@@ -240,6 +245,12 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
     sw === true && db.log.length === 1 && db.log[0] === 'delete sw_stand/aaaa1111' && !!inhalt.sw_stand.bbbb2222 && !!inhalt.ra_stand.aaaa1111);
   pruefe('Sicherung holt sw_stand mit beiden Kindern', L.SAMMLUNGEN.indexOf('sw_stand') >= 0 &&
     L.PLATTFORMEN.some(function (pf) { return pf.sammlung === 'sw_stand' && pf.name === 'Seesternwerkstatt' && pf.schluessel === 'seesternwerkstatt'; }));
+  neu();
+  var kr = await L.standLoeschen('kr_stand', 'aaaa1111');
+  pruefe('KI-Korallenriff zurücksetzen löscht nur kr_stand des Kindes',
+    kr === true && db.log.length === 1 && db.log[0] === 'delete kr_stand/aaaa1111' && !!inhalt.kr_stand.bbbb2222 && !!inhalt.sw_stand.aaaa1111);
+  pruefe('Sicherung holt kr_stand, Plattform heißt KI-Korallenriff', L.SAMMLUNGEN.indexOf('kr_stand') >= 0 &&
+    L.PLATTFORMEN.some(function (pf) { return pf.sammlung === 'kr_stand' && pf.name === 'KI-Korallenriff' && pf.schluessel === 'korallenriff'; }));
   var akteWeg = await L.standLoeschen('ra_faelle', 'demo').then(function () { return 'gelöscht'; }, function () { return 'abgelehnt'; });
   pruefe('Zurücksetzen lehnt ra_faelle ab', akteWeg === 'abgelehnt' && !!inhalt.ra_faelle.demo);
   var fremd = await L.standLoeschen('fortschritt', 'aaaa1111').then(function () { return 'gelöscht'; }, function () { return 'abgelehnt'; });
@@ -247,7 +258,7 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
 
   // ---- Inhalte aus zs_stand landen nie als HTML in der Seite ----
   var treffer = quelle.split('\n').filter(function (z) {
-    return /zs_stand|fp_stand|ra_stand|sw_stand|zahlenschwarm|flaschenpost|riffakten|seesternwerkstatt|PLATTFORMEN/.test(z) && /innerHTML/.test(z);
+    return /zs_stand|fp_stand|ra_stand|sw_stand|kr_stand|zahlenschwarm|flaschenpost|riffakten|seesternwerkstatt|korallenriff|PLATTFORMEN/.test(z) && /innerHTML/.test(z);
   });
   pruefe('keine Zeile setzt zs_stand oder fp_stand in innerHTML ein', treffer.length === 0);
 
