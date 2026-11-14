@@ -81,7 +81,16 @@ service cloud.firestore {
                     || (istKind(code) && freigeschaltet(code)
                         && request.resource.data.xp is int
                         && request.resource.data.xp >= 0
-                        && request.resource.data.xp <= 200000);
+                        && request.resource.data.xp <= 200000
+                        // Was der Lehrerbereich anzeigt, muss den
+                        // richtigen Typ haben. Sonst koennte ein
+                        // Kinderkonto dort Text einschleusen.
+                        && request.resource.data.get('lessons', 0) is number
+                        && (request.resource.data.get('lastDay', null) == null
+                            || (request.resource.data.lastDay is string
+                                && request.resource.data.lastDay.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+                        && request.resource.data.get('days', {}) is map
+                        && request.resource.data.get('words', {}) is map);
       allow delete: if istLehrer();
     }
 
