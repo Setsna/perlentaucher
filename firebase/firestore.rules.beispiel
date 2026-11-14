@@ -102,10 +102,17 @@ service cloud.firestore {
     match /bilder/{id} {
       allow read:   if istLehrer() || istKind(resource.data.code);
 
+      // Die Kennung muss <code>_<nummer> sein (js/cloud.js: bilderSichern),
+      // hoechstens vierstellig. Sonst koennte ein Kinderkonto beliebig
+      // viele Dokumente anlegen. Erlaubt sind nur die Felder, die die
+      // App schreibt.
       allow create: if istLehrer()
                     || (istKind(request.resource.data.code)
                         && freigeschaltet(request.resource.data.code)
                         && request.resource.data.code is string
+                        && id.matches('^' + request.resource.data.code + '_[0-9]{1,4}$')
+                        && request.resource.data.keys().hasOnly(
+                             ['code', 'id', 'art', 'g', 'px', 'striche', 'fertig', 'ts', 'geloescht'])
                         && (!('striche' in request.resource.data)
                             || request.resource.data.striche.size() <= 20000)
                         && (!('px' in request.resource.data)
@@ -114,6 +121,8 @@ service cloud.firestore {
       allow update: if istLehrer()
                     || (istKind(resource.data.code)
                         && request.resource.data.code == resource.data.code
+                        && request.resource.data.keys().hasOnly(
+                             ['code', 'id', 'art', 'g', 'px', 'striche', 'fertig', 'ts', 'geloescht'])
                         && (!('striche' in request.resource.data)
                             || request.resource.data.striche.size() <= 20000)
                         && (!('px' in request.resource.data)

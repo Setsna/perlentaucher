@@ -1910,11 +1910,29 @@
     if (!k) return Promise.resolve();
     return db.collection('bilder').where('code', '==', id).get()
       .then(function (snap) {
-        var paket = db.batch();
-        snap.forEach(function (d) { paket.delete(d.ref); });
-        paket.delete(db.collection('fortschritt').doc(id));
-        paket.delete(db.collection('kinder').doc(id));
-        return paket.commit().then(function () { return snap.size; });
+        // Firestore nimmt höchstens 500 Vorgänge je Paket. Die Bilder
+        // gehen deshalb in Häppchen zu 400 weg (wie in listeLeeren),
+        // Fortschritt und Kind erst ganz zum Schluss: Bricht es vorher
+        // ab, steht das Kind noch in der Liste und „Löschen“ lässt sich
+        // einfach wiederholen.
+        var refs = [];
+        snap.forEach(function (d) { refs.push(d.ref); });
+        var p = Promise.resolve();
+        for (var i = 0; i < refs.length; i += 400) {
+          (function (teil) {
+            p = p.then(function () {
+              var paket = db.batch();
+              teil.forEach(function (ref) { paket.delete(ref); });
+              return paket.commit();
+            });
+          })(refs.slice(i, i + 400));
+        }
+        return p.then(function () {
+          var paket = db.batch();
+          paket.delete(db.collection('fortschritt').doc(id));
+          paket.delete(db.collection('kinder').doc(id));
+          return paket.commit();
+        }).then(function () { return refs.length; });
       });
   }
 
