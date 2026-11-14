@@ -864,30 +864,31 @@
     return '<b style="color:var(--bad-d)">vor ' + d + ' Tagen</b>';
   }
 
+  // Eine Zeile der Kinderliste: genau vier Knöpfe. „Zurücksetzen“ steht
+  // bei jedem Kind, auch ohne Perlentaucher-Stand, und öffnet die Auswahl
+  // (Perlentaucher und die anderen Plattformen) in resetFragen.
+  function kinderZeile(k) {
+    var f = staende[k.id];
+    return '<tr><td><b>' + esc(k.vorname) + '</b></td><td class="code">' + esc(fmtCode(k.id)) + '</td>' +
+      '<td>' + (f ? zahl(f.xp) + ' Perlen' : 'noch nie angemeldet') + '</td>' +
+      '<td>' + aktivText(f) + '</td>' +
+      '<td style="white-space:nowrap">' +
+      '<button class="btn ghost mini" data-auskunft="' + esc(k.id) + '">Auskunft</button> ' +
+      '<button class="btn ghost mini" data-reset="' + esc(k.id) + '">Zurücksetzen</button> ' +
+      '<button class="btn ghost mini" data-kindweg="' + esc(k.id) + '">Sperren</button> ' +
+      '<button class="btn ghost mini danger" data-kindloeschen="' + esc(k.id) + '">Löschen</button></td></tr>';
+  }
+
   function tabKinder() {
-    var zeilen = kinder.map(function (k) {
-      var f = staende[k.id];
-      return '<tr><td><b>' + esc(k.vorname) + '</b></td><td class="code">' + esc(fmtCode(k.id)) + '</td>' +
-        '<td>' + (f ? zahl(f.xp) + ' Perlen' : 'noch nie angemeldet') + '</td>' +
-        '<td>' + aktivText(f) + '</td>' +
-        '<td style="white-space:nowrap">' +
-        '<button class="btn ghost mini" data-auskunft="' + esc(k.id) + '">Auskunft</button> ' +
-        (f ? '<button class="btn ghost mini" data-reset="' + esc(k.id) + '">Zurücksetzen</button> ' : '') +
-        PLATTFORMEN.map(function (pf) {
-          return '<button class="btn ghost mini" data-pfreset="' + esc(k.id) + '" data-sammlung="' + esc(pf.sammlung) + '">' +
-            esc(pf.name) + ' zurücksetzen</button> ';
-        }).join('') +
-        '<button class="btn ghost mini" data-kindweg="' + esc(k.id) + '">Sperren</button> ' +
-        '<button class="btn ghost mini danger" data-kindloeschen="' + esc(k.id) + '">Löschen</button></td></tr>';
-    }).join('');
+    var zeilen = kinder.map(kinderZeile).join('');
 
     return '<h2 class="sec">Freigeschaltete Kinder</h2><section class="card">' +
       '<div class="hinweis"><b>Sperren</b> macht nur den Aufkleber unbrauchbar; der Spielstand bleibt liegen. ' +
       '<b>Löschen</b> entfernt Kind, Fortschritt, alle Bilder und die Stände in ' + plattformNamen() + ' endgültig – das ist ' +
       'der Weg, wenn Eltern die Löschung verlangen oder das Schuljahr zu Ende ist. <b>Auskunft</b> lädt alles ' +
       'herunter, was zu diesem Kind gespeichert ist, im Perlentaucher und in ' + plattformNamen() + '. ' +
-      '<b>Zurücksetzen</b> betrifft nur den Perlentaucher, <b>… zurücksetzen</b> mit Namen nur die genannte ' +
-      'Plattform. Die eigenen Einträge in der Flaschenpost und im KI-Korallenriff liegen nur auf den Geräten der Kinder.</div>' +
+      '<b>Zurücksetzen</b> öffnet unter der Liste eine Auswahl: den Perlentaucher oder eine einzelne andere ' +
+      'Plattform. Gelöscht wird erst nach einer Nachfrage. Die eigenen Einträge in der Flaschenpost und im KI-Korallenriff liegen nur auf den Geräten der Kinder.</div>' +
       '<div class="tabwrap">' +
       '<table class="tabelle"><thead><tr><th>Vorname</th><th>Code</th><th>Stand</th><th>Zuletzt aktiv</th><th></th></tr></thead><tbody>' +
       (zeilen || '<tr><td colspan="5" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
@@ -1782,9 +1783,6 @@
     document.querySelectorAll('[data-auskunft]').forEach(function (b) {
       b.onclick = function () { auskunft(b.getAttribute('data-auskunft')); };
     });
-    document.querySelectorAll('[data-pfreset]').forEach(function (b) {
-      b.onclick = function () { plattformZuruecksetzenFragen(b.getAttribute('data-pfreset'), b.getAttribute('data-sammlung')); };
-    });
     document.querySelectorAll('[data-kindloeschen]').forEach(function (b) {
       b.onclick = function () { kindLoeschenFragen(b.getAttribute('data-kindloeschen')); };
     });
@@ -1968,33 +1966,56 @@
     return summe;
   }
 
+  // Baut das Feld „<Kind> zurücksetzen“: oben der Perlentaucher (f ist der
+  // Perlentaucher-Stand oder leer), darunter je ein Knopf für die anderen
+  // Plattformen. Von deren Ständen steht hier nichts, nur die Namen aus
+  // der festen Liste oben.
+  function resetFeldHtml(k, f) {
+    var perlentaucher;
+    if (f) {
+      var woerter = f.words ? Object.keys(f.words).length : 0;
+      var abz = f.badges ? Object.keys(f.badges).length : 0;
+      perlentaucher = '<div class="hinweis">Aktueller Stand: <b>' + zahl(f.xp) + ' Perlen</b>, ' +
+        zahl(f.lessons) + ' Tauchgänge, ' + woerter + ' geübte Wörter, ' + abz + ' Abzeichen.<br>' +
+        'Davon in dieser Woche: <b>' + wochenBeitrag(f) + ' Perlen</b>. Diese werden auch vom Klassenziel abgezogen.</div>' +
+        '<div class="knopfreihe">' +
+        '<button class="btn" data-tun="perlen" data-id="' + esc(k.id) + '">Nur die Perlen zurücksetzen</button>' +
+        '<button class="btn bad" data-tun="alles" data-id="' + esc(k.id) + '">Alles zurücksetzen</button></div>' +
+        '<p class="muted" style="margin-top:12px;font-size:15px">' +
+        '<b>Nur die Perlen:</b> Perlen, Tagesziele und Rekorde gehen auf null. Welche Wörter schon ' +
+        'sitzen und welche Abzeichen verdient sind, bleibt erhalten.<br>' +
+        '<b>Alles:</b> Das Kind fängt bei null an, auch die Wortstatistik und die Abzeichen sind weg.</p>';
+    } else {
+      perlentaucher = '<p>' + esc(k.vorname) + ' hat im Perlentaucher noch nie geübt, hier gibt es nichts zurückzusetzen.</p>';
+    }
+    var andere = PLATTFORMEN.map(function (pf) {
+      return '<button class="btn ghost" data-pfreset="' + esc(k.id) + '" data-sammlung="' + esc(pf.sammlung) + '">' +
+        esc(pf.name) + ' zurücksetzen</button>';
+    }).join('');
+    return '<h2 class="sec" id="resettitel" tabindex="-1">' + esc(k.vorname) + ' zurücksetzen</h2><section class="card">' +
+      '<h3 style="margin:0 0 10px;font-size:18px">Perlentaucher</h3>' + perlentaucher +
+      '<h3 style="margin:22px 0 6px;font-size:18px">Andere Plattformen</h3>' +
+      '<p class="muted" style="margin:0;font-size:15px">Löscht nur den Stand in der genannten Plattform, ' +
+      'nach zwei Nachfragen. Der Perlentaucher und die übrigen Plattformen bleiben, wie sie sind.</p>' +
+      '<div class="knopfreihe">' + andere + '</div>' +
+      '<div class="knopfreihe" style="margin-top:22px"><button class="btn ghost" id="resetab">Abbrechen</button></div>' +
+      '<div id="resetmeldung"></div></section>';
+  }
+
   function resetFragen(id) {
     var k = kinder.filter(function (x) { return x.id === id; })[0];
-    if (!staende[id]) {
-      melde(esc(k.vorname) + ' hat noch nie geübt, es gibt nichts zurückzusetzen.', 'fehler');
-      zeichnen(); return;
-    }
-    var f = staende[id];
-    var woerter = f.words ? Object.keys(f.words).length : 0;
-    var abz = f.badges ? Object.keys(f.badges).length : 0;
+    if (!k) return;
     var feld = el('resetfeld');
-    feld.innerHTML = '<h2 class="sec">' + esc(k.vorname) + ' zurücksetzen</h2><section class="card">' +
-      '<div class="hinweis">Aktueller Stand: <b>' + zahl(f.xp) + ' Perlen</b>, ' +
-      zahl(f.lessons) + ' Tauchgänge, ' + woerter + ' geübte Wörter, ' + abz + ' Abzeichen.<br>' +
-      'Davon in dieser Woche: <b>' + wochenBeitrag(f) + ' Perlen</b>. Diese werden auch vom Klassenziel abgezogen.</div>' +
-      '<div class="knopfreihe">' +
-      '<button class="btn" data-tun="perlen" data-id="' + esc(id) + '">Nur die Perlen zurücksetzen</button>' +
-      '<button class="btn bad" data-tun="alles" data-id="' + esc(id) + '">Alles zurücksetzen</button>' +
-      '<button class="btn ghost" id="resetab">Abbrechen</button></div>' +
-      '<p class="muted" style="margin-top:12px;font-size:15px">' +
-      '<b>Nur die Perlen:</b> Perlen, Tagesziele und Rekorde gehen auf null. Welche Wörter schon ' +
-      'sitzen und welche Abzeichen verdient sind, bleibt erhalten.<br>' +
-      '<b>Alles:</b> Das Kind fängt bei null an, auch die Wortstatistik und die Abzeichen sind weg.</p>' +
-      '<div id="resetmeldung"></div></section>';
+    feld.innerHTML = resetFeldHtml(k, staende[id]);
     feld.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Fokus auf die Überschrift, damit Tastatur und Vorleseprogramm im Feld landen.
+    el('resettitel').focus({ preventScroll: true });
     el('resetab').onclick = function () { feld.innerHTML = ''; };
     feld.querySelectorAll('[data-tun]').forEach(function (b) {
       b.onclick = function () { zuruecksetzen(b.getAttribute('data-id'), b.getAttribute('data-tun') === 'alles'); };
+    });
+    feld.querySelectorAll('[data-pfreset]').forEach(function (b) {
+      b.onclick = function () { plattformZuruecksetzenFragen(b.getAttribute('data-pfreset'), b.getAttribute('data-sammlung')); };
     });
   }
 

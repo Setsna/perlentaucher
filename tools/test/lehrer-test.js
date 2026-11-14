@@ -12,7 +12,9 @@
    Geprüft wird nur, was mit den Ständen der anderen Plattformen
    (zs_stand Zahlenschwarm, fp_stand Flaschenpost, ra_stand Riff-Akten, sw_stand Seesternwerkstatt, kr_stand KI-Korallenriff) zu tun hat:
    Sicherung, Auskunft, Kind löschen, Zurücksetzen.
-   NICHT geprüft: die Seite selbst, Knöpfe, Nachfragen, Anmeldung,
+   Dazu der erzeugte Text der Kinderzeile (vier Knöpfe) und des Felds
+   „Zurücksetzen“ (Plattform-Knöpfe).
+   NICHT geprüft: die Seite selbst, Klicks, Nachfragen, Anmeldung,
    die echten Firestore-Regeln.
    ========================================================== */
 'use strict';
@@ -255,6 +257,39 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   pruefe('Zurücksetzen lehnt ra_faelle ab', akteWeg === 'abgelehnt' && !!inhalt.ra_faelle.demo);
   var fremd = await L.standLoeschen('fortschritt', 'aaaa1111').then(function () { return 'gelöscht'; }, function () { return 'abgelehnt'; });
   pruefe('Zurücksetzen lehnt Sammlungen ab, die keine Plattform sind', fremd === 'abgelehnt' && !!inhalt.fortschritt.aaaa1111);
+
+  // ---- Kinderliste: vier Knöpfe je Zeile, Plattform-Knöpfe im Feld ----
+  // Geprüft wird nur der erzeugte Text, nicht die Seite und nicht die Klicks.
+  var S = new Function('staende', 'esc', 'zahl', 'fmtCode', 'aktivText', 'wochenBeitrag',
+    plattformenZeile + '\n' + ['kinderZeile', 'resetFeldHtml'].map(funktion).join('\n') +
+    '\nreturn { PLATTFORMEN: PLATTFORMEN, kinderZeile: kinderZeile, resetFeldHtml: resetFeldHtml };')(
+    { aaaa1111: { xp: 5 } },
+    function (s) { return String(s).replace(/[&<>"]/g, '?'); },
+    function (x) { return typeof x === 'number' ? x : 0; },
+    function (c) { return c.toUpperCase(); }, function () { return 'heute'; }, function () { return 0; });
+  function knoepfe(html) { return (html.match(/<button[^>]*>[^<]*<\/button>/g) || []).map(function (b) { return b.replace(/<[^>]+>/g, ''); }); }
+  var mitStand = S.kinderZeile({ id: 'aaaa1111', vorname: 'Mila' });
+  var ohneStand = S.kinderZeile({ id: 'bbbb2222', vorname: 'Tom' });
+  pruefe('Zeile hat genau vier Knöpfe: Auskunft, Zurücksetzen, Sperren, Löschen',
+    knoepfe(mitStand).join('|') === 'Auskunft|Zurücksetzen|Sperren|Löschen');
+  pruefe('Zeile ohne Perlentaucher-Stand hat dieselben vier Knöpfe',
+    knoepfe(ohneStand).join('|') === 'Auskunft|Zurücksetzen|Sperren|Löschen' && /data-reset="bbbb2222"/.test(ohneStand));
+  pruefe('in der Zeile steht kein Plattform-Knopf mehr', !/data-pfreset/.test(mitStand + ohneStand));
+  var feldMit = S.resetFeldHtml({ id: 'aaaa1111', vorname: 'Mila' }, { xp: 5 });
+  var erwartet = ['Nur die Perlen zurücksetzen', 'Alles zurücksetzen']
+    .concat(S.PLATTFORMEN.map(function (pf) { return pf.name + ' zurücksetzen'; })).concat(['Abbrechen']);
+  pruefe('Feld mit Stand: Perlentaucher-Knöpfe, je ein Knopf pro Plattform, Abbrechen',
+    knoepfe(feldMit).join('|') === erwartet.join('|') && S.PLATTFORMEN.length === 5);
+  pruefe('Feld: jeder Plattform-Knopf trägt Kind und Sammlung',
+    S.PLATTFORMEN.every(function (pf) { return feldMit.indexOf('data-pfreset="aaaa1111" data-sammlung="' + pf.sammlung + '"') >= 0; }));
+  pruefe('Feld hat die Überschriften Perlentaucher und Andere Plattformen',
+    /<h2[^>]*>Mila zurücksetzen<\/h2>/.test(feldMit) && /<h3[^>]*>Perlentaucher<\/h3>/.test(feldMit) && /<h3[^>]*>Andere Plattformen<\/h3>/.test(feldMit));
+  var feldOhne = S.resetFeldHtml({ id: 'bbbb2222', vorname: 'Tom' }, undefined);
+  pruefe('Feld ohne Perlentaucher-Stand: Satz statt der zwei Knöpfe, Plattform-Knöpfe bleiben',
+    !/data-tun/.test(feldOhne) && /nichts zurückzusetzen/.test(feldOhne) &&
+    knoepfe(feldOhne).join('|') === erwartet.slice(2).join('|'));
+  pruefe('Feld setzt den Vornamen nur über esc() ein',
+    S.resetFeldHtml({ id: 'bbbb2222', vorname: '<b>x' }, undefined).indexOf('<b>x') < 0);
 
   // ---- Inhalte aus zs_stand landen nie als HTML in der Seite ----
   var treffer = quelle.split('\n').filter(function (z) {
