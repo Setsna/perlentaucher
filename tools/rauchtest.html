@@ -43,6 +43,17 @@
 (function () {
   'use strict';
 
+  // Sperre: Der Test leert den Browserspeicher der ganzen Adresse. Auf
+  // der veröffentlichten Seite träfe das den Lernstand aller Plattformen
+  // unter derselben Adresse. Deshalb läuft er nur auf dem eigenen Rechner.
+  if (!/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) {
+    var s = document.getElementById('stand');
+    s.className = 'fehler';
+    s.textContent = 'Der Rauchtest läuft nur lokal (tools\\server.ps1, dann http://localhost:8123/tools/rauchtest.html). Hier wurde nichts ausgeführt.';
+    window.RAUCHTEST = { fertig: true, ok: 0, fehler: 0, liste: [], gesperrt: true };
+    return;
+  }
+
   var CODE = 'TEST2345';                        // passt zum Code-Format der App
   var MAIL = CODE.toLowerCase() + '@lernplattform-44aa1.firebaseapp.com';
   var FREMD = 'ZZZZ9999';                        // nicht freigeschaltet

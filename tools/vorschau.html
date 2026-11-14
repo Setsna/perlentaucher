@@ -26,6 +26,15 @@
      ========================================================== -->
 <script>
 (function () {
+  // Sperre: Die Vorschau schreibt einen Test-Spielstand in den
+  // Browserspeicher und leert ihn bei ?neu ganz. Auf der veröffentlichten
+  // Seite träfe das echte Lernstände. Deshalb läuft sie nur lokal.
+  if (!/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) {
+    document.body.appendChild(document.createTextNode(
+      'Die Vorschau läuft nur lokal (tools\\server.ps1, dann http://localhost:8123/tools/vorschau.html). Hier wurde nichts ausgeführt.'));
+    return;
+  }
+
   var SPEICHER = 'vorschau-attrappe';
   var CODE = 'TEST2345';
   var MAIL = CODE.toLowerCase() + '@lernplattform-44aa1.firebaseapp.com';
