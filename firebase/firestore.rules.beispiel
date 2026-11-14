@@ -177,6 +177,52 @@ service cloud.firestore {
       allow write: if istLehrer();
     }
 
+    // ---------- Zahlenschwarm: Stand eines Kindes ----------
+    // Ein Dokument je Kind: zs_stand/<code>. Lernstand je Aufgabe,
+    // Fischschwarm, Stempel, Lernzeit, Klasse. Kein Vorname.
+    // Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Was die App schreibt (js/mische.js): nur diese Felder, mit
+    // diesen Typen. Die Obergrenzen liegen ueber dem, was die App
+    // hoechstens erzeugt (229 Aufgaben, 26 Stempel), damit ein
+    // Kinderkonto das Dokument nicht beliebig aufblasen kann.
+    function zsStandGueltig(d) {
+      return d.keys().hasOnly(
+               ['klasse', 'angelegt', 'aufgaben', 'schwarm', 'stempel', 'zeit', 'geaendert'])
+        && d.keys().hasAll(
+               ['klasse', 'aufgaben', 'schwarm', 'stempel', 'zeit', 'geaendert'])
+        && d.klasse in [3, 4]
+        && d.geaendert is number
+        && d.geaendert >= 0
+        && (!('angelegt' in d) || d.angelegt is number)
+        && d.aufgaben is map && d.aufgaben.size() <= 400
+        && d.schwarm is map && d.schwarm.size() <= 400
+        && d.stempel is map && d.stempel.size() <= 60
+        && d.zeit is map
+        && d.zeit.keys().hasOnly(['mal', 'geteilt', 'plusminus', 'tag', 'heute'])
+        && d.zeit.get('mal', 0) is number
+        && d.zeit.get('geteilt', 0) is number
+        && d.zeit.get('plusminus', 0) is number
+        && d.zeit.get('tag', 0) is number
+        && d.zeit.get('heute', 0) is number;
+    }
+
+    match /zs_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auskunft).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && zsStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;

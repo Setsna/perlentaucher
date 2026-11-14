@@ -863,15 +863,18 @@
         '<td style="white-space:nowrap">' +
         '<button class="btn ghost mini" data-auskunft="' + esc(k.id) + '">Auskunft</button> ' +
         (f ? '<button class="btn ghost mini" data-reset="' + esc(k.id) + '">Zurücksetzen</button> ' : '') +
+        '<button class="btn ghost mini" data-zsreset="' + esc(k.id) + '">Zahlenschwarm zurücksetzen</button> ' +
         '<button class="btn ghost mini" data-kindweg="' + esc(k.id) + '">Sperren</button> ' +
         '<button class="btn ghost mini danger" data-kindloeschen="' + esc(k.id) + '">Löschen</button></td></tr>';
     }).join('');
 
     return '<h2 class="sec">Freigeschaltete Kinder</h2><section class="card">' +
       '<div class="hinweis"><b>Sperren</b> macht nur den Aufkleber unbrauchbar; der Spielstand bleibt liegen. ' +
-      '<b>Löschen</b> entfernt Kind, Fortschritt und alle Bilder endgültig – das ist der Weg, wenn Eltern die ' +
-      'Löschung verlangen oder das Schuljahr zu Ende ist. <b>Auskunft</b> lädt alles herunter, was zu diesem Kind ' +
-      'gespeichert ist.</div>' +
+      '<b>Löschen</b> entfernt Kind, Fortschritt, alle Bilder und den Stand im Zahlenschwarm endgültig – das ist ' +
+      'der Weg, wenn Eltern die Löschung verlangen oder das Schuljahr zu Ende ist. <b>Auskunft</b> lädt alles ' +
+      'herunter, was zu diesem Kind gespeichert ist, im Perlentaucher und im Zahlenschwarm. ' +
+      '<b>Zurücksetzen</b> betrifft nur den Perlentaucher, <b>Zahlenschwarm zurücksetzen</b> nur den ' +
+      'Zahlenschwarm.</div>' +
       '<div class="tabwrap">' +
       '<table class="tabelle"><thead><tr><th>Vorname</th><th>Code</th><th>Stand</th><th>Zuletzt aktiv</th><th></th></tr></thead><tbody>' +
       (zeilen || '<tr><td colspan="5" class="muted">Noch keine Kinder freigeschaltet.</td></tr>') +
@@ -1547,7 +1550,11 @@
   //  zurückspielen. Wiederhergestellt wird nur, was in der Datei
   //  steht – nichts wird dabei gelöscht.
   // ==========================================================
-  var SAMMLUNGEN = ['kinder', 'lernwoerter', 'quizfragen', 'einstellungen', 'klassenwochen', 'fortschritt', 'bilder'];
+  // zs_stand ist der Lernstand der Kinder im Zahlenschwarm (gemeinsames
+  // Konto, ein Dokument je Kind unter demselben Code). Er wird hier nur
+  // gesichert, herausgegeben und gelöscht, nie angezeigt oder ausgewertet.
+  // Ältere Sicherungen ohne diesen Bereich bleiben einlesbar.
+  var SAMMLUNGEN = ['kinder', 'lernwoerter', 'quizfragen', 'einstellungen', 'klassenwochen', 'fortschritt', 'bilder', 'zs_stand'];
   var sicherungInhalt = null;      // eingelesene Datei, noch nicht geschrieben
 
   function tabSicherung() {
@@ -1759,6 +1766,9 @@
     document.querySelectorAll('[data-auskunft]').forEach(function (b) {
       b.onclick = function () { auskunft(b.getAttribute('data-auskunft')); };
     });
+    document.querySelectorAll('[data-zsreset]').forEach(function (b) {
+      b.onclick = function () { zsZuruecksetzenFragen(b.getAttribute('data-zsreset')); };
+    });
     document.querySelectorAll('[data-kindloeschen]').forEach(function (b) {
       b.onclick = function () { kindLoeschenFragen(b.getAttribute('data-kindloeschen')); };
     });
@@ -1778,26 +1788,32 @@
     Promise.all([
       db.collection('kinder').doc(id).get(),
       db.collection('fortschritt').doc(id).get(),
-      db.collection('bilder').where('code', '==', id).get()
+      db.collection('bilder').where('code', '==', id).get(),
+      db.collection('zs_stand').doc(id).get()
     ]).then(function (r) {
       var bilder = [];
       r[2].forEach(function (d) { bilder.push(Object.assign({ _id: d.id }, d.data())); });
       var daten = {
-        hinweis: 'Alle Daten, die in der Lernplattform Perlentaucher zu diesem Kind gespeichert sind.',
+        hinweis: 'Alle Daten, die in den Lernplattformen Perlentaucher und Zahlenschwarm zu diesem Kind ' +
+          'gespeichert sind. Der Abschnitt "zahlenschwarm" ist der Lernstand im Zahlenschwarm ' +
+          '(null, wenn es dort keinen Stand gibt).',
         erstellt: new Date().toISOString(),
         kind: r[0].exists ? r[0].data() : null,
         zugangscode: id.toUpperCase(),
         fortschritt: r[1].exists ? r[1].data() : null,
-        bilder: bilder
+        bilder: bilder,
+        zahlenschwarm: r[3].exists ? r[3].data() : null
       };
       alsDateiSichern('auskunft-' + k.vorname.toLowerCase().replace(/[^a-z0-9]/g, '') + '-' +
         heuteFuerDateiname() + '.json', JSON.stringify(daten, null, 2));
       melde('Auskunft für ' + esc(k.vorname) + ' heruntergeladen: ' +
-        (daten.fortschritt ? 'Fortschritt' : 'kein Fortschritt') + ', ' + bilder.length + ' Bilder.');
+        (daten.fortschritt ? 'Fortschritt' : 'kein Fortschritt') + ', ' + bilder.length + ' Bilder, ' +
+        (daten.zahlenschwarm ? 'Zahlenschwarm-Stand' : 'kein Zahlenschwarm-Stand') + '.');
     }).catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
   }
 
-  // Endgültig löschen: Kindeintrag, Fortschritt und alle Bilder.
+  // Endgültig löschen: Kindeintrag, Fortschritt, alle Bilder und der
+  // Stand im Zahlenschwarm (zs_stand, gleicher Code).
   //
   // Der Firebase-Anmeldezugang des Kindes bleibt bestehen – den kann nur
   // die Firebase-Konsole entfernen. Er enthält aber nichts außer dem
@@ -1827,6 +1843,7 @@
         return p.then(function () {
           var paket = db.batch();
           paket.delete(db.collection('fortschritt').doc(id));
+          paket.delete(db.collection('zs_stand').doc(id));
           paket.delete(db.collection('kinder').doc(id));
           return paket.commit();
         }).then(function () { return refs.length; });
@@ -1837,14 +1854,48 @@
     var k = kinder.filter(function (x) { return x.id === id; })[0];
     if (!k) return;
     if (!confirm('Alle Daten von ' + k.vorname + ' endgültig löschen?\n\n' +
-        'Fortschritt und alle gemalten Bilder werden entfernt, der Zugang erlischt. ' +
+        'Fortschritt, alle gemalten Bilder und der Stand im Zahlenschwarm werden entfernt, der Zugang erlischt. ' +
         'Das lässt sich nicht rückgängig machen.\n\n' +
         'Tipp: Vorher „Auskunft" anklicken, wenn du eine Kopie behalten willst.')) return;
     if (!confirm('Wirklich sicher? ' + k.vorname + ' wird vollständig gelöscht.')) return;
     melde('Wird gelöscht …');
     kindLoeschen(id)
-      .then(function (n) { melde(esc(k.vorname) + ' gelöscht: Fortschritt und ' + n + ' Bilder entfernt.'); laden(); })
+      .then(function (n) { melde(esc(k.vorname) + ' gelöscht: Fortschritt, Zahlenschwarm-Stand und ' + n + ' Bilder entfernt.'); laden(); })
       .catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
+  }
+
+  // ---------- Zahlenschwarm zurücksetzen ----------
+  // Löscht nur zs_stand/<code>. Konto (kinder) und Perlentaucher-Stand
+  // (fortschritt) bleiben. Anders als beim Perlentaucher wird wirklich
+  // gelöscht: Der Zahlenschwarm erkennt das fehlende Dokument beim
+  // nächsten Abgleich und fängt auf dem Gerät leer an.
+  // Vom Inhalt des Stands wird nichts gelesen außer „gibt es ihn“.
+  // Ergebnis: true = gelöscht, false = es gab keinen Stand.
+  function zsStandLoeschen(id) {
+    var ref = db.collection('zs_stand').doc(id);
+    return ref.get().then(function (d) {
+      if (!d.exists) return false;
+      return ref.delete().then(function () { return true; });
+    });
+  }
+
+  function zsZuruecksetzenFragen(id) {
+    var k = kinder.filter(function (x) { return x.id === id; })[0];
+    if (!k) return;
+    if (!confirm('Zahlenschwarm von ' + k.vorname + ' zurücksetzen?\n\n' +
+        k.vorname + ' fängt im Zahlenschwarm auf allen Geräten neu an. Was dort ohne Internet ' +
+        'geübt wurde, geht mit verloren. Das lässt sich nicht rückgängig machen.\n\n' +
+        'Der Perlentaucher bleibt, wie er ist: Zugang, Perlen und Bilder ändern sich nicht.\n\n' +
+        'Tipp: Vorher „Auskunft" anklicken, wenn du eine Kopie behalten willst.')) return;
+    if (!confirm('Wirklich sicher? Der Zahlenschwarm-Stand von ' + k.vorname + ' wird gelöscht.')) return;
+    melde('Wird zurückgesetzt …');
+    zsStandLoeschen(id)
+      .then(function (gab) {
+        melde(gab ? 'Zahlenschwarm von ' + esc(k.vorname) + ' zurückgesetzt. Der Perlentaucher ist unverändert.'
+                  : esc(k.vorname) + ' hat im Zahlenschwarm keinen Stand in der Datenbank, es wurde nichts gelöscht.');
+        zeichnen();
+      })
+      .catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); zeichnen(); });
   }
 
   // Aufräumen am Schuljahresende: alle Kinder, die seit X Tagen nicht
@@ -1863,7 +1914,8 @@
     if (!treffer.length) { melde('Kein Kind ist so lange inaktiv. Es wurde nichts gelöscht.'); return; }
     if (!confirm('Diese ' + treffer.length + ' Kinder endgültig löschen?\n\n' +
         treffer.map(function (k) { return '• ' + k.vorname; }).join('\n') +
-        '\n\nFortschritt und Bilder werden entfernt. Das lässt sich nicht rückgängig machen.')) return;
+        '\n\nFortschritt, Bilder und der Stand im Zahlenschwarm werden entfernt. ' +
+        'Das lässt sich nicht rückgängig machen.')) return;
     if (!confirm('Wirklich sicher? ' + treffer.length + ' Kinder werden vollständig gelöscht.')) return;
 
     melde(treffer.length + ' Kinder werden gelöscht …');
@@ -1874,7 +1926,8 @@
       });
     });
     kette.then(function (bilder) {
-      melde(treffer.length + ' Kinder gelöscht, dabei ' + bilder + ' Bilder entfernt.'); laden();
+      melde(treffer.length + ' Kinder gelöscht, dabei ' + bilder + ' Bilder entfernt. ' +
+        'Auch die Stände im Zahlenschwarm sind gelöscht.'); laden();
     }).catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
   }
 
