@@ -10,7 +10,7 @@
    wird nie berührt.
 
    Geprüft wird nur, was mit den Ständen der anderen Plattformen
-   (zs_stand Zahlenschwarm, fp_stand Flaschenpost) zu tun hat:
+   (zs_stand Zahlenschwarm, fp_stand Flaschenpost, ra_stand Riff-Akten) zu tun hat:
    Sicherung, Auskunft, Kind löschen, Zurücksetzen.
    NICHT geprüft: die Seite selbst, Knöpfe, Nachfragen, Anmeldung,
    die echten Firestore-Regeln.
@@ -115,7 +115,11 @@ function frisch() {
     zs_stand: { aaaa1111: { klasse: 3, aufgaben: {}, schwarm: {}, stempel: {}, zeit: {}, geaendert: 1 },
                 bbbb2222: { klasse: 4, aufgaben: {}, schwarm: {}, stempel: {}, zeit: {}, geaendert: 2 } },
     fp_stand: { aaaa1111: { stationen: { 'wer-1': { fertig: 5 } }, stempel: { 'wer-1': 5 }, zeit: {}, kannIch: {}, angelegt: 1, geaendert: 5 },
-                bbbb2222: { stationen: {}, stempel: {}, zeit: {}, kannIch: {}, angelegt: 2, geaendert: 2 } }
+                bbbb2222: { stationen: {}, stempel: {}, zeit: {}, kannIch: {}, angelegt: 2, geaendert: 2 } },
+    ra_stand: { aaaa1111: { erledigt: { demo: 7 }, stempel: { demo: 7 }, zeit: { demo: 60 }, eintraege: {}, abzeichen: 'qualle', angelegt: 1, geaendert: 7 },
+                bbbb2222: { erledigt: {}, stempel: {}, zeit: {}, eintraege: {}, abzeichen: '', angelegt: 2, geaendert: 2 } },
+    ra_faelle: { demo: { titel: 'Akte', nr: 1 } },
+    ra_loesungen: { demo: { aufgaben: {} } }
   };
 }
 var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vorname: 'Tom' }];
@@ -134,6 +138,11 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   neu();
   pruefe('SAMMLUNGEN enthält zs_stand', L.SAMMLUNGEN.indexOf('zs_stand') >= 0);
   pruefe('SAMMLUNGEN enthält fp_stand', L.SAMMLUNGEN.indexOf('fp_stand') >= 0);
+  pruefe('SAMMLUNGEN enthält ra_stand, ra_faelle und ra_loesungen',
+    ['ra_stand', 'ra_faelle', 'ra_loesungen'].every(function (c) { return L.SAMMLUNGEN.indexOf(c) >= 0; }));
+  pruefe('PLATTFORMEN enthält ra_stand, aber nicht die Akten',
+    L.PLATTFORMEN.some(function (pf) { return pf.sammlung === 'ra_stand' && pf.name === 'Riff-Akten'; }) &&
+    !L.PLATTFORMEN.some(function (pf) { return /^ra_(faelle|loesungen)$/.test(pf.sammlung); }));
   pruefe('jede Plattform steht auch in SAMMLUNGEN (Sicherung)',
     L.PLATTFORMEN.every(function (pf) { return L.SAMMLUNGEN.indexOf(pf.sammlung) >= 0; }));
   var alles = await L.alleHolen(true);
@@ -141,6 +150,8 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
     alles.zs_stand && Object.keys(alles.zs_stand).length === 2 && alles.zs_stand.aaaa1111.klasse === 3);
   var ohneBilder = await L.alleHolen(false);
   pruefe('Sicherung ohne Bilder enthält zs_stand trotzdem', !!ohneBilder.zs_stand && ohneBilder.bilder === undefined);
+  pruefe('Sicherung holt ra_stand und die Akten',
+    alles.ra_stand && alles.ra_stand.aaaa1111.stempel.demo === 7 && alles.ra_faelle && alles.ra_faelle.demo && alles.ra_loesungen && alles.ra_loesungen.demo);
   pruefe('Sicherung holt fp_stand mit beiden Kindern',
     alles.fp_stand && Object.keys(alles.fp_stand).length === 2 && alles.fp_stand.aaaa1111.stempel['wer-1'] === 5);
 
@@ -173,7 +184,7 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
     datei && datei.daten.flaschenpost && datei.daten.flaschenpost.stempel['wer-1'] === 5);
   pruefe('Hinweis nennt die Flaschenpost und dass Einträge nur auf dem Gerät liegen',
     datei && /Flaschenpost/.test(datei.daten.hinweis) && /nur auf den Geräten/.test(datei.daten.hinweis));
-  pruefe('Meldung nennt beide Stände', /, Zahlenschwarm-Stand, Flaschenpost-Stand\.$/.test(meldungen[meldungen.length - 1]));
+  pruefe('Meldung nennt beide Stände', /, Zahlenschwarm-Stand, Flaschenpost-Stand, Riff-Akten-Stand\.$/.test(meldungen[meldungen.length - 1]));
   pruefe('Auskunft hat nichts gelöscht', db.log.length === 0);
 
   neu(); delete inhalt.zs_stand.aaaa1111;
@@ -181,7 +192,7 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   pruefe('ohne Stand: zahlenschwarm ist null',
     datei && datei.daten.zahlenschwarm === null && 'zahlenschwarm' in datei.daten);
   pruefe('ohne Stand: Meldung sagt kein Zahlenschwarm-Stand',
-    /kein Zahlenschwarm-Stand, Flaschenpost-Stand\.$/.test(meldungen[meldungen.length - 1]));
+    /kein Zahlenschwarm-Stand, Flaschenpost-Stand, Riff-Akten-Stand\.$/.test(meldungen[meldungen.length - 1]));
   neu(); delete inhalt.fp_stand.aaaa1111;
   L.auskunft('aaaa1111'); await warte();
   pruefe('ohne Flaschenpost-Stand: flaschenpost ist null',
@@ -192,12 +203,13 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   var n = await L.kindLoeschen('aaaa1111');
   pruefe('Löschen entfernt kinder, fortschritt, bilder, zs_stand und fp_stand des Kindes',
     n === 1 && !inhalt.kinder.aaaa1111 && !inhalt.fortschritt.aaaa1111 &&
-    !inhalt.bilder.aaaa1111_1 && !inhalt.zs_stand.aaaa1111 && !inhalt.fp_stand.aaaa1111);
+    !inhalt.bilder.aaaa1111_1 && !inhalt.zs_stand.aaaa1111 && !inhalt.fp_stand.aaaa1111 && !inhalt.ra_stand.aaaa1111 &&
+    !!inhalt.ra_faelle.demo && !!inhalt.ra_loesungen.demo);
   pruefe('Löschen lässt das andere Kind unberührt',
     !!inhalt.kinder.bbbb2222 && !!inhalt.fortschritt.bbbb2222 && !!inhalt.bilder.bbbb2222_1 &&
     !!inhalt.zs_stand.bbbb2222 && !!inhalt.fp_stand.bbbb2222);
   pruefe('zs_stand und fp_stand gehen im letzten Paket mit fortschritt und kinder weg',
-    db.log[db.log.length - 1] === 'paket fortschritt/aaaa1111 zs_stand/aaaa1111 fp_stand/aaaa1111 kinder/aaaa1111');
+    db.log[db.log.length - 1] === 'paket fortschritt/aaaa1111 zs_stand/aaaa1111 fp_stand/aaaa1111 ra_stand/aaaa1111 kinder/aaaa1111');
 
   // ---- Zahlenschwarm zurücksetzen ----
   neu();
@@ -215,12 +227,19 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   pruefe('Flaschenpost zurücksetzen löscht nur fp_stand des Kindes',
     fp === true && db.log.length === 1 && db.log[0] === 'delete fp_stand/aaaa1111' &&
     !!inhalt.zs_stand.aaaa1111 && !!inhalt.fortschritt.aaaa1111 && !!inhalt.fp_stand.bbbb2222);
+  neu();
+  var ra = await L.standLoeschen('ra_stand', 'aaaa1111');
+  pruefe('Riff-Akten zurücksetzen löscht nur ra_stand des Kindes, die Akten bleiben',
+    ra === true && db.log.length === 1 && db.log[0] === 'delete ra_stand/aaaa1111' &&
+    !!inhalt.ra_stand.bbbb2222 && !!inhalt.ra_faelle.demo && !!inhalt.fp_stand.aaaa1111);
+  var akteWeg = await L.standLoeschen('ra_faelle', 'demo').then(function () { return 'gelöscht'; }, function () { return 'abgelehnt'; });
+  pruefe('Zurücksetzen lehnt ra_faelle ab', akteWeg === 'abgelehnt' && !!inhalt.ra_faelle.demo);
   var fremd = await L.standLoeschen('fortschritt', 'aaaa1111').then(function () { return 'gelöscht'; }, function () { return 'abgelehnt'; });
   pruefe('Zurücksetzen lehnt Sammlungen ab, die keine Plattform sind', fremd === 'abgelehnt' && !!inhalt.fortschritt.aaaa1111);
 
   // ---- Inhalte aus zs_stand landen nie als HTML in der Seite ----
   var treffer = quelle.split('\n').filter(function (z) {
-    return /zs_stand|fp_stand|zahlenschwarm|flaschenpost|PLATTFORMEN/.test(z) && /innerHTML/.test(z);
+    return /zs_stand|fp_stand|ra_stand|zahlenschwarm|flaschenpost|riffakten|PLATTFORMEN/.test(z) && /innerHTML/.test(z);
   });
   pruefe('keine Zeile setzt zs_stand oder fp_stand in innerHTML ein', treffer.length === 0);
 
