@@ -1635,12 +1635,44 @@
     });
   }
 
+  // Prüft eine Sicherungsdatei, bevor irgendetwas davon in die Datenbank
+  // geht. Zurückspielen überschreibt vorhandene Datensätze, deshalb
+  // darf eine fremde oder beschädigte Datei gar nicht erst angenommen
+  // werden. Gibt den Fehlertext zurück oder null, wenn alles passt.
+  // Die Kennungen sind bewusst weit gefasst: Lernwörter stehen unter
+  // ihrem Wort (mit Umlauten), Wochen unter "2026-W38".
+  function sicherungPruefen(p) {
+    if (!p || typeof p !== 'object' || p.format !== 'perlentaucher-sicherung') {
+      return 'Das ist keine Perlentaucher-Sicherung.';
+    }
+    if (!p.daten || typeof p.daten !== 'object' || Array.isArray(p.daten)) {
+      return 'Die Sicherung enthält keine Daten.';
+    }
+    var fremd = Object.keys(p.daten).filter(function (c) { return SAMMLUNGEN.indexOf(c) < 0; });
+    if (fremd.length) return 'Unbekannter Bereich in der Sicherung: ' + fremd.join(', ');
+    var kaputt = null;
+    SAMMLUNGEN.forEach(function (c) {
+      var teil = p.daten[c];
+      if (teil === undefined || kaputt) return;
+      if (!teil || typeof teil !== 'object' || Array.isArray(teil)) { kaputt = c; return; }
+      Object.keys(teil).forEach(function (id) {
+        if (kaputt) return;
+        var d = teil[id];
+        var kennungOk = id.length >= 1 && id.length <= 200 && id.indexOf('/') < 0 &&
+          id !== '.' && id !== '..' && !/^__.*__$/.test(id);
+        if (!kennungOk || !d || typeof d !== 'object' || Array.isArray(d)) kaputt = c + ' / ' + id.slice(0, 40);
+      });
+    });
+    return kaputt ? 'Fehlerhafter Eintrag in der Sicherung: ' + kaputt : null;
+  }
+
   function dateiLesen(datei) {
     var leser = new FileReader();
     leser.onload = function () {
       try {
         var p = JSON.parse(leser.result);
-        if (p.format !== 'perlentaucher-sicherung') throw new Error('Das ist keine Perlentaucher-Sicherung.');
+        var fehler = sicherungPruefen(p);
+        if (fehler) throw new Error(fehler);
         sicherungInhalt = p;
         melde('Datei gelesen. Schau dir unten an, was darin steht.');
       } catch (e) {

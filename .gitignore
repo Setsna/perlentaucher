@@ -1,0 +1,23 @@
+# Alles ist gesperrt, nur die fertige Seite und die Werkzeuge werden hochgeladen.
+# Eine neue Datei oder ein neuer Ordner auf oberster Ebene muss hier erst
+# freigegeben werden. Jeder Push geht sofort live.
+*
+!.gitignore
+!README.md
+!index.html
+!lehrer.html
+!datenschutz.html
+!css/
+!css/**
+!js/
+!js/**
+!img/
+!img/**
+!tools/
+!tools/**
+!firebase/
+!firebase/firestore.rules.beispiel
+
+# Die echten Regeln enthalten die E-Mail-Adressen der Lehrkraft.
+# Sie werden von Hand in die Firebase-Konsole eingefuegt.
+firebase/firestore.rules
