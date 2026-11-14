@@ -312,6 +312,60 @@ service cloud.firestore {
       allow write: if istLehrer();
     }
 
+    // ---------- Seesternwerkstatt: Stand eines Kindes ----------
+    // Ein Dokument je Kind: sw_stand/<code>. Gelegte Tangram-Figuren,
+    // geschaffte Runden (Spiegeln, Bandornamente), Stempel. Kein Vorname,
+    // keine Klasse, keine eigenen Texte.
+    // Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Runden einer Station: { runden: { leicht, mittel, knifflig }, letzte? }
+    function swRundenGueltig(r) {
+      return r is map
+        && r.keys().hasOnly(['runden', 'letzte'])
+        && r.keys().hasAll(['runden'])
+        && r.runden is map
+        && r.runden.keys().hasOnly(['leicht', 'mittel', 'knifflig'])
+        && (!('leicht' in r.runden) || r.runden.leicht is int)
+        && (!('mittel' in r.runden) || r.runden.mittel is int)
+        && (!('knifflig' in r.runden) || r.runden.knifflig is int)
+        && (!('letzte' in r) || (r.letzte is string && r.letzte.size() <= 30));
+    }
+
+    // Was die App schreibt (Seesternwerkstatt js/speicher.js, mische): genau
+    // diese Felder, mit diesen Typen. Die Obergrenzen liegen weit ueber dem,
+    // was die App heute hoechstens erzeugt (9 Figuren, 9 Stempel).
+    // Neue Felder oder Stationen brauchen eine Regelaenderung.
+    function swStandGueltig(d) {
+      return d.keys().hasOnly(
+               ['tangram', 'spiegeln', 'band', 'stempel', 'angelegt', 'geaendert'])
+        && d.keys().hasAll(
+               ['tangram', 'spiegeln', 'band', 'stempel', 'angelegt', 'geaendert'])
+        && d.tangram is map
+        && d.tangram.keys().hasOnly(['geloest'])
+        && d.tangram.geloest is map && d.tangram.geloest.size() <= 60
+        && swRundenGueltig(d.spiegeln)
+        && swRundenGueltig(d.band)
+        && d.stempel is map && d.stempel.size() <= 30
+        && d.angelegt is int
+        && d.geaendert is int;
+    }
+
+    match /sw_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auskunft).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && swStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
