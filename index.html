@@ -3,6 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Content Security Policy: Der Browser fuehrt nur Skripte aus den
+     eigenen Dateien und von Firebase aus und spricht nur mit Firebase.
+     Eingeschleuster Code (Inline-Skripte, Ereignis-Attribute, fremde
+     Adressen) wird blockiert. Neue fremde Adresse = hier eintragen. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://*.googleapis.com; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Perlentaucher">
@@ -16,7 +21,7 @@
      auftauchen; die Adresse gibt es nur auf dem Aufkleber. -->
 <meta name="robots" content="noindex, nofollow">
 <title>Perlentaucher</title>
-<link rel="stylesheet" href="css/style.css?v=52">
+<link rel="stylesheet" href="css/style.css?v=53">
 </head>
 <body class="meer">
 <div id="app"></div>
@@ -25,17 +30,17 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=52"></script>
-<script src="js/words.js?v=52"></script>
-<script src="js/bilder.js?v=52"></script>
-<script src="js/quiz.js?v=52"></script>
-<script src="js/mascot.js?v=52"></script>
-<script src="js/icons.js?v=52"></script>
-<script src="js/malen.js?v=52"></script>
-<script src="js/merge.js?v=52"></script>
-<script src="js/exercises.js?v=52"></script>
-<script src="js/store.js?v=52"></script>
-<script src="js/cloud.js?v=52"></script>
-<script src="js/app.js?v=52"></script>
+<script src="js/config.js?v=53"></script>
+<script src="js/words.js?v=53"></script>
+<script src="js/bilder.js?v=53"></script>
+<script src="js/quiz.js?v=53"></script>
+<script src="js/mascot.js?v=53"></script>
+<script src="js/icons.js?v=53"></script>
+<script src="js/malen.js?v=53"></script>
+<script src="js/merge.js?v=53"></script>
+<script src="js/exercises.js?v=53"></script>
+<script src="js/store.js?v=53"></script>
+<script src="js/cloud.js?v=53"></script>
+<script src="js/app.js?v=53"></script>
 </body>
 </html>
