@@ -261,6 +261,57 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- Riff-Akten: Stand eines Kindes ----------
+    // Ein Dokument je Kind: ra_stand/<code>. Kein Vorname.
+    // Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Was die App schreibt (Riff-Akten js/merge.js, mische): genau diese
+    // Felder, mit diesen Typen. Ein Eintrag je Akte; 200 liegt weit ueber
+    // dem, was es an Akten gibt (8). Neue Felder brauchen eine Regelaenderung.
+    function raStandGueltig(d) {
+      return d.keys().hasOnly(
+               ['erledigt', 'stempel', 'zeit', 'eintraege', 'abzeichen', 'angelegt', 'geaendert'])
+        && d.keys().hasAll(
+               ['erledigt', 'stempel', 'zeit', 'eintraege', 'abzeichen', 'angelegt', 'geaendert'])
+        && d.erledigt is map && d.erledigt.size() <= 200
+        && d.stempel is map && d.stempel.size() <= 200
+        && d.zeit is map && d.zeit.size() <= 200
+        && d.eintraege is map && d.eintraege.size() <= 200
+        && d.abzeichen is string && d.abzeichen.size() <= 20
+        && d.angelegt is int
+        && d.geaendert is int;
+    }
+
+    match /ra_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auswertung).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && raStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
+    // ---------- Riff-Akten: Akten und Loesungen ----------
+    // Was die Kinder sehen (ra_faelle) und die Loesungen (ra_loesungen,
+    // werden erst beim Pruefen geladen). Keine Kinderdaten. Lesen duerfen
+    // die Lehrkraft und jedes freigeschaltete Kind, schreiben nur die
+    // Lehrkraft (Lehrerbereich der Riff-Akten: "Akte hochladen").
+    match /ra_faelle/{id} {
+      allow read:  if istLehrer() || istKlassenmitglied();
+      allow write: if istLehrer();
+    }
+    match /ra_loesungen/{id} {
+      allow read:  if istLehrer() || istKlassenmitglied();
+      allow write: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
