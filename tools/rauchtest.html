@@ -125,7 +125,7 @@
       return Promise.reject(new Error('index.html hat keine Content Security Policy mehr.'));
     }
     html = html.replace(csp, '');
-    var fb =/<script src="https:\/\/www\.gstatic\.com\/firebasejs\/[^"]+"><\/script>\s*/g;
+    var fb =/<script src="https:\/\/www\.gstatic\.com\/firebasejs\/[^"]+"[^>]*><\/script>\s*/g;
     var treffer = html.match(fb) || [];
     if (treffer.length !== 3) {
       return Promise.reject(new Error('index.html bindet ' + treffer.length +
