@@ -394,6 +394,7 @@
       '<h2 class="sec">Abzeichen</h2><section class="badges">' + badges + '</section>' +
       '<footer class="foot">' + fusstext() +
       '<br><a class="lehrerlink" href="datenschutz.html">Datenschutz</a>' +
+      ' · <a class="lehrerlink" href="impressum.html">Impressum</a>' +
       ' · <a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a></footer></div>';
 
     timer = setInterval(function () { var el = $('#heartchip'); if (el) el.innerHTML = heartChip(); }, 1000);
@@ -415,6 +416,7 @@
       '<button class="btn big wide" data-action="login">Los geht\'s</button>' +
       '<p class="muted klein">Du bleibst angemeldet. Den Code brauchst du nur einmal.</p>' +
       '<p class="loginlinks"><a class="lehrerlink" href="datenschutz.html">Datenschutz</a> · ' +
+      '<a class="lehrerlink" href="impressum.html">Impressum</a> · ' +
       '<a class="lehrerlink" href="lehrer.html">Für Lehrkräfte</a></p>' +
       '</div></div>';
     var f = $('#codefeld');
