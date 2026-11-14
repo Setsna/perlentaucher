@@ -366,6 +366,45 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- KI-Korallenriff: Stand eines Kindes ----------
+    // Ein Dokument je Kind: kr_stand/<code>. Fertige Stationen und Module
+    // (mit Anzahl der Wiederholungen), Stempel, Lernzeit, Selbsteinschaetzung.
+    // Kein Vorname, keine eigenen Texte (die Eintraege bleiben auf dem Geraet).
+    // Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Was die App schreibt (KI-Korallenriff js/riff-speicher.js, mische): genau
+    // diese Felder, mit diesen Typen. Die Obergrenzen liegen weit ueber dem,
+    // was die App heute hoechstens erzeugt (14 / 14 / 14 / 9).
+    // Neue Felder oder mehr als 60 Eintraege je Karte brauchen eine Regelaenderung.
+    function krStandGueltig(d) {
+      return d.keys().hasOnly(
+               ['done', 'stempel', 'zeit', 'ziele', 'angelegt', 'geaendert'])
+        && d.keys().hasAll(
+               ['done', 'stempel', 'zeit', 'ziele', 'angelegt', 'geaendert'])
+        && d.done is map && d.done.size() <= 60
+        && d.stempel is map && d.stempel.size() <= 60
+        && d.zeit is map && d.zeit.size() <= 60
+        && d.ziele is map && d.ziele.size() <= 60
+        && d.angelegt is int
+        && d.geaendert is int;
+    }
+
+    match /kr_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auskunft).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && krStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
