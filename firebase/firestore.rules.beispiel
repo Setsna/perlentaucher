@@ -223,6 +223,44 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- Flaschenpost: Stand eines Kindes ----------
+    // Ein Dokument je Kind: fp_stand/<code>. Fertige Briefe, Siegel,
+    // Lernzeit je Modul, Selbsteinschaetzung. Kein Vorname, keine
+    // eigenen Texte (die bleiben auf dem Geraet des Kindes).
+    // Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Was die App schreibt (js/speicher.js, mische): genau diese Felder,
+    // mit diesen Typen. Die Obergrenzen liegen weit ueber dem, was die
+    // App heute hoechstens erzeugt (6 Briefe, 3 Module).
+    function fpStandGueltig(d) {
+      return d.keys().hasOnly(
+               ['stationen', 'stempel', 'zeit', 'kannIch', 'angelegt', 'geaendert'])
+        && d.keys().hasAll(
+               ['stationen', 'stempel', 'zeit', 'kannIch', 'angelegt', 'geaendert'])
+        && d.stationen is map && d.stationen.size() <= 60
+        && d.stempel is map && d.stempel.size() <= 60
+        && d.zeit is map && d.zeit.size() <= 20
+        && d.kannIch is map && d.kannIch.size() <= 20
+        && d.angelegt is int
+        && d.geaendert is int;
+    }
+
+    match /fp_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auskunft).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && fpStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
