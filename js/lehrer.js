@@ -102,16 +102,29 @@
   auth.onAuthStateChanged(function (u) {
     nutzer = u;
     if (!u) { zeigeAnmeldung(); return; }
+    // Ein Kinderkonto (Code-Anmeldung in der App auf diesem Gerät) ist
+    // keine Lehrkraft. Kinder-App und Lehrerbereich teilen sich die
+    // Anmeldung. Ohne diese Abfrage liefe das Laden in "kein Zugriff",
+    // und die Meldung zeigte die Anmeldeadresse des Kindes, in der sein
+    // Zugangscode steckt.
+    if (istKinderkonto(u)) { zeigeAnmeldung(true); return; }
     laden();
   });
+
+  function istKinderkonto(u) {
+    var mail = String((u && u.email) || '').toLowerCase();
+    return !mail || mail.slice(-(WA.firebaseConfig.authDomain.length + 1)) === '@' + WA.firebaseConfig.authDomain.toLowerCase();
+  }
 
   // ==========================================================
   //  Anmeldung
   // ==========================================================
-  function zeigeAnmeldung() {
+  function zeigeAnmeldung(kindAngemeldet) {
     $app.innerHTML = '<div class="center"><div class="cardbig">' + WA.mascot('think', 130) +
       '<h1>Lehrerbereich</h1>' +
       '<p>Melde dich mit dem Google-Konto an, das in den Firestore-Regeln eingetragen ist.</p>' +
+      (kindAngemeldet ? '<p class="muted">Auf diesem Gerät ist gerade ein Kind in der App angemeldet. ' +
+        'Mit deiner Anmeldung wird es hier abgemeldet.</p>' : '') +
       '<button class="btn big" id="google">Mit Google anmelden</button>' +
       '<a class="btn ghost big" href="index.html" style="text-decoration:none">Zurück zur App</a>' +
       '</div></div>';
@@ -173,7 +186,7 @@
     $app.innerHTML = '<div class="lehrer"><div class="lhead"><h1>Lehrerbereich</h1>' +
       '<button class="btn ghost" id="abmelden">Abmelden</button></div>' +
       '<div class="melden fehler">' + (keinZugriff
-        ? 'Das Konto <b>' + esc(nutzer && nutzer.email) + '</b> ist in den Firestore-Regeln nicht als Lehrkraft ' +
+        ? 'Das Konto <b>' + esc(istKinderkonto(nutzer) ? 'eines Kindes' : nutzer.email) + '</b> ist in den Firestore-Regeln nicht als Lehrkraft ' +
           'eingetragen. Trag die Adresse in der Funktion istLehrer() ein und veröffentliche die Regeln erneut.'
         : 'Fehler beim Laden: ' + esc(e && e.message)) + '</div></div>';
     bindeKopf();

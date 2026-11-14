@@ -1291,7 +1291,7 @@
     $app.innerHTML = '<div class="center"><div class="cardbig">' + WA.mascot('sad', 140) +
       '<h1>Deine Luftblasen sind leer</h1>' +
       '<p>Otti muss kurz auftauchen. Eine neue Luftblase kommt in <b id="nh">' + mmss(h.nextMs) + '</b> Minuten.</p>' +
-      (C.hearts.allowPracticeAtZero ? '<button class="btn big" data-action="practice" data-w="' + world + '" data-mid="' + (mid ? 1 : 0) + '">Ohne Luftblasen weiterüben (keine Perlen)</button>' : '') +
+      (C.hearts.allowPracticeAtZero ? '<button class="btn big" data-action="practice" data-w="' + esc(world) + '" data-mid="' + (mid ? 1 : 0) + '">Ohne Luftblasen weiterüben (keine Perlen)</button>' : '') +
       '<button class="btn ghost big" data-action="home">Zur Startseite</button></div></div>';
     timer = setInterval(function () {
       var hh = S.hearts(), el = $('#nh');
@@ -1319,7 +1319,7 @@
       (malzeit ? '<div class="malbelohnung"><h3>Tagesziel geschafft!</h3>' +
         '<p>Du hast <b>' + Math.round(malzeit / 60) + ' Minuten</b> Malzeit bekommen. Du darfst malen oder zeichnen.</p>' +
         '<button class="btn big wide" data-action="malen">Jetzt malen</button></div>' : '') +
-      '<button class="btn big" data-action="again" data-w="' + L.world + '">Nochmal tauchen</button>' +
+      '<button class="btn big" data-action="again" data-w="' + esc(L.world) + '">Nochmal tauchen</button>' +
       '<button class="btn ghost big" data-action="home">Zur Startseite</button></div></div>';
     if (acc >= 60) { confetti(); sfx.win(); }
     if (fresh.length) setTimeout(sfx.badge, 700);
