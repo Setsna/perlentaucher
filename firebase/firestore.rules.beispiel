@@ -581,6 +581,79 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- Kieselwaage: Stand eines Kindes ----------
+    // Ein Dokument je Kind: kw_stand/<code>. Stempel (Zeitpunkt) und Zahl der
+    // geschafften Aufgaben je Station und Stufe. Kein Vorname, keine eigenen
+    // Texte, keine Vermutungen, gelegten Steine oder eingetippten Zahlen.
+    // Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Was die App schreibt (Kieselwaage js/kw-stand.js, mische): genau diese
+    // Felder. stempel und runden haben nur die 12 festen Schluessel
+    // 'station:stufe' (4 Stationen x 3 Stufen), jeder Wert wird einzeln geprueft.
+    // Neue Stationen oder Stufen brauchen eine Regelaenderung.
+    // Gleiche Bedingungen in der Attrappe: Kieselwaage tools/test/kw-gueltig.js.
+    function kwSchluessel() {
+      return ['vergleichen:leicht', 'vergleichen:mittel', 'vergleichen:knifflig',
+               'gleichgewicht:leicht', 'gleichgewicht:mittel', 'gleichgewicht:knifflig',
+               'gramm:leicht', 'gramm:mittel', 'gramm:knifflig',
+               'stimmt:leicht', 'stimmt:mittel', 'stimmt:knifflig'];
+    }
+    // Fehlt der Schluessel, gilt er als erfuellt (Standardwert liegt im Bereich).
+    function kwStempelOk(m, k) {
+      return m.get(k, 1) is int && m.get(k, 1) >= 1;
+    }
+    function kwRundenOk(m, k) {
+      return m.get(k, 0) is int && m.get(k, 0) >= 0 && m.get(k, 0) <= 100000;
+    }
+    function kwStandGueltig(d) {
+      return d.keys().hasOnly(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.keys().hasAll(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.angelegt is int && d.angelegt >= 0
+        && d.geaendert is int && d.geaendert >= 0
+        && d.stempel is map && d.stempel.keys().hasOnly(kwSchluessel())
+        && d.runden is map && d.runden.keys().hasOnly(kwSchluessel())
+        && kwStempelOk(d.stempel, 'vergleichen:leicht')
+        && kwStempelOk(d.stempel, 'vergleichen:mittel')
+        && kwStempelOk(d.stempel, 'vergleichen:knifflig')
+        && kwStempelOk(d.stempel, 'gleichgewicht:leicht')
+        && kwStempelOk(d.stempel, 'gleichgewicht:mittel')
+        && kwStempelOk(d.stempel, 'gleichgewicht:knifflig')
+        && kwStempelOk(d.stempel, 'gramm:leicht')
+        && kwStempelOk(d.stempel, 'gramm:mittel')
+        && kwStempelOk(d.stempel, 'gramm:knifflig')
+        && kwStempelOk(d.stempel, 'stimmt:leicht')
+        && kwStempelOk(d.stempel, 'stimmt:mittel')
+        && kwStempelOk(d.stempel, 'stimmt:knifflig')
+        && kwRundenOk(d.runden, 'vergleichen:leicht')
+        && kwRundenOk(d.runden, 'vergleichen:mittel')
+        && kwRundenOk(d.runden, 'vergleichen:knifflig')
+        && kwRundenOk(d.runden, 'gleichgewicht:leicht')
+        && kwRundenOk(d.runden, 'gleichgewicht:mittel')
+        && kwRundenOk(d.runden, 'gleichgewicht:knifflig')
+        && kwRundenOk(d.runden, 'gramm:leicht')
+        && kwRundenOk(d.runden, 'gramm:mittel')
+        && kwRundenOk(d.runden, 'gramm:knifflig')
+        && kwRundenOk(d.runden, 'stimmt:leicht')
+        && kwRundenOk(d.runden, 'stimmt:mittel')
+        && kwRundenOk(d.runden, 'stimmt:knifflig');
+    }
+
+    match /kw_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auskunft).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && kwStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
