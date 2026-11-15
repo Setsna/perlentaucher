@@ -421,6 +421,86 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- Chancenbucht: Stand eines Kindes ----------
+    // Ein Dokument je Kind: cb_stand/<code>. Stempel (Zeitpunkt) und Zahl der
+    // geschafften Aufgaben je Station und Stufe. Kein Vorname, keine eigenen
+    // Texte, keine Vermutungen oder Versuchsergebnisse.
+    // Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Was die App schreibt (Chancenbucht js/cb-stand.js, mische): genau diese
+    // Felder. stempel und runden haben nur die 15 festen Schluessel
+    // 'station:stufe' (5 Stationen x 3 Stufen), jeder Wert wird einzeln geprueft.
+    // Neue Stationen oder Stufen brauchen eine Regelaenderung.
+    // Gleiche Bedingungen in der Attrappe: Chancenbucht tools/test/cb-gueltig.js.
+    function cbSchluessel() {
+      return ['fuehlkiste:leicht', 'fuehlkiste:mittel', 'fuehlkiste:knifflig',
+               'gluecksrad:leicht', 'gluecksrad:mittel', 'gluecksrad:knifflig',
+               'wuerfeln:leicht', 'wuerfeln:mittel', 'wuerfeln:knifflig',
+               'muenze:leicht', 'muenze:mittel', 'muenze:knifflig',
+               'denkfehler:leicht', 'denkfehler:mittel', 'denkfehler:knifflig'];
+    }
+    // Fehlt der Schluessel, gilt er als erfuellt (Standardwert liegt im Bereich).
+    function cbStempelOk(m, k) {
+      return m.get(k, 1) is int && m.get(k, 1) >= 1;
+    }
+    function cbRundenOk(m, k) {
+      return m.get(k, 0) is int && m.get(k, 0) >= 0 && m.get(k, 0) <= 100000;
+    }
+    function cbStandGueltig(d) {
+      return d.keys().hasOnly(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.keys().hasAll(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.angelegt is int && d.angelegt >= 0
+        && d.geaendert is int && d.geaendert >= 0
+        && d.stempel is map && d.stempel.keys().hasOnly(cbSchluessel())
+        && d.runden is map && d.runden.keys().hasOnly(cbSchluessel())
+        && cbStempelOk(d.stempel, 'fuehlkiste:leicht')
+        && cbStempelOk(d.stempel, 'fuehlkiste:mittel')
+        && cbStempelOk(d.stempel, 'fuehlkiste:knifflig')
+        && cbStempelOk(d.stempel, 'gluecksrad:leicht')
+        && cbStempelOk(d.stempel, 'gluecksrad:mittel')
+        && cbStempelOk(d.stempel, 'gluecksrad:knifflig')
+        && cbStempelOk(d.stempel, 'wuerfeln:leicht')
+        && cbStempelOk(d.stempel, 'wuerfeln:mittel')
+        && cbStempelOk(d.stempel, 'wuerfeln:knifflig')
+        && cbStempelOk(d.stempel, 'muenze:leicht')
+        && cbStempelOk(d.stempel, 'muenze:mittel')
+        && cbStempelOk(d.stempel, 'muenze:knifflig')
+        && cbStempelOk(d.stempel, 'denkfehler:leicht')
+        && cbStempelOk(d.stempel, 'denkfehler:mittel')
+        && cbStempelOk(d.stempel, 'denkfehler:knifflig')
+        && cbRundenOk(d.runden, 'fuehlkiste:leicht')
+        && cbRundenOk(d.runden, 'fuehlkiste:mittel')
+        && cbRundenOk(d.runden, 'fuehlkiste:knifflig')
+        && cbRundenOk(d.runden, 'gluecksrad:leicht')
+        && cbRundenOk(d.runden, 'gluecksrad:mittel')
+        && cbRundenOk(d.runden, 'gluecksrad:knifflig')
+        && cbRundenOk(d.runden, 'wuerfeln:leicht')
+        && cbRundenOk(d.runden, 'wuerfeln:mittel')
+        && cbRundenOk(d.runden, 'wuerfeln:knifflig')
+        && cbRundenOk(d.runden, 'muenze:leicht')
+        && cbRundenOk(d.runden, 'muenze:mittel')
+        && cbRundenOk(d.runden, 'muenze:knifflig')
+        && cbRundenOk(d.runden, 'denkfehler:leicht')
+        && cbRundenOk(d.runden, 'denkfehler:mittel')
+        && cbRundenOk(d.runden, 'denkfehler:knifflig');
+    }
+
+    match /cb_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auskunft).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && cbStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
