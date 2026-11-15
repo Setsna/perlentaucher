@@ -16,7 +16,7 @@
   // <sammlung>/<code>. Hier werden sie nur gesichert, herausgegeben, gelöscht und
   // zurückgesetzt, nie angezeigt oder ausgewertet. Eine neue Plattform kommt hier
   // UND in SAMMLUNGEN (Sicherung) dazu. Eine Zeile, damit der Test sie findet.
-  var PLATTFORMEN = [{ sammlung: 'zs_stand', name: 'Zahlenschwarm', schluessel: 'zahlenschwarm' }, { sammlung: 'fp_stand', name: 'Flaschenpost', schluessel: 'flaschenpost' }, { sammlung: 'ra_stand', name: 'Riff-Akten', schluessel: 'riffakten' }, { sammlung: 'sw_stand', name: 'Seesternwerkstatt', schluessel: 'seesternwerkstatt' }, { sammlung: 'kr_stand', name: 'KI-Korallenriff', schluessel: 'korallenriff' }];
+  var PLATTFORMEN = [{ sammlung: 'zs_stand', name: 'Zahlenschwarm', schluessel: 'zahlenschwarm' }, { sammlung: 'fp_stand', name: 'Flaschenpost', schluessel: 'flaschenpost' }, { sammlung: 'ra_stand', name: 'Riff-Akten', schluessel: 'riffakten' }, { sammlung: 'sw_stand', name: 'Seesternwerkstatt', schluessel: 'seesternwerkstatt' }, { sammlung: 'kr_stand', name: 'KI-Korallenriff', schluessel: 'korallenriff' }, { sammlung: 'cb_stand', name: 'Chancenbucht', schluessel: 'chancenbucht' }];
   function plattformNamen() {
     var n = PLATTFORMEN.map(function (x) { return x.name; });
     return n.length > 1 ? n.slice(0, -1).join(', ') + ' und ' + n[n.length - 1] : n.join('');
@@ -1564,14 +1564,14 @@
   //  zurückspielen. Wiederhergestellt wird nur, was in der Datei
   //  steht – nichts wird dabei gelöscht.
   // ==========================================================
-  // zs_stand (Zahlenschwarm), fp_stand (Flaschenpost), ra_stand (Riff-Akten), sw_stand (Seesternwerkstatt) und kr_stand (KI-Korallenriff)
+  // zs_stand (Zahlenschwarm), fp_stand (Flaschenpost), ra_stand (Riff-Akten), sw_stand (Seesternwerkstatt), kr_stand (KI-Korallenriff) und cb_stand (Chancenbucht)
   // sind die Stände der anderen Plattformen im gemeinsamen Konto, siehe
   // PLATTFORMEN oben. Sie werden hier nur gesichert, herausgegeben und gelöscht,
   // nie angezeigt oder ausgewertet. ra_faelle und ra_loesungen sind die Akten der
   // Riff-Akten (keine Kinderdaten); sie werden nur mitgesichert, gepflegt werden
   // sie im Lehrerbereich der Riff-Akten.
   // Ältere Sicherungen ohne diese Bereiche bleiben einlesbar.
-  var SAMMLUNGEN = ['kinder', 'lernwoerter', 'quizfragen', 'einstellungen', 'klassenwochen', 'fortschritt', 'bilder', 'zs_stand', 'fp_stand', 'ra_stand', 'ra_faelle', 'ra_loesungen', 'sw_stand', 'kr_stand'];
+  var SAMMLUNGEN = ['kinder', 'lernwoerter', 'quizfragen', 'einstellungen', 'klassenwochen', 'fortschritt', 'bilder', 'zs_stand', 'fp_stand', 'ra_stand', 'ra_faelle', 'ra_loesungen', 'sw_stand', 'kr_stand', 'cb_stand'];
   var sicherungInhalt = null;      // eingelesene Datei, noch nicht geschrieben
 
   function tabSicherung() {
@@ -1882,7 +1882,7 @@
       .catch(function (e) { melde('Fehler: ' + esc(e.message), 'fehler'); });
   }
 
-  // ---------- Eine Plattform zurücksetzen (Zahlenschwarm, Flaschenpost, Riff-Akten, Seesternwerkstatt, KI-Korallenriff) ----------
+  // ---------- Eine Plattform zurücksetzen (Zahlenschwarm, Flaschenpost, Riff-Akten, Seesternwerkstatt, KI-Korallenriff, Chancenbucht) ----------
   // Löscht nur <sammlung>/<code>. Konto (kinder) und Perlentaucher-Stand
   // (fortschritt) bleiben. Anders als beim Perlentaucher wird wirklich
   // gelöscht: Die Plattform erkennt das fehlende Dokument beim
