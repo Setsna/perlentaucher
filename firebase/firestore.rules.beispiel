@@ -501,6 +501,86 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- Leuchtturmuhr: Stand eines Kindes ----------
+    // Ein Dokument je Kind: lu_stand/<code>. Stempel (Zeitpunkt) und Zahl der
+    // geschafften Aufgaben je Station und Stufe. Kein Vorname, keine eigenen
+    // Texte, keine gestellten Uhrzeiten, Antworten oder Vermutungen.
+    // Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Was die App schreibt (Leuchtturmuhr js/lu-stand.js, mische): genau diese
+    // Felder. stempel und runden haben nur die 15 festen Schluessel
+    // 'station:stufe' (5 Stationen x 3 Stufen), jeder Wert wird einzeln geprueft.
+    // Neue Stationen oder Stufen brauchen eine Regelaenderung.
+    // Gleiche Bedingungen in der Attrappe: Leuchtturmuhr tools/test/lu-gueltig.js.
+    function luSchluessel() {
+      return ['uhr:leicht', 'uhr:mittel', 'uhr:knifflig',
+               'spannen:leicht', 'spannen:mittel', 'spannen:knifflig',
+               'dauer:leicht', 'dauer:mittel', 'dauer:knifflig',
+               'fahrplan:leicht', 'fahrplan:mittel', 'fahrplan:knifflig',
+               'stimmt:leicht', 'stimmt:mittel', 'stimmt:knifflig'];
+    }
+    // Fehlt der Schluessel, gilt er als erfuellt (Standardwert liegt im Bereich).
+    function luStempelOk(m, k) {
+      return m.get(k, 1) is int && m.get(k, 1) >= 1;
+    }
+    function luRundenOk(m, k) {
+      return m.get(k, 0) is int && m.get(k, 0) >= 0 && m.get(k, 0) <= 100000;
+    }
+    function luStandGueltig(d) {
+      return d.keys().hasOnly(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.keys().hasAll(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.angelegt is int && d.angelegt >= 0
+        && d.geaendert is int && d.geaendert >= 0
+        && d.stempel is map && d.stempel.keys().hasOnly(luSchluessel())
+        && d.runden is map && d.runden.keys().hasOnly(luSchluessel())
+        && luStempelOk(d.stempel, 'uhr:leicht')
+        && luStempelOk(d.stempel, 'uhr:mittel')
+        && luStempelOk(d.stempel, 'uhr:knifflig')
+        && luStempelOk(d.stempel, 'spannen:leicht')
+        && luStempelOk(d.stempel, 'spannen:mittel')
+        && luStempelOk(d.stempel, 'spannen:knifflig')
+        && luStempelOk(d.stempel, 'dauer:leicht')
+        && luStempelOk(d.stempel, 'dauer:mittel')
+        && luStempelOk(d.stempel, 'dauer:knifflig')
+        && luStempelOk(d.stempel, 'fahrplan:leicht')
+        && luStempelOk(d.stempel, 'fahrplan:mittel')
+        && luStempelOk(d.stempel, 'fahrplan:knifflig')
+        && luStempelOk(d.stempel, 'stimmt:leicht')
+        && luStempelOk(d.stempel, 'stimmt:mittel')
+        && luStempelOk(d.stempel, 'stimmt:knifflig')
+        && luRundenOk(d.runden, 'uhr:leicht')
+        && luRundenOk(d.runden, 'uhr:mittel')
+        && luRundenOk(d.runden, 'uhr:knifflig')
+        && luRundenOk(d.runden, 'spannen:leicht')
+        && luRundenOk(d.runden, 'spannen:mittel')
+        && luRundenOk(d.runden, 'spannen:knifflig')
+        && luRundenOk(d.runden, 'dauer:leicht')
+        && luRundenOk(d.runden, 'dauer:mittel')
+        && luRundenOk(d.runden, 'dauer:knifflig')
+        && luRundenOk(d.runden, 'fahrplan:leicht')
+        && luRundenOk(d.runden, 'fahrplan:mittel')
+        && luRundenOk(d.runden, 'fahrplan:knifflig')
+        && luRundenOk(d.runden, 'stimmt:leicht')
+        && luRundenOk(d.runden, 'stimmt:mittel')
+        && luRundenOk(d.runden, 'stimmt:knifflig');
+    }
+
+    match /lu_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auskunft).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && luStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
