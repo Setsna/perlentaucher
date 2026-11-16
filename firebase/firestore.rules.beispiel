@@ -747,6 +747,90 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- Zeitenstrom: Stand eines Kindes ----------
+    // Ein Dokument je Kind: ze_stand/<code>. Stempel (Zeitpunkt) und Zahl der
+    // geschafften Aufgaben je Station und Stufe. Kein Vorname, keine eigenen
+    // Texte, keine Antworten. Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Was die App schreibt (Zeitenstrom js/ze-stand.js, mische): genau diese
+    // Felder. stempel und runden haben nur die 21 festen Schluessel
+    // 'station:stufe' (7 Stationen x 3 Stufen, futur schon dabei), jeder Wert wird einzeln geprueft.
+    // Gleiche Bedingungen in der Attrappe: Zeitenstrom tools/test/ze-gueltig.js.
+    function zeSchluessel() {
+      return ['erkennen:leicht', 'erkennen:mittel', 'erkennen:knifflig',
+               'praeteritum:leicht', 'praeteritum:mittel', 'praeteritum:knifflig',
+               'perfekt:leicht', 'perfekt:mittel', 'perfekt:knifflig',
+               'umschreiben:leicht', 'umschreiben:mittel', 'umschreiben:knifflig',
+               'zeitfehler:leicht', 'zeitfehler:mittel', 'zeitfehler:knifflig',
+               'stimmt:leicht', 'stimmt:mittel', 'stimmt:knifflig',
+               'futur:leicht', 'futur:mittel', 'futur:knifflig'];
+    }
+    function zeStempelOk(m, k) {
+      return m.get(k, 1) is int && m.get(k, 1) >= 1;
+    }
+    function zeRundenOk(m, k) {
+      return m.get(k, 0) is int && m.get(k, 0) >= 0 && m.get(k, 0) <= 100000;
+    }
+    function zeStandGueltig(d) {
+      return d.keys().hasOnly(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.keys().hasAll(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.angelegt is int && d.angelegt >= 0
+        && d.geaendert is int && d.geaendert >= 0
+        && d.stempel is map && d.stempel.keys().hasOnly(zeSchluessel())
+        && d.runden is map && d.runden.keys().hasOnly(zeSchluessel())
+        && zeStempelOk(d.stempel, 'erkennen:leicht')
+        && zeStempelOk(d.stempel, 'erkennen:mittel')
+        && zeStempelOk(d.stempel, 'erkennen:knifflig')
+        && zeStempelOk(d.stempel, 'praeteritum:leicht')
+        && zeStempelOk(d.stempel, 'praeteritum:mittel')
+        && zeStempelOk(d.stempel, 'praeteritum:knifflig')
+        && zeStempelOk(d.stempel, 'perfekt:leicht')
+        && zeStempelOk(d.stempel, 'perfekt:mittel')
+        && zeStempelOk(d.stempel, 'perfekt:knifflig')
+        && zeStempelOk(d.stempel, 'umschreiben:leicht')
+        && zeStempelOk(d.stempel, 'umschreiben:mittel')
+        && zeStempelOk(d.stempel, 'umschreiben:knifflig')
+        && zeStempelOk(d.stempel, 'zeitfehler:leicht')
+        && zeStempelOk(d.stempel, 'zeitfehler:mittel')
+        && zeStempelOk(d.stempel, 'zeitfehler:knifflig')
+        && zeStempelOk(d.stempel, 'stimmt:leicht')
+        && zeStempelOk(d.stempel, 'stimmt:mittel')
+        && zeStempelOk(d.stempel, 'stimmt:knifflig')
+        && zeStempelOk(d.stempel, 'futur:leicht')
+        && zeStempelOk(d.stempel, 'futur:mittel')
+        && zeStempelOk(d.stempel, 'futur:knifflig')
+        && zeRundenOk(d.runden, 'erkennen:leicht')
+        && zeRundenOk(d.runden, 'erkennen:mittel')
+        && zeRundenOk(d.runden, 'erkennen:knifflig')
+        && zeRundenOk(d.runden, 'praeteritum:leicht')
+        && zeRundenOk(d.runden, 'praeteritum:mittel')
+        && zeRundenOk(d.runden, 'praeteritum:knifflig')
+        && zeRundenOk(d.runden, 'perfekt:leicht')
+        && zeRundenOk(d.runden, 'perfekt:mittel')
+        && zeRundenOk(d.runden, 'perfekt:knifflig')
+        && zeRundenOk(d.runden, 'umschreiben:leicht')
+        && zeRundenOk(d.runden, 'umschreiben:mittel')
+        && zeRundenOk(d.runden, 'umschreiben:knifflig')
+        && zeRundenOk(d.runden, 'zeitfehler:leicht')
+        && zeRundenOk(d.runden, 'zeitfehler:mittel')
+        && zeRundenOk(d.runden, 'zeitfehler:knifflig')
+        && zeRundenOk(d.runden, 'stimmt:leicht')
+        && zeRundenOk(d.runden, 'stimmt:mittel')
+        && zeRundenOk(d.runden, 'stimmt:knifflig')
+        && zeRundenOk(d.runden, 'futur:leicht')
+        && zeRundenOk(d.runden, 'futur:mittel')
+        && zeRundenOk(d.runden, 'futur:knifflig');
+    }
+
+    match /ze_stand/{code} {
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && zeStandGueltig(request.resource.data));
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
