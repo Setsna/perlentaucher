@@ -150,7 +150,33 @@ window.WA = window.WA || {};
     ['anziehen', null, 'an-zie-hen', 'Verb', 'verb', null, 'sich Kleidung über den Körper ziehen, zum Beispiel eine Jacke oder Schuhe', 'Bei Regen muss ich eine Jacke anziehen.'],
     ['viele', null, 'vie-le', 'anderes', 'wort', null, '', 'Im Wald wohnen viele Tiere.'],
     ['heiß', null, 'heiß', 'Adjektiv', 'wetter', '🥵', 'sehr warm, manchmal so warm, dass man sich verbrennen kann', 'Vorsicht, die Suppe ist heiß!'],
-    ['Kaffee', 'der', 'Kaf-fee', 'Nomen', 'essen', '☕', 'ein dunkles, bitteres Getränk aus gerösteten Bohnen', 'Mama trinkt morgens eine Tasse Kaffee.']
+    ['Kaffee', 'der', 'Kaf-fee', 'Nomen', 'essen', '☕', 'ein dunkles, bitteres Getränk aus gerösteten Bohnen', 'Mama trinkt morgens eine Tasse Kaffee.'],
+    // Lernwörter der Woche vom 16.11.2026
+    ['Holunderstrauch', 'der', 'Ho-lun-der-strauch', 'Nomen', 'pflanze', null, 'ein Strauch mit weißen Blüten und kleinen schwarzen Beeren', 'Am Holunderstrauch hängen dunkle Beeren.'],
+    ['Sauerklee', 'der', 'Sau-er-klee', 'Nomen', 'pflanze', null, 'eine kleine Waldpflanze mit Kleeblättern, die sauer schmecken', 'Unter den Bäumen wächst viel Sauerklee.'],
+    ['Rinde', 'die', 'Rin-de', 'Nomen', 'pflanze', null, 'die harte Schicht außen um einen Baumstamm', 'Die Rinde der alten Eiche ist ganz rau.'],
+    ['Hirsch', 'der', 'Hirsch', 'Nomen', 'tier', '🦌', 'ein großes Waldtier, bei dem das Männchen ein Geweih trägt', 'Am Waldrand steht ein Hirsch mit großem Geweih.'],
+    ['tschüss', null, 'tschüss', 'anderes', 'wort', null, '', 'Nach der Schule sage ich tschüss.'],
+    ['Weltall', 'das', 'Welt-all', 'Nomen', 'ort', '🌌', 'der riesige Raum um die Erde mit allen Sternen und Planeten', 'Mit einer Rakete fliegen Astronauten ins Weltall.'],
+    ['dribbeln', null, 'drib-beln', 'Verb', 'verb', null, 'einen Ball beim Laufen immer wieder kurz mit dem Fuß oder der Hand anstoßen', 'Im Sportunterricht üben wir, mit dem Ball zu dribbeln.'],
+    ['Schiedsrichterin', 'die', 'Schieds-rich-te-rin', 'Nomen', 'person', null, 'eine Frau, die bei einem Spiel aufpasst, dass alle die Regeln einhalten', 'Die Schiedsrichterin pfeift das Spiel an.'],
+    ['Meteorit', 'der', 'Me-te-o-rit', 'Nomen', 'ding', null, 'ein Stein aus dem Weltall, der auf die Erde gefallen ist', 'Im Museum liegt ein Meteorit, der vom Himmel gefallen ist.'],
+    ['Sternschnuppe', 'die', 'Stern-schnup-pe', 'Nomen', 'ding', '🌠', 'ein kurzes helles Leuchten am Nachthimmel, wenn ein kleiner Stein aus dem Weltall verglüht', 'Wer eine Sternschnuppe sieht, darf sich etwas wünschen.'],
+    ['quer', null, 'quer', 'anderes', 'adjektiv', null, 'schräg oder von einer Seite zur anderen', 'Die Katze läuft quer über die Straße.'],
+    ['sondern', null, 'son-dern', 'anderes', 'wort', null, '', 'Ich trinke keinen Saft, sondern Wasser.'],
+    ['Utensilien', 'die', 'U-ten-si-li-en', 'Nomen', 'werkzeug', null, 'die Gegenstände, die man zum Kochen oder Backen braucht, zum Beispiel Löffel und Schneebesen', 'Alle Utensilien zum Backen liegen schon bereit.', 'Uten-si-li-en', 'mehrzahl'],
+    ['Rezept', 'das', 'Re-zept', 'Nomen', 'ding', null, 'eine Anleitung, wie man ein Essen kocht oder backt', 'Oma schreibt mir ihr Rezept für Waffeln auf.'],
+    ['Arbeitsfläche', 'die', 'Ar-beits-flä-che', 'Nomen', 'ding', null, 'die glatte Fläche in der Küche, auf der man das Essen vorbereitet', 'Wir streuen etwas Mehl auf die Arbeitsfläche.'],
+    ['Zutat', 'die', 'Zu-tat', 'Nomen', 'essen', null, 'etwas, das man für ein Essen oder einen Kuchen braucht, zum Beispiel Mehl', 'Butter ist eine wichtige Zutat für Plätzchen.'],
+    ['Rührschüssel', 'die', 'Rühr-schüs-sel', 'Nomen', 'werkzeug', null, 'eine große Schüssel, in der man einen Teig verrührt', 'Mehl, Zucker und Eier kommen in die Rührschüssel.'],
+    ['Teig', 'der', 'Teig', 'Nomen', 'essen', null, 'eine weiche Masse zum Beispiel aus Mehl, Butter und Eiern, aus der man etwas backt', 'Der Teig muss eine Stunde ruhen.'],
+    ['Kühlschrank', 'der', 'Kühl-schrank', 'Nomen', 'technik', null, 'ein Schrank in der Küche, der das Essen kalt hält', 'Die Milch steht im Kühlschrank.'],
+    ['Backofen', 'der', 'Back-o-fen', 'Nomen', 'technik', null, 'ein Gerät in der Küche, in dem man mit heißer Luft Kuchen und Brot backt', 'Die Plätzchen bleiben zehn Minuten im Backofen.', 'Back-ofen'],
+    ['rollen', null, 'rol-len', 'Verb', 'verb', null, 'sich drehend fortbewegen, so wie ein Ball oder ein Rad', 'Die Murmeln rollen unter das Sofa.'],
+    ['liegen', null, 'lie-gen', 'Verb', 'verb', null, 'flach auf etwas sein, zum Beispiel im Bett', 'Die Plätzchen liegen auf dem Backblech.'],
+    ['bemehlen', null, 'be-meh-len', 'Verb', 'verb', null, 'etwas mit Mehl bestreuen, damit der Teig nicht festklebt', 'Bevor wir den Teig ausrollen, müssen wir den Tisch bemehlen.'],
+    ['ausstechen', null, 'aus-ste-chen', 'Verb', 'verb', null, 'mit einer Form Stücke aus einem flachen Teig herausdrücken', 'Mit den Förmchen können wir Sterne ausstechen.'],
+    ['zunächst', null, 'zu-nächst', 'anderes', 'wort', null, '', 'Wir waschen zunächst unsere Hände.']
   ];
 
   WA.words = rows.map(function (r) {
