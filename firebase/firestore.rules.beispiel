@@ -654,6 +654,99 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- Walgesang: Stand eines Kindes ----------
+    // Ein Dokument je Kind: wg_stand/<code>. Stempel (Zeitpunkt) und Zahl der
+    // geschafften Aufgaben je Station und Stufe. Kein Vorname, keine eigenen
+    // Texte, keine gesetzten Zeichen. Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Was die App schreibt (Walgesang js/wg-stand.js, mische): genau diese
+    // Felder. stempel und runden haben nur die 21 festen Schluessel
+    // 'station:stufe' (7 Stationen x 3 Stufen), jeder Wert wird einzeln geprueft.
+    // Neue Stationen oder Stufen brauchen eine Regelaenderung.
+    // Gleiche Bedingungen in der Attrappe: Walgesang tools/test/wg-gueltig.js.
+    function wgSchluessel() {
+      return ['wer:leicht', 'wer:mittel', 'wer:knifflig',
+               'vorne:leicht', 'vorne:mittel', 'vorne:knifflig',
+               'hinten:leicht', 'hinten:mittel', 'hinten:knifflig',
+               'gespraech:leicht', 'gespraech:mittel', 'gespraech:knifflig',
+               'verben:leicht', 'verben:mittel', 'verben:knifflig',
+               'stimmt:leicht', 'stimmt:mittel', 'stimmt:knifflig',
+               'mitte:leicht', 'mitte:mittel', 'mitte:knifflig'];
+    }
+    // Fehlt der Schluessel, gilt er als erfuellt (Standardwert liegt im Bereich).
+    function wgStempelOk(m, k) {
+      return m.get(k, 1) is int && m.get(k, 1) >= 1;
+    }
+    function wgRundenOk(m, k) {
+      return m.get(k, 0) is int && m.get(k, 0) >= 0 && m.get(k, 0) <= 100000;
+    }
+    function wgStandGueltig(d) {
+      return d.keys().hasOnly(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.keys().hasAll(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.angelegt is int && d.angelegt >= 0
+        && d.geaendert is int && d.geaendert >= 0
+        && d.stempel is map && d.stempel.keys().hasOnly(wgSchluessel())
+        && d.runden is map && d.runden.keys().hasOnly(wgSchluessel())
+        && wgStempelOk(d.stempel, 'wer:leicht')
+        && wgStempelOk(d.stempel, 'wer:mittel')
+        && wgStempelOk(d.stempel, 'wer:knifflig')
+        && wgStempelOk(d.stempel, 'vorne:leicht')
+        && wgStempelOk(d.stempel, 'vorne:mittel')
+        && wgStempelOk(d.stempel, 'vorne:knifflig')
+        && wgStempelOk(d.stempel, 'hinten:leicht')
+        && wgStempelOk(d.stempel, 'hinten:mittel')
+        && wgStempelOk(d.stempel, 'hinten:knifflig')
+        && wgStempelOk(d.stempel, 'gespraech:leicht')
+        && wgStempelOk(d.stempel, 'gespraech:mittel')
+        && wgStempelOk(d.stempel, 'gespraech:knifflig')
+        && wgStempelOk(d.stempel, 'verben:leicht')
+        && wgStempelOk(d.stempel, 'verben:mittel')
+        && wgStempelOk(d.stempel, 'verben:knifflig')
+        && wgStempelOk(d.stempel, 'stimmt:leicht')
+        && wgStempelOk(d.stempel, 'stimmt:mittel')
+        && wgStempelOk(d.stempel, 'stimmt:knifflig')
+        && wgStempelOk(d.stempel, 'mitte:leicht')
+        && wgStempelOk(d.stempel, 'mitte:mittel')
+        && wgStempelOk(d.stempel, 'mitte:knifflig')
+        && wgRundenOk(d.runden, 'wer:leicht')
+        && wgRundenOk(d.runden, 'wer:mittel')
+        && wgRundenOk(d.runden, 'wer:knifflig')
+        && wgRundenOk(d.runden, 'vorne:leicht')
+        && wgRundenOk(d.runden, 'vorne:mittel')
+        && wgRundenOk(d.runden, 'vorne:knifflig')
+        && wgRundenOk(d.runden, 'hinten:leicht')
+        && wgRundenOk(d.runden, 'hinten:mittel')
+        && wgRundenOk(d.runden, 'hinten:knifflig')
+        && wgRundenOk(d.runden, 'gespraech:leicht')
+        && wgRundenOk(d.runden, 'gespraech:mittel')
+        && wgRundenOk(d.runden, 'gespraech:knifflig')
+        && wgRundenOk(d.runden, 'verben:leicht')
+        && wgRundenOk(d.runden, 'verben:mittel')
+        && wgRundenOk(d.runden, 'verben:knifflig')
+        && wgRundenOk(d.runden, 'stimmt:leicht')
+        && wgRundenOk(d.runden, 'stimmt:mittel')
+        && wgRundenOk(d.runden, 'stimmt:knifflig')
+        && wgRundenOk(d.runden, 'mitte:leicht')
+        && wgRundenOk(d.runden, 'mitte:mittel')
+        && wgRundenOk(d.runden, 'mitte:knifflig');
+    }
+
+    match /wg_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auskunft).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && wgStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
