@@ -831,6 +831,100 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- Satzwerft: Stand eines Kindes ----------
+    // Ein Dokument je Kind: sa_stand/<code>. Stempel (Zeitpunkt) und Zahl der
+    // geschafften Aufgaben je Station und Stufe. Kein Vorname, keine eigenen
+    // Texte, keine gelegten Saetze, Striche oder Markierungen.
+    // Kein Kind kann den Stand eines anderen Kindes lesen.
+
+    // Was die App schreibt (Satzwerft js/sa-stand.js, mische): genau diese
+    // Felder. stempel und runden haben nur die 21 festen Schluessel
+    // 'station:stufe' (7 Stationen x 3 Stufen), jeder Wert wird einzeln geprueft.
+    // Neue Stationen oder Stufen brauchen eine Regelaenderung.
+    // Gleiche Bedingungen in der Attrappe: Satzwerft tools/test/sa-gueltig.js.
+    function saSchluessel() {
+      return ['umstellen:leicht', 'umstellen:mittel', 'umstellen:knifflig',
+               'trennen:leicht', 'trennen:mittel', 'trennen:knifflig',
+               'finden:leicht', 'finden:mittel', 'finden:knifflig',
+               'bestimmungen:leicht', 'bestimmungen:mittel', 'bestimmungen:knifflig',
+               'ergaenzungen:leicht', 'ergaenzungen:mittel', 'ergaenzungen:knifflig',
+               'erweitern:leicht', 'erweitern:mittel', 'erweitern:knifflig',
+               'stimmt:leicht', 'stimmt:mittel', 'stimmt:knifflig'];
+    }
+    // Fehlt der Schluessel, gilt er als erfuellt (Standardwert liegt im Bereich).
+    function saStempelOk(m, k) {
+      return m.get(k, 1) is int && m.get(k, 1) >= 1;
+    }
+    function saRundenOk(m, k) {
+      return m.get(k, 0) is int && m.get(k, 0) >= 0 && m.get(k, 0) <= 100000;
+    }
+    function saStandGueltig(d) {
+      return d.keys().hasOnly(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.keys().hasAll(['stempel', 'runden', 'angelegt', 'geaendert'])
+        && d.angelegt is int && d.angelegt >= 0
+        && d.geaendert is int && d.geaendert >= 0
+        && d.stempel is map && d.stempel.keys().hasOnly(saSchluessel())
+        && d.runden is map && d.runden.keys().hasOnly(saSchluessel())
+        && saStempelOk(d.stempel, 'umstellen:leicht')
+        && saStempelOk(d.stempel, 'umstellen:mittel')
+        && saStempelOk(d.stempel, 'umstellen:knifflig')
+        && saStempelOk(d.stempel, 'trennen:leicht')
+        && saStempelOk(d.stempel, 'trennen:mittel')
+        && saStempelOk(d.stempel, 'trennen:knifflig')
+        && saStempelOk(d.stempel, 'finden:leicht')
+        && saStempelOk(d.stempel, 'finden:mittel')
+        && saStempelOk(d.stempel, 'finden:knifflig')
+        && saStempelOk(d.stempel, 'bestimmungen:leicht')
+        && saStempelOk(d.stempel, 'bestimmungen:mittel')
+        && saStempelOk(d.stempel, 'bestimmungen:knifflig')
+        && saStempelOk(d.stempel, 'ergaenzungen:leicht')
+        && saStempelOk(d.stempel, 'ergaenzungen:mittel')
+        && saStempelOk(d.stempel, 'ergaenzungen:knifflig')
+        && saStempelOk(d.stempel, 'erweitern:leicht')
+        && saStempelOk(d.stempel, 'erweitern:mittel')
+        && saStempelOk(d.stempel, 'erweitern:knifflig')
+        && saStempelOk(d.stempel, 'stimmt:leicht')
+        && saStempelOk(d.stempel, 'stimmt:mittel')
+        && saStempelOk(d.stempel, 'stimmt:knifflig')
+        && saRundenOk(d.runden, 'umstellen:leicht')
+        && saRundenOk(d.runden, 'umstellen:mittel')
+        && saRundenOk(d.runden, 'umstellen:knifflig')
+        && saRundenOk(d.runden, 'trennen:leicht')
+        && saRundenOk(d.runden, 'trennen:mittel')
+        && saRundenOk(d.runden, 'trennen:knifflig')
+        && saRundenOk(d.runden, 'finden:leicht')
+        && saRundenOk(d.runden, 'finden:mittel')
+        && saRundenOk(d.runden, 'finden:knifflig')
+        && saRundenOk(d.runden, 'bestimmungen:leicht')
+        && saRundenOk(d.runden, 'bestimmungen:mittel')
+        && saRundenOk(d.runden, 'bestimmungen:knifflig')
+        && saRundenOk(d.runden, 'ergaenzungen:leicht')
+        && saRundenOk(d.runden, 'ergaenzungen:mittel')
+        && saRundenOk(d.runden, 'ergaenzungen:knifflig')
+        && saRundenOk(d.runden, 'erweitern:leicht')
+        && saRundenOk(d.runden, 'erweitern:mittel')
+        && saRundenOk(d.runden, 'erweitern:knifflig')
+        && saRundenOk(d.runden, 'stimmt:leicht')
+        && saRundenOk(d.runden, 'stimmt:mittel')
+        && saRundenOk(d.runden, 'stimmt:knifflig');
+    }
+
+    match /sa_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auskunft).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && saStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
