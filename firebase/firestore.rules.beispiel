@@ -925,6 +925,37 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- Abyss of Numbers: Stand eines Kindes ----------
+    // Ein Dokument je Kind: an_stand/<code>. Kein Vorname.
+    // spielstand = der ganze Spielstand des Spiels als Text (JSON), hoechstens
+    // 20 000 Zeichen (heute hoechstens etwa 1 500). Den Inhalt prueft das Spiel
+    // beim Laden. Neue Felder IM Spielstand brauchen keine Regelaenderung,
+    // ein neues Feld NEBEN spielstand schon.
+
+    function anStandGueltig(d) {
+      return d.keys().hasOnly(['angelegt', 'geaendert', 'spielstand'])
+        && d.keys().hasAll(['angelegt', 'geaendert', 'spielstand'])
+        && d.geaendert is number && d.geaendert >= 0
+        && d.angelegt is number
+        && d.spielstand is string && d.spielstand.size() <= 20000;
+    }
+
+    match /an_stand/{code} {
+      // get = das eigene Dokument gezielt holen.
+      // list = alle durchblaettern (nur Lehrkraft, fuer Sicherung und Auskunft).
+      allow get:    if istLehrer() || (istKind(code) && freigeschaltet(code));
+      allow list:   if istLehrer();
+
+      // Das Kind schreibt nur seinen eigenen Stand und nur in der
+      // erlaubten Form. Die Lehrkraft darf schreiben, damit sie eine
+      // Sicherung wieder einlesen kann.
+      allow create, update: if istLehrer()
+                            || (istKind(code) && freigeschaltet(code)
+                                && anStandGueltig(request.resource.data));
+
+      allow delete: if istLehrer();
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
