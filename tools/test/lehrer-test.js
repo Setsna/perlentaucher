@@ -10,7 +10,7 @@
    wird nie berührt.
 
    Geprüft wird nur, was mit den Ständen der anderen Plattformen
-   (zs_stand Zahlenschwarm, fp_stand Flaschenpost, ra_stand Riff-Akten, sw_stand Seesternwerkstatt, kr_stand KI-Korallenriff, cb_stand Chancenbucht, lu_stand Leuchtturmuhr, kw_stand Kieselwaage, wg_stand Walgesang, ze_stand Zeitenstrom, sa_stand Satzwerft) zu tun hat:
+   (zs_stand Zahlenschwarm, fp_stand Flaschenpost, ra_stand Riff-Akten, sw_stand Seesternwerkstatt, kr_stand KI-Korallenriff, cb_stand Chancenbucht, lu_stand Leuchtturmuhr, kw_stand Kieselwaage, wg_stand Walgesang, ze_stand Zeitenstrom, sa_stand Satzwerft, an_stand Abyss of Numbers) zu tun hat:
    Sicherung, Auskunft, Kind löschen, Zurücksetzen.
    Dazu der erzeugte Text der Kinderzeile (vier Knöpfe) und des Felds
    „Zurücksetzen“ (Plattform-Knöpfe).
@@ -136,6 +136,8 @@ function frisch() {
                 bbbb2222: { stempel: {}, runden: {}, angelegt: 2, geaendert: 2 } },
     sa_stand: { aaaa1111: { stempel: { 'umstellen:leicht': 9 }, runden: { 'umstellen:leicht': 6 }, angelegt: 1, geaendert: 9 },
                 bbbb2222: { stempel: {}, runden: {}, angelegt: 2, geaendert: 2 } },
+    an_stand: { aaaa1111: { spielstand: '{"stufe":4}', angelegt: 1, geaendert: 9 },
+                bbbb2222: { spielstand: '', angelegt: 2, geaendert: 2 } },
     ra_faelle: { demo: { titel: 'Akte', nr: 1 } },
     ra_loesungen: { demo: { aufgaben: {} } }
   };
@@ -202,13 +204,14 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
     datei && datei.daten.flaschenpost && datei.daten.flaschenpost.stempel['wer-1'] === 5);
   pruefe('Hinweis nennt die Flaschenpost und dass Einträge nur auf dem Gerät liegen',
     datei && /Flaschenpost/.test(datei.daten.hinweis) && /nur auf den Geräten/.test(datei.daten.hinweis));
-  pruefe('Meldung nennt beide Stände', /, Zahlenschwarm-Stand, Flaschenpost-Stand, Riff-Akten-Stand, Seesternwerkstatt-Stand, KI-Korallenriff-Stand, Chancenbucht-Stand, Leuchtturmuhr-Stand, Kieselwaage-Stand, Walgesang-Stand, Zeitenstrom-Stand, Satzwerft-Stand\.$/.test(meldungen[meldungen.length - 1]));
+  pruefe('Meldung nennt beide Stände', /, Zahlenschwarm-Stand, Flaschenpost-Stand, Riff-Akten-Stand, Seesternwerkstatt-Stand, KI-Korallenriff-Stand, Chancenbucht-Stand, Leuchtturmuhr-Stand, Kieselwaage-Stand, Walgesang-Stand, Zeitenstrom-Stand, Satzwerft-Stand, Abyss of Numbers-Stand\.$/.test(meldungen[meldungen.length - 1]));
   pruefe('Auskunft enthält den Chancenbucht-Stand', datei && datei.daten.chancenbucht && datei.daten.chancenbucht.runden['muenze:leicht'] === 6);
   pruefe('Auskunft enthält den Leuchtturmuhr-Stand', datei && datei.daten.leuchtturmuhr && datei.daten.leuchtturmuhr.runden['uhr:leicht'] === 4);
   pruefe('Auskunft enthält den Kieselwaage-Stand', datei && datei.daten.kieselwaage && datei.daten.kieselwaage.runden['gramm:leicht'] === 5);
   pruefe('Auskunft enthält den Walgesang-Stand', datei && datei.daten.walgesang && datei.daten.walgesang.runden['vorne:leicht'] === 7);
   pruefe('Auskunft enthält den Zeitenstrom-Stand', datei && datei.daten.zeitenstrom && datei.daten.zeitenstrom.runden['erkennen:leicht'] === 8);
   pruefe('Auskunft enthält den Satzwerft-Stand', datei && datei.daten.satzwerft && datei.daten.satzwerft.runden['umstellen:leicht'] === 6);
+  pruefe('Auskunft enthält den Abyss-Spielstand als Text', datei && datei.daten.abyss && datei.daten.abyss.spielstand === '{"stufe":4}');
   pruefe('Auskunft enthält den Korallenriff-Stand ohne Einträge, Hinweis nennt das Riff',
     datei && datei.daten.korallenriff && datei.daten.korallenriff.done.a1 === 2 && !('eintraege' in datei.daten.korallenriff) &&
     /KI-Korallenriff liegen nur auf den Geräten/.test(datei.daten.hinweis));
@@ -219,7 +222,7 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   pruefe('ohne Stand: zahlenschwarm ist null',
     datei && datei.daten.zahlenschwarm === null && 'zahlenschwarm' in datei.daten);
   pruefe('ohne Stand: Meldung sagt kein Zahlenschwarm-Stand',
-    /kein Zahlenschwarm-Stand, Flaschenpost-Stand, Riff-Akten-Stand, Seesternwerkstatt-Stand, KI-Korallenriff-Stand, Chancenbucht-Stand, Leuchtturmuhr-Stand, Kieselwaage-Stand, Walgesang-Stand, Zeitenstrom-Stand, Satzwerft-Stand\.$/.test(meldungen[meldungen.length - 1]));
+    /kein Zahlenschwarm-Stand, Flaschenpost-Stand, Riff-Akten-Stand, Seesternwerkstatt-Stand, KI-Korallenriff-Stand, Chancenbucht-Stand, Leuchtturmuhr-Stand, Kieselwaage-Stand, Walgesang-Stand, Zeitenstrom-Stand, Satzwerft-Stand, Abyss of Numbers-Stand\.$/.test(meldungen[meldungen.length - 1]));
   neu(); delete inhalt.fp_stand.aaaa1111;
   L.auskunft('aaaa1111'); await warte();
   pruefe('ohne Flaschenpost-Stand: flaschenpost ist null',
@@ -230,13 +233,13 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   var n = await L.kindLoeschen('aaaa1111');
   pruefe('Löschen entfernt kinder, fortschritt, bilder, zs_stand und fp_stand des Kindes',
     n === 1 && !inhalt.kinder.aaaa1111 && !inhalt.fortschritt.aaaa1111 &&
-    !inhalt.bilder.aaaa1111_1 && !inhalt.zs_stand.aaaa1111 && !inhalt.fp_stand.aaaa1111 && !inhalt.ra_stand.aaaa1111 && !inhalt.sw_stand.aaaa1111 && !!inhalt.sw_stand.bbbb2222 && !inhalt.kr_stand.aaaa1111 && !!inhalt.kr_stand.bbbb2222 && !inhalt.cb_stand.aaaa1111 && !!inhalt.cb_stand.bbbb2222 && !inhalt.lu_stand.aaaa1111 && !!inhalt.lu_stand.bbbb2222 && !inhalt.kw_stand.aaaa1111 && !!inhalt.kw_stand.bbbb2222 && !inhalt.wg_stand.aaaa1111 && !!inhalt.wg_stand.bbbb2222 && !inhalt.ze_stand.aaaa1111 && !!inhalt.ze_stand.bbbb2222 && !inhalt.sa_stand.aaaa1111 && !!inhalt.sa_stand.bbbb2222 &&
+    !inhalt.bilder.aaaa1111_1 && !inhalt.zs_stand.aaaa1111 && !inhalt.fp_stand.aaaa1111 && !inhalt.ra_stand.aaaa1111 && !inhalt.sw_stand.aaaa1111 && !!inhalt.sw_stand.bbbb2222 && !inhalt.kr_stand.aaaa1111 && !!inhalt.kr_stand.bbbb2222 && !inhalt.cb_stand.aaaa1111 && !!inhalt.cb_stand.bbbb2222 && !inhalt.lu_stand.aaaa1111 && !!inhalt.lu_stand.bbbb2222 && !inhalt.kw_stand.aaaa1111 && !!inhalt.kw_stand.bbbb2222 && !inhalt.wg_stand.aaaa1111 && !!inhalt.wg_stand.bbbb2222 && !inhalt.ze_stand.aaaa1111 && !!inhalt.ze_stand.bbbb2222 && !inhalt.sa_stand.aaaa1111 && !!inhalt.sa_stand.bbbb2222 && !inhalt.an_stand.aaaa1111 && !!inhalt.an_stand.bbbb2222 &&
     !!inhalt.ra_faelle.demo && !!inhalt.ra_loesungen.demo);
   pruefe('Löschen lässt das andere Kind unberührt',
     !!inhalt.kinder.bbbb2222 && !!inhalt.fortschritt.bbbb2222 && !!inhalt.bilder.bbbb2222_1 &&
     !!inhalt.zs_stand.bbbb2222 && !!inhalt.fp_stand.bbbb2222);
   pruefe('zs_stand und fp_stand gehen im letzten Paket mit fortschritt und kinder weg',
-    db.log[db.log.length - 1] === 'paket fortschritt/aaaa1111 zs_stand/aaaa1111 fp_stand/aaaa1111 ra_stand/aaaa1111 sw_stand/aaaa1111 kr_stand/aaaa1111 cb_stand/aaaa1111 lu_stand/aaaa1111 kw_stand/aaaa1111 wg_stand/aaaa1111 ze_stand/aaaa1111 sa_stand/aaaa1111 kinder/aaaa1111');
+    db.log[db.log.length - 1] === 'paket fortschritt/aaaa1111 zs_stand/aaaa1111 fp_stand/aaaa1111 ra_stand/aaaa1111 sw_stand/aaaa1111 kr_stand/aaaa1111 cb_stand/aaaa1111 lu_stand/aaaa1111 kw_stand/aaaa1111 wg_stand/aaaa1111 ze_stand/aaaa1111 sa_stand/aaaa1111 an_stand/aaaa1111 kinder/aaaa1111');
 
   // ---- Zahlenschwarm zurücksetzen ----
   neu();
@@ -305,6 +308,12 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
     saz === true && db.log.length === 1 && db.log[0] === 'delete sa_stand/aaaa1111' && !!inhalt.sa_stand.bbbb2222 && !!inhalt.ze_stand.aaaa1111);
   pruefe('Sicherung holt sa_stand, Plattform heißt Satzwerft', L.SAMMLUNGEN.indexOf('sa_stand') >= 0 &&
     L.PLATTFORMEN.some(function (pf) { return pf.sammlung === 'sa_stand' && pf.name === 'Satzwerft' && pf.schluessel === 'satzwerft'; }));
+  neu();
+  var anz = await L.standLoeschen('an_stand', 'aaaa1111');
+  pruefe('Abyss of Numbers zurücksetzen löscht nur an_stand des Kindes',
+    anz === true && db.log.length === 1 && db.log[0] === 'delete an_stand/aaaa1111' && !!inhalt.an_stand.bbbb2222 && !!inhalt.sa_stand.aaaa1111);
+  pruefe('Sicherung holt an_stand, Plattform heißt Abyss of Numbers', L.SAMMLUNGEN.indexOf('an_stand') >= 0 &&
+    L.PLATTFORMEN.some(function (pf) { return pf.sammlung === 'an_stand' && pf.name === 'Abyss of Numbers' && pf.schluessel === 'abyss'; }));
   pruefe('Sicherung holt kr_stand, Plattform heißt KI-Korallenriff', L.SAMMLUNGEN.indexOf('kr_stand') >= 0 &&
     L.PLATTFORMEN.some(function (pf) { return pf.sammlung === 'kr_stand' && pf.name === 'KI-Korallenriff' && pf.schluessel === 'korallenriff'; }));
   var akteWeg = await L.standLoeschen('ra_faelle', 'demo').then(function () { return 'gelöscht'; }, function () { return 'abgelehnt'; });
@@ -333,7 +342,7 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   var erwartet = ['Nur die Perlen zurücksetzen', 'Alles zurücksetzen']
     .concat(S.PLATTFORMEN.map(function (pf) { return pf.name + ' zurücksetzen'; })).concat(['Abbrechen']);
   pruefe('Feld mit Stand: Perlentaucher-Knöpfe, je ein Knopf pro Plattform, Abbrechen',
-    knoepfe(feldMit).join('|') === erwartet.join('|') && S.PLATTFORMEN.length === 11);
+    knoepfe(feldMit).join('|') === erwartet.join('|') && S.PLATTFORMEN.length === 12);
   pruefe('Feld: jeder Plattform-Knopf trägt Kind und Sammlung',
     S.PLATTFORMEN.every(function (pf) { return feldMit.indexOf('data-pfreset="aaaa1111" data-sammlung="' + pf.sammlung + '"') >= 0; }));
   pruefe('Feld hat die Überschriften Perlentaucher und Andere Plattformen',
@@ -347,7 +356,7 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
 
   // ---- Inhalte aus zs_stand landen nie als HTML in der Seite ----
   var treffer = quelle.split('\n').filter(function (z) {
-    return /zs_stand|fp_stand|ra_stand|sw_stand|kr_stand|cb_stand|lu_stand|kw_stand|wg_stand|ze_stand|sa_stand|zahlenschwarm|flaschenpost|riffakten|seesternwerkstatt|korallenriff|chancenbucht|leuchtturmuhr|kieselwaage|walgesang|zeitenstrom|satzwerft|PLATTFORMEN/.test(z) && /innerHTML/.test(z);
+    return /zs_stand|fp_stand|ra_stand|sw_stand|kr_stand|cb_stand|lu_stand|kw_stand|wg_stand|ze_stand|sa_stand|an_stand|zahlenschwarm|flaschenpost|riffakten|seesternwerkstatt|korallenriff|chancenbucht|leuchtturmuhr|kieselwaage|walgesang|zeitenstrom|satzwerft|abyss|PLATTFORMEN/.test(z) && /innerHTML/.test(z);
   });
   pruefe('keine Zeile setzt zs_stand oder fp_stand in innerHTML ein', treffer.length === 0);
 
@@ -384,7 +393,8 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
     kw_stand: {},
     wg_stand: {},
     ze_stand: {},
-    sa_stand: {}
+    sa_stand: {},
+    an_stand: {}
   };
   var dbA = attrappe(inhaltA);
   var A = aufraeumer(dbA, kinderA, staendeA);
