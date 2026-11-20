@@ -17,7 +17,7 @@
      auftauchen; die Adresse gibt es nur auf dem Aufkleber. -->
 <meta name="robots" content="noindex, nofollow">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=71">
+<link rel="stylesheet" href="css/style.css?v=72">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -27,6 +27,13 @@
   .lhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 10px; flex-wrap: wrap; }
   .lhead h1 { font-size: 26px; }
   .lhead .rechts { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  /* Obere Ebene: Bereiche (Perlentaucher, Verwaltung, später Abyss of Numbers) */
+  .bereiche { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px; margin: 4px 0 18px;
+    background: var(--line); border-radius: 16px; width: fit-content; max-width: 100%; }
+  .bereiche button { padding: 10px 22px; border-radius: 12px; background: transparent; border: 2px solid transparent;
+    font-weight: 800; font-size: 18px; color: var(--ink); min-height: 48px; }
+  .bereiche button.an { background: #fff; border-color: var(--brand); color: var(--brand-d); }
 
   .reiter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
   .reiter button { padding: 12px 20px; border-radius: 14px 14px 0 0; background: #fff; border: 2px solid var(--line);
@@ -120,7 +127,7 @@
   .lupeinhalt img { image-rendering: pixelated; border-radius: 14px; border: 2px solid var(--line);
     width: 100%; height: auto; max-height: 68vh; object-fit: contain; background: #fff; }
   .lupetext { font-size: 17px; font-weight: 700; color: var(--muted); text-align: center; }
-  @media print { .reiter, .lhead .rechts, .hinweis, .bildlupe { display: none; }
+  @media print { .bereiche, .reiter, .lhead .rechts, .hinweis, .bildlupe { display: none; }
     .bildkarte { break-inside: avoid; } }
 
   .antw { font-size: 14px; margin-top: 4px; line-height: 1.5; }
@@ -142,14 +149,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" integrity="sha384-ZaR6mWzmJtrRibZ1Vm7SoHFr8OXjyAuGAXalGDKqbxFT18oi/z+oZLIRFkpeNor1" crossorigin="anonymous"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" integrity="sha384-I1LYojsZ5RM1cOda44Z2h42Qa6YfsQ1XkXxREnhp4ueYBR/4d1pG1K+NZM537Vsj" crossorigin="anonymous"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js" integrity="sha384-Ke0FJhH7LyRqDxZ0wt+/OXV38yfQVu7g9VPEEGjYmB4RVOY/ta04uecRhsMwT7V3" crossorigin="anonymous"></script>
-<script src="js/config.js?v=71"></script>
-<script src="js/words.js?v=71"></script>
-<script src="js/bilder.js?v=71"></script>
-<script src="js/quiz.js?v=71"></script>
-<script src="js/mascot.js?v=71"></script>
-<script src="js/malen.js?v=71"></script>
-<script src="js/merge.js?v=71"></script>
-<script src="js/cloud.js?v=71"></script>
-<script src="js/lehrer.js?v=71"></script>
+<script src="js/config.js?v=72"></script>
+<script src="js/words.js?v=72"></script>
+<script src="js/bilder.js?v=72"></script>
+<script src="js/quiz.js?v=72"></script>
+<script src="js/mascot.js?v=72"></script>
+<script src="js/malen.js?v=72"></script>
+<script src="js/merge.js?v=72"></script>
+<script src="js/cloud.js?v=72"></script>
+<script src="js/lehrer.js?v=72"></script>
 </body>
 </html>

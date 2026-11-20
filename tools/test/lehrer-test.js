@@ -14,6 +14,8 @@
    Sicherung, Auskunft, Kind löschen, Zurücksetzen.
    Dazu der erzeugte Text der Kinderzeile (vier Knöpfe) und des Felds
    „Zurücksetzen“ (Plattform-Knöpfe).
+   Seit v72 auch die Navigation in zwei Ebenen (BEREICHE): Startzustand,
+   Bereich und Reiter wählen, jeder alte Reiter erreichbar.
    NICHT geprüft: die Seite selbst, Klicks, Nachfragen, Anmeldung,
    die echten Firestore-Regeln.
    ========================================================== */
@@ -421,6 +423,84 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   pruefe('alteAufraeumen fragt erst die Plattformen ab und nutzt inaktiveKinder',
     /plattformAktiv\(\)\.then/.test(funktion('alteAufraeumen')) && /inaktiveKinder\(grenze, zuletzt\)/.test(funktion('alteAufraeumen')) &&
     !/tageHer\(letzterTag\(staende\[k\.id\]\)\)/.test(funktion('alteAufraeumen')));
+
+  // ---- Navigation in zwei Ebenen (Bereiche, darunter Reiter) ----
+  // Geprüft werden der erzeugte Text und der Zustand nach dem Wählen,
+  // nicht die Klicks in der echten Seite.
+  var bereicheZeile = (quelle.match(/^\s*var BEREICHE = \[.*\];$/m) || [])[0];
+  pruefe('BEREICHE steht in lehrer.js (eine Zeile)', !!bereicheZeile);
+  var startReiter = (quelle.match(/^\s*var reiter = '(\w+)'/m) || [])[1];
+  function navBauer() {
+    return new Function('woerter', 'fragen', 'kinder',
+      bereicheZeile + '\nvar reiter = ' + JSON.stringify(startReiter) + ', zuletztReiter = {};\n' +
+      ['esc', 'knopf', 'bereichVon', 'reiterName', 'bereichWaehlen', 'reiterWaehlen', 'navHtml'].map(funktion).join('\n') +
+      '\nreturn { BEREICHE: BEREICHE, navHtml: navHtml, bereichWaehlen: bereichWaehlen, reiterWaehlen: reiterWaehlen,' +
+      ' bereichVon: bereichVon, reiter: function () { return reiter; } };')(
+      [1, 2, 3], [1, 2], [1, 2, 3, 4]);
+  }
+  var N = navBauer();
+  function navKnoepfe(html, attr) {
+    var re = new RegExp('<button data-' + attr + '="([^"]+)"([^>]*)>([^<]*)<\\/button>', 'g'), m, aus = [];
+    while ((m = re.exec(html))) aus.push({ id: m[1], an: /class="an"/.test(m[2]), text: m[3] });
+    return aus;
+  }
+  var ALTE = ['fortschritt', 'auswertung', 'woerter', 'themen', 'einstellungen', 'kinder', 'bilder', 'sicherung'];
+  var alleReiter = [].concat.apply([], N.BEREICHE.map(function (b) { return b.reiter; }));
+  pruefe('Bereiche: Perlentaucher und Verwaltung, in dieser Reihenfolge',
+    N.BEREICHE.map(function (b) { return b.name; }).join('|') === 'Perlentaucher|Verwaltung');
+  pruefe('Perlentaucher hat Fortschritt, Auswertung, Lernwörter, Sachthemen, Einstellungen, Bilder',
+    N.BEREICHE[0].reiter.join('|') === 'fortschritt|auswertung|woerter|themen|einstellungen|bilder');
+  pruefe('Verwaltung hat Kinder und Sicherung', N.BEREICHE[1].reiter.join('|') === 'kinder|sicherung');
+  pruefe('jeder der acht alten Reiter steht in genau einem Bereich, kein Reiter doppelt',
+    ALTE.every(function (r) { return alleReiter.filter(function (x) { return x === r; }).length === 1; }) &&
+    alleReiter.length === ALTE.length);
+  var zeichnenText = funktion('zeichnen');
+  pruefe('zeichnen() kennt jeden Reiter (Inhalt und binde…)', alleReiter.every(function (r) {
+    return (r === 'fortschritt' || zeichnenText.indexOf("reiter === '" + r + "' ? tab") >= 0) &&
+      zeichnenText.indexOf("if (reiter === '" + r + "') binde") >= 0;
+  }));
+  var start = N.navHtml();
+  var startB = navKnoepfe(start, 'bereich'), startR = navKnoepfe(start, 'reiter');
+  pruefe('Start: Perlentaucher ist gewählt, Fortschritt ist offen',
+    N.reiter() === 'fortschritt' && startB.length === 2 && startB[0].an && !startB[1].an &&
+    startR.filter(function (k) { return k.an; }).map(function (k) { return k.id; }).join() === 'fortschritt');
+  pruefe('Start: unter Perlentaucher stehen nur dessen sechs Reiter',
+    startR.map(function (k) { return k.id; }).join('|') === N.BEREICHE[0].reiter.join('|'));
+  pruefe('Zähler in den Beschriftungen (Lernwörter 3, Sachthemen 2)',
+    startR.map(function (k) { return k.text; }).join('|') === 'Fortschritt|Auswertung|Lernwörter (3)|Sachthemen (2)|Einstellungen|Bilder');
+  pruefe('Knöpfe melden ihren Zustand (aria-pressed)', /data-bereich="perlentaucher" class="an" aria-pressed="true"/.test(start) &&
+    /data-bereich="verwaltung" aria-pressed="false"/.test(start));
+  N.bereichWaehlen('verwaltung');
+  var verw = N.navHtml(), verwR = navKnoepfe(verw, 'reiter');
+  pruefe('Verwaltung wählen: Kinder ist offen, darunter Kinder (4) und Sicherung',
+    N.reiter() === 'kinder' && navKnoepfe(verw, 'bereich')[1].an &&
+    verwR.map(function (k) { return k.text; }).join('|') === 'Kinder (4)|Sicherung' && verwR[0].an);
+  N.reiterWaehlen('sicherung');
+  pruefe('Reiter Sicherung wählen', N.reiter() === 'sicherung' && navKnoepfe(N.navHtml(), 'reiter')[1].an);
+  N.bereichWaehlen('perlentaucher');
+  pruefe('zurück zu Perlentaucher: Fortschritt (dort zuletzt offen)', N.reiter() === 'fortschritt');
+  N.reiterWaehlen('bilder');
+  N.bereichWaehlen('verwaltung');
+  pruefe('wieder Verwaltung: Sicherung (dort zuletzt offen)', N.reiter() === 'sicherung');
+  N.bereichWaehlen('perlentaucher');
+  pruefe('wieder Perlentaucher: Bilder (dort zuletzt offen)', N.reiter() === 'bilder');
+  N.bereichWaehlen('gibtsnicht'); N.reiterWaehlen('gibtsnicht');
+  pruefe('unbekannter Bereich oder Reiter ändert nichts', N.reiter() === 'bilder');
+  // jeder alte Reiter ist erreichbar: Bereich wählen, Reiter wählen, er ist offen und markiert
+  var N2 = navBauer();
+  pruefe('jeder der acht alten Reiter ist über Bereich und Reiter erreichbar', ALTE.every(function (r) {
+    var b = N2.bereichVon(r); if (!b) return false;
+    N2.bereichWaehlen(b.id); N2.reiterWaehlen(r);
+    var html = N2.navHtml();
+    return N2.reiter() === r && navKnoepfe(html, 'reiter').some(function (k) { return k.id === r && k.an; }) &&
+      navKnoepfe(html, 'bereich').some(function (k) { return k.id === b.id && k.an; });
+  }));
+  // Gegenprobe: ohne den Bereich Verwaltung wären Kinder und Sicherung nicht erreichbar
+  var N3 = new Function('woerter', 'fragen', 'kinder',
+    bereicheZeile.replace(/, \{ id: 'verwaltung'[^\]]*\] \}/, '') + '\nvar reiter = "fortschritt", zuletztReiter = {};\n' +
+    ['esc', 'knopf', 'bereichVon', 'reiterName', 'bereichWaehlen', 'reiterWaehlen', 'navHtml'].map(funktion).join('\n') +
+    '\nreturn { bereichVon: bereichVon, BEREICHE: BEREICHE };')([], [], []);
+  pruefe('Gegenprobe: ohne Verwaltung fehlen Kinder und Sicherung', N3.BEREICHE.length === 1 && !N3.bereichVon('kinder') && !N3.bereichVon('sicherung'));
 
   console.log('\n' + (schlecht ? 'FEHLER' : 'OK') + ': ' + gut + ' von ' + (gut + schlecht) + ' Prüfungen bestanden.');
   process.exit(schlecht ? 1 : 0);

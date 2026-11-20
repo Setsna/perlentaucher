@@ -1,6 +1,8 @@
 /* ==========================================================
    Lehrerbereich
-   Reiter: Fortschritt | Lernwörter | Einstellungen | Kinder
+   Zwei Ebenen (BEREICHE): oben die Bereiche, darunter ihre Reiter.
+   Perlentaucher: Fortschritt | Auswertung | Lernwörter | Sachthemen |
+   Einstellungen | Bilder. Verwaltung: Kinder | Sicherung.
    Anmeldung mit Google. Wer in den Firestore-Regeln nicht als
    Lehrkraft eingetragen ist, sieht hier nichts.
    ========================================================== */
@@ -11,6 +13,12 @@
   var kinder = [], staende = {}, woerter = [], fragen = [], einst = {}, klassenPerlen = null;
   var wochen = [];   // [{ id: '2026-W41', perlen: 412 }], neueste zuerst
   var reiter = 'fortschritt', filterListe = '', meldung = null;
+  // Navigation in zwei Ebenen. Jeder Reiter steht in genau einem Bereich, der
+  // erste Bereich mit seinem ersten Reiter ist der Start. Ein neuer Bereich
+  // (Abyss of Numbers, Etappe 3) ist ein Eintrag hier plus sein Reiter in
+  // reiterName() und zeichnen(). Eine Zeile, damit der Test sie findet.
+  var BEREICHE = [{ id: 'perlentaucher', name: 'Perlentaucher', reiter: ['fortschritt', 'auswertung', 'woerter', 'themen', 'einstellungen', 'bilder'] }, { id: 'verwaltung', name: 'Verwaltung', reiter: ['kinder', 'sicherung'] }];
+  var zuletztReiter = {};   // Bereich -> zuletzt offener Reiter
 
   // Stände der anderen Lernplattformen im gemeinsamen Konto: je Kind ein Dokument
   // <sammlung>/<code>. Hier werden sie nur gesichert, herausgegeben, gelöscht und
@@ -231,15 +239,14 @@
       '<a class="btn ghost mini" href="datenschutz.html" style="text-decoration:none">Datenschutz</a>' +
       '<a class="btn ghost mini" href="index.html" style="text-decoration:none">Zur App</a>' +
       '<button class="btn ghost mini" id="abmelden">Abmelden</button></div></div>' +
-      '<div class="reiter">' +
-      knopf('fortschritt', 'Fortschritt') + knopf('auswertung', 'Auswertung') + knopf('woerter', 'Lernwörter (' + woerter.length + ')') +
-      knopf('themen', 'Sachthemen (' + fragen.length + ')') + knopf('einstellungen', 'Einstellungen') + knopf('kinder', 'Kinder (' + kinder.length + ')') +
-      knopf('bilder', 'Bilder') + knopf('sicherung', 'Sicherung') +
-      '</div>' + m + inhalt + '</div>';
+      navHtml() + m + inhalt + '</div>';
 
     bindeKopf();
+    document.querySelectorAll('[data-bereich]').forEach(function (b) {
+      b.onclick = function () { bereichWaehlen(b.getAttribute('data-bereich')); zeichnen(); };
+    });
     document.querySelectorAll('[data-reiter]').forEach(function (b) {
-      b.onclick = function () { reiter = b.getAttribute('data-reiter'); zeichnen(); };
+      b.onclick = function () { reiterWaehlen(b.getAttribute('data-reiter')); zeichnen(); };
     });
     if (reiter === 'woerter') bindeWoerter();
     if (reiter === 'einstellungen') bindeEinstellungen();
@@ -252,7 +259,41 @@
   }
 
   function knopf(id, text) {
-    return '<button data-reiter="' + id + '"' + (reiter === id ? ' class="an"' : '') + '>' + text + '</button>';
+    return '<button data-reiter="' + id + '"' + (reiter === id ? ' class="an" aria-pressed="true"' : ' aria-pressed="false"') + '>' + text + '</button>';
+  }
+  // Bereich, in dem ein Reiter steht (null, wenn ihn keiner kennt)
+  function bereichVon(r) {
+    for (var i = 0; i < BEREICHE.length; i++) if (BEREICHE[i].reiter.indexOf(r) >= 0) return BEREICHE[i];
+    return null;
+  }
+  function reiterName(id) {
+    var namen = {
+      fortschritt: 'Fortschritt', auswertung: 'Auswertung', woerter: 'Lernwörter (' + woerter.length + ')',
+      themen: 'Sachthemen (' + fragen.length + ')', einstellungen: 'Einstellungen', bilder: 'Bilder',
+      kinder: 'Kinder (' + kinder.length + ')', sicherung: 'Sicherung'
+    };
+    return namen[id] || esc(id);
+  }
+  // Bereich wechseln: zurück zum Reiter, der dort zuletzt offen war, sonst der erste.
+  // Gemerkt wird in reiterWaehlen().
+  function bereichWaehlen(id) {
+    var b = BEREICHE.filter(function (x) { return x.id === id; })[0];
+    if (!b) return;
+    reiter = zuletztReiter[b.id] || b.reiter[0];
+  }
+  function reiterWaehlen(id) {
+    var b = bereichVon(id);
+    if (!b) return;
+    reiter = id;
+    zuletztReiter[b.id] = id;
+  }
+  function navHtml() {
+    var akt = bereichVon(reiter) || BEREICHE[0];
+    return '<nav class="bereiche" aria-label="Bereiche">' + BEREICHE.map(function (b) {
+      return '<button data-bereich="' + b.id + '"' + (b.id === akt.id ? ' class="an" aria-pressed="true"' : ' aria-pressed="false"') + '>' + esc(b.name) + '</button>';
+    }).join('') + '</nav>' +
+      '<div class="reiter" role="group" aria-label="' + esc('Reiter im Bereich ' + akt.name) + '">' +
+      akt.reiter.map(function (r) { return knopf(r, reiterName(r)); }).join('') + '</div>';
   }
   function bindeKopf() {
     var b = el('abmelden');
