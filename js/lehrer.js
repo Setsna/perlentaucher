@@ -2,7 +2,8 @@
    Lehrerbereich
    Zwei Ebenen (BEREICHE): oben die Bereiche, darunter ihre Reiter.
    Perlentaucher: Fortschritt | Auswertung | Lernwörter | Sachthemen |
-   Einstellungen | Bilder. Verwaltung: Kinder | Sicherung.
+   Einstellungen | Bilder. Abyss of Numbers: Klasse | Schwierige
+   Aufgaben. Verwaltung: Kinder | Sicherung.
    Anmeldung mit Google. Wer in den Firestore-Regeln nicht als
    Lehrkraft eingetragen ist, sieht hier nichts.
    ========================================================== */
@@ -17,7 +18,7 @@
   // erste Bereich mit seinem ersten Reiter ist der Start. Ein neuer Bereich
   // (Abyss of Numbers, Etappe 3) ist ein Eintrag hier plus sein Reiter in
   // reiterName() und zeichnen(). Eine Zeile, damit der Test sie findet.
-  var BEREICHE = [{ id: 'perlentaucher', name: 'Perlentaucher', reiter: ['fortschritt', 'auswertung', 'woerter', 'themen', 'einstellungen', 'bilder'] }, { id: 'verwaltung', name: 'Verwaltung', reiter: ['kinder', 'sicherung'] }];
+  var BEREICHE = [{ id: 'perlentaucher', name: 'Perlentaucher', reiter: ['fortschritt', 'auswertung', 'woerter', 'themen', 'einstellungen', 'bilder'] }, { id: 'abyss', name: 'Abyss of Numbers', reiter: ['an_klasse', 'an_schwer'] }, { id: 'verwaltung', name: 'Verwaltung', reiter: ['kinder', 'sicherung'] }];
   var zuletztReiter = {};   // Bereich -> zuletzt offener Reiter
 
   // Stände der anderen Lernplattformen im gemeinsamen Konto: je Kind ein Dokument
@@ -228,6 +229,8 @@
       : reiter === 'auswertung' ? tabAuswertung()
       : reiter === 'bilder' ? tabBilder()
       : reiter === 'sicherung' ? tabSicherung()
+      : reiter === 'an_klasse' ? tabAnKlasse()
+      : reiter === 'an_schwer' ? tabAnSchwer()
       : tabFortschritt();
 
     var m = meldung ? '<div class="melden ' + meldung.art + '">' + meldung.text + '</div>' : '';
@@ -246,7 +249,11 @@
       b.onclick = function () { bereichWaehlen(b.getAttribute('data-bereich')); zeichnen(); };
     });
     document.querySelectorAll('[data-reiter]').forEach(function (b) {
-      b.onclick = function () { reiterWaehlen(b.getAttribute('data-reiter')); zeichnen(); };
+      b.onclick = function () {
+        var r = b.getAttribute('data-reiter');
+        if (r === 'an_klasse') abyss.kind = null;   // Reiter „Klasse“ führt aus der Ansicht eines Kindes zurück
+        reiterWaehlen(r); zeichnen();
+      };
     });
     if (reiter === 'woerter') bindeWoerter();
     if (reiter === 'einstellungen') bindeEinstellungen();
@@ -256,6 +263,8 @@
     if (reiter === 'auswertung') bindeAuswertung();
     if (reiter === 'bilder') bindeBilder();
     if (reiter === 'sicherung') bindeSicherung();
+    if (reiter === 'an_klasse') bindeAbyss();
+    if (reiter === 'an_schwer') bindeAbyss();
   }
 
   function knopf(id, text) {
@@ -270,7 +279,8 @@
     var namen = {
       fortschritt: 'Fortschritt', auswertung: 'Auswertung', woerter: 'Lernwörter (' + woerter.length + ')',
       themen: 'Sachthemen (' + fragen.length + ')', einstellungen: 'Einstellungen', bilder: 'Bilder',
-      kinder: 'Kinder (' + kinder.length + ')', sicherung: 'Sicherung'
+      kinder: 'Kinder (' + kinder.length + ')', sicherung: 'Sicherung',
+      an_klasse: 'Klasse', an_schwer: 'Schwierige Aufgaben'
     };
     return namen[id] || esc(id);
   }
@@ -1596,6 +1606,198 @@
   function bindeAuswertung() {
     var f = el('auswfilter');
     if (f) f.onchange = function () { auswListe = f.value; zeichnen(); };
+  }
+
+  // ==========================================================
+  //  Bereich: Abyss of Numbers (Lernübersicht, Phase 10)
+  //  Das Berichtsmodul und die Konfiguration kommen von der Abyss-Seite
+  //  (gleicher Ursprung setsna.github.io, deshalb keine Änderung an der
+  //  CSP). Das Modul rechnet, hier wird nur gezeichnet. Alle Werte stammen
+  //  aus Spielständen, die die Geräte der Kinder schreiben: Sie gehen
+  //  deshalb ohne Ausnahme durch esc().
+  // ==========================================================
+  var ABYSS_BASIS = '../abyss-of-numbers/';
+  var ABYSS_MIN_KINDER = 3;   // Summen ohne Namen nur ab so vielen Kindern je Klassenstufe
+  var ABYSS_SORTIERBAR = ['name', 'zuletzt', 'hilfe'];
+  // zustand: neu | laedt | fertig | fehler; kind: Nummer in bericht.kinder oder null
+  var abyss = { zustand: 'neu', bericht: null, fehler: '', kind: null, sort: null };
+
+  function abyssLaden() {
+    abyss.zustand = 'laedt'; abyss.kind = null;
+    var basis = new URL(ABYSS_BASIS, location.href).href;
+    var frisch = '?t=' + Date.now();   // das Modul ist nicht versioniert, seine Importe schon
+    Promise.all([
+      import(basis + 'src/teacher/report.js' + frisch),
+      import(basis + 'src/platform/config-loader.js' + frisch),
+      db.collection('an_stand').get()
+    ]).then(function (r) {
+      var modul = r[0], lader = r[1], snap = r[2];
+      return Promise.all([
+        lader.loadConfig(lader.browserFetchJson(basis + 'config/')),
+        fetch(basis + 'config/teacher/stages.de.json', { cache: 'no-cache' }).then(function (a) {
+          if (!a.ok) throw new Error('stages.de.json: HTTP ' + a.status);
+          return a.json();
+        })
+      ]).then(function (c) {
+        abyss.bericht = modul.buildReport(abyssEintraege(snap), c[0], c[1], { tzOffsetMinutes: new Date().getTimezoneOffset() });
+        abyss.zustand = 'fertig';
+      });
+    }).catch(function (e) {
+      abyss.zustand = 'fehler';
+      abyss.fehler = String((e && e.message) || e);
+    }).then(function () {
+      var b = bereichVon(reiter);
+      if (b && b.id === 'abyss') zeichnen();
+    });
+  }
+
+  // Eine Zeile je Kind aus der Kinderliste, das einen Abyss-Stand hat
+  // (auch einen leeren). Codes ohne Kind in der Liste bleiben weg.
+  function abyssEintraege(snap) {
+    var texte = {};
+    snap.forEach(function (d) {
+      var x = d.data() || {};
+      texte[d.id] = typeof x.spielstand === 'string' ? x.spielstand : null;
+    });
+    return kinder.filter(function (k) { return Object.prototype.hasOwnProperty.call(texte, k.id); })
+      .sort(function (a, b) { return String(a.vorname || '').localeCompare(String(b.vorname || ''), 'de'); })
+      .map(function (k) { return { name: String(k.vorname || ''), text: texte[k.id] }; });
+  }
+
+  // Sortierschlüssel einer Zelle: Datum „TT.MM.JJJJ“ als Zahl, sonst Text
+  function abyssSortWert(key, v) {
+    v = v === undefined || v === null ? '' : String(v);
+    if (key === 'zuletzt') {
+      var m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(v);
+      return m ? Number(m[3] + m[2] + m[1]) : -1;   // kein Datum: „noch nicht gespielt“ u. Ä.
+    }
+    return v;
+  }
+  function abyssZeilen(rows, sort) {
+    if (!sort) return rows;
+    var richtung = sort.ab ? -1 : 1;
+    return rows.map(function (r, i) { return { r: r, i: i }; }).sort(function (x, y) {
+      var a = abyssSortWert(sort.key, x.r.cells[sort.key]), b = abyssSortWert(sort.key, y.r.cells[sort.key]);
+      // Leere Hilfe-Zellen und „noch nicht gespielt“ u. Ä. stehen in beiden Richtungen unten
+      var leerA = a === '' || a === -1, leerB = b === '' || b === -1, d;
+      if (leerA !== leerB) d = leerA ? 1 : -1;
+      else if (typeof a === 'number') d = (a - b) * richtung;
+      else d = String(a).localeCompare(String(b), 'de') * richtung;
+      return d || x.i - y.i;
+    }).map(function (x) { return x.r; });
+  }
+  function abyssSortieren(key) {
+    if (ABYSS_SORTIERBAR.indexOf(key) < 0) return;
+    // Datum zuerst absteigend (neueste oben), Text zuerst aufsteigend
+    abyss.sort = abyss.sort && abyss.sort.key === key ? { key: key, ab: !abyss.sort.ab } : { key: key, ab: key === 'zuletzt' };
+  }
+
+  // Eine Tabelle des Berichtsmoduls: { title, columns: [{ key, label }], rows: [{ cells, child? }], note? }
+  // opt.sortierbar: Spalten mit Sortierknopf; opt.kind: erste Spalte als Knopf zur Ansicht „Kind“
+  function berichtTabelle(t, opt) {
+    opt = opt || {};
+    var spalten = Array.isArray(t.columns) ? t.columns : [];
+    var sortierbar = opt.sortierbar || [];
+    var kopf = spalten.map(function (c) {
+      var s = sortierbar.indexOf(c.key) >= 0, an = s && abyss.sort && abyss.sort.key === c.key;
+      return '<th scope="col"' + (an ? ' aria-sort="' + (abyss.sort.ab ? 'descending' : 'ascending') + '"' : '') + '>' +
+        (s ? '<button class="sortknopf" data-ansort="' + esc(c.key) + '">' + esc(c.label) +
+          (an ? (abyss.sort.ab ? ' ▼' : ' ▲') : '') + '</button>' : esc(c.label)) + '</th>';
+    }).join('');
+    var zeilen = (opt.sortierbar ? abyssZeilen(t.rows || [], abyss.sort) : (t.rows || [])).map(function (r) {
+      return '<tr>' + spalten.map(function (c, i) {
+        var v = r.cells ? r.cells[c.key] : '';
+        v = v === undefined || v === null ? '' : String(v);
+        if (i === 0 && opt.kind && Number.isInteger(r.child)) {
+          return '<td><button class="namensknopf" data-ankind="' + r.child + '"><b>' + esc(v) + '</b></button></td>';
+        }
+        return '<td>' + esc(v) + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    if (!zeilen) zeilen = '<tr><td colspan="' + Math.max(1, spalten.length) + '" class="muted">Noch keine Einträge.</td></tr>';
+    return '<h3 class="sec">' + esc(t.title) + '</h3>' +
+      '<div class="tabwrap"><table class="tabelle"><thead><tr>' + kopf + '</tr></thead><tbody>' + zeilen + '</tbody></table></div>' +
+      (t.note ? '<p class="muted">' + esc(t.note) + '</p>' : '');
+  }
+
+  function abyssStatus() {
+    if (abyss.zustand === 'fertig') return '';
+    if (abyss.zustand === 'fehler') {
+      return '<div class="melden fehler">Die Übersicht aus Abyss of Numbers konnte nicht geladen werden: ' + esc(abyss.fehler) + '</div>' +
+        '<button class="btn" id="anneu">Noch einmal laden</button>';
+    }
+    return '<p class="muted">Die Spielstände aus Abyss of Numbers werden geladen …</p>';
+  }
+  function abyssKopf(titel) {
+    return '<h2 class="sec">' + esc(titel) + '</h2>' +
+      '<div class="hinweis">Die Übersicht ist für dich am eigenen Gerät gedacht, nicht für die Tafel. ' +
+      'Sie zeigt nur Kinder, die Abyss of Numbers schon geöffnet haben. ' +
+      'Spieltage, Tauchgänge, die letzten Antworten und „Braucht Hilfe bei“ zählt das Spiel erst seit dem 20.11.2026.' +
+      (abyss.zustand === 'fertig' ? ' <button class="btn ghost mini" id="anneu">Neu laden</button>' : '') + '</div>';
+  }
+
+  function tabAnKlasse() {
+    if (abyss.zustand !== 'fertig') return abyssKopf('Abyss of Numbers: Klasse') + abyssStatus();
+    var b = abyss.bericht, k = abyss.kind !== null ? b.kinder[abyss.kind] : null;
+    if (k) {
+      return '<button class="btn ghost" id="anzurueck">← zurück zur Klasse</button>' +
+        '<h2 class="sec" id="ankindname" tabindex="-1" style="font-size:28px">' + esc(k.name) + '</h2>' +
+        k.tables.map(function (t) { return berichtTabelle(t); }).join('');
+    }
+    return abyssKopf('Abyss of Numbers: Klasse') +
+      '<p class="muted">Tippe auf einen Namen, um die Übersicht des Kindes zu sehen. Die Überschriften mit Knopf sortieren die Tabelle.</p>' +
+      berichtTabelle(b.klasse, { sortierbar: ABYSS_SORTIERBAR, kind: true });
+  }
+
+  // Summen ohne Namen und Codes; Klassenstufen mit weniger als ABYSS_MIN_KINDER Kindern fallen weg
+  function abyssSummenDatei(summen) {
+    var jeKlasse = {}, weg = [], kinderZahl = 0;
+    Object.keys((summen && summen.jeKlasse) || {}).sort().forEach(function (stufe) {
+      var s = summen.jeKlasse[stufe];
+      if (s && zahl(s.kinder) >= ABYSS_MIN_KINDER) { jeKlasse[stufe] = s; kinderZahl += s.kinder; } else weg.push(stufe);
+    });
+    return {
+      daten: { quelle: 'Abyss of Numbers', erstellt: heuteFuerDateiname(), mindestKinderJeKlasse: ABYSS_MIN_KINDER, kinder: kinderZahl, jeKlasse: jeKlasse },
+      weggelassen: weg, leer: kinderZahl === 0
+    };
+  }
+
+  function tabAnSchwer() {
+    if (abyss.zustand !== 'fertig') return abyssKopf('Abyss of Numbers: Schwierige Aufgaben') + abyssStatus();
+    var datei = abyssSummenDatei(abyss.bericht.summen);
+    return abyssKopf('Abyss of Numbers: Schwierige Aufgaben') +
+      abyss.bericht.schwer.map(function (t) { return berichtTabelle(t); }).join('') +
+      '<h3 class="sec">Zahlen ohne Namen</h3>' +
+      '<p class="muted">Nur die Summen der Klasse (Antworten je Rechenart, Tauchgänge je Gebiet und Tiefe), ' +
+      'keine Vornamen, keine Codes. Eine Klassenstufe kommt nur hinein, wenn mindestens ' + ABYSS_MIN_KINDER + ' Kinder sie spielen.' +
+      (datei.weggelassen.length ? ' Weggelassen: Klasse ' + esc(datei.weggelassen.join(', ')) + '.' : '') + '</p>' +
+      '<button class="btn" id="ansummen"' + (datei.leer ? ' disabled' : '') + '>Zahlen ohne Namen herunterladen</button>';
+  }
+
+  function bindeAbyss() {
+    if (abyss.zustand === 'neu') { abyssLaden(); return; }
+    var neu = el('anneu');
+    if (neu) neu.onclick = function () { abyssLaden(); zeichnen(); };
+    var zurueck = el('anzurueck');
+    if (zurueck) {
+      zurueck.onclick = function () { abyss.kind = null; zeichnen(); };
+      var name = el('ankindname');
+      if (name) name.focus();
+    }
+    document.querySelectorAll('[data-ankind]').forEach(function (b) {
+      b.onclick = function () { abyss.kind = Number(b.getAttribute('data-ankind')); zeichnen(); window.scrollTo(0, 0); };
+    });
+    document.querySelectorAll('[data-ansort]').forEach(function (b) {
+      b.onclick = function () { abyssSortieren(b.getAttribute('data-ansort')); zeichnen(); };
+    });
+    var summen = el('ansummen');
+    if (summen) summen.onclick = function () {
+      var d = abyssSummenDatei(abyss.bericht.summen);
+      if (d.leer) return;
+      if (!alsDateiSichern('abyss-zahlen-ohne-namen-' + heuteFuerDateiname() + '.json', JSON.stringify(d.daten, null, 2))) {
+        melde('Die Datei konnte nicht gespeichert werden.', 'fehler'); zeichnen();
+      }
+    };
   }
 
   // ==========================================================

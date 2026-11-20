@@ -16,6 +16,10 @@
    „Zurücksetzen“ (Plattform-Knöpfe).
    Seit v72 auch die Navigation in zwei Ebenen (BEREICHE): Startzustand,
    Bereich und Reiter wählen, jeder alte Reiter erreichbar.
+   Seit v73 der Bereich Abyss of Numbers: Einträge, Zeichnen mit esc(),
+   Sortieren, Ansicht „Kind“, Download ohne Namen ab drei Kindern je
+   Klassenstufe, dazu ein Lauf mit dem echten Berichtsmodul aus dem
+   Nachbarordner „Abyss of Numbers“ (fehlt er, wird das übersprungen).
    NICHT geprüft: die Seite selbst, Klicks, Nachfragen, Anmeldung,
    die echten Firestore-Regeln.
    ========================================================== */
@@ -446,14 +450,15 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   }
   var ALTE = ['fortschritt', 'auswertung', 'woerter', 'themen', 'einstellungen', 'kinder', 'bilder', 'sicherung'];
   var alleReiter = [].concat.apply([], N.BEREICHE.map(function (b) { return b.reiter; }));
-  pruefe('Bereiche: Perlentaucher und Verwaltung, in dieser Reihenfolge',
-    N.BEREICHE.map(function (b) { return b.name; }).join('|') === 'Perlentaucher|Verwaltung');
+  pruefe('Bereiche: Perlentaucher, Abyss of Numbers und Verwaltung, in dieser Reihenfolge',
+    N.BEREICHE.map(function (b) { return b.name; }).join('|') === 'Perlentaucher|Abyss of Numbers|Verwaltung');
   pruefe('Perlentaucher hat Fortschritt, Auswertung, Lernwörter, Sachthemen, Einstellungen, Bilder',
     N.BEREICHE[0].reiter.join('|') === 'fortschritt|auswertung|woerter|themen|einstellungen|bilder');
-  pruefe('Verwaltung hat Kinder und Sicherung', N.BEREICHE[1].reiter.join('|') === 'kinder|sicherung');
-  pruefe('jeder der acht alten Reiter steht in genau einem Bereich, kein Reiter doppelt',
-    ALTE.every(function (r) { return alleReiter.filter(function (x) { return x === r; }).length === 1; }) &&
-    alleReiter.length === ALTE.length);
+  pruefe('Abyss of Numbers hat Klasse und Schwierige Aufgaben', N.BEREICHE[1].reiter.join('|') === 'an_klasse|an_schwer');
+  pruefe('Verwaltung hat Kinder und Sicherung', N.BEREICHE[2].reiter.join('|') === 'kinder|sicherung');
+  pruefe('jeder der acht alten und zwei neuen Reiter steht in genau einem Bereich, kein Reiter doppelt',
+    ALTE.concat(['an_klasse', 'an_schwer']).every(function (r) { return alleReiter.filter(function (x) { return x === r; }).length === 1; }) &&
+    alleReiter.length === ALTE.length + 2);
   var zeichnenText = funktion('zeichnen');
   pruefe('zeichnen() kennt jeden Reiter (Inhalt und binde…)', alleReiter.every(function (r) {
     return (r === 'fortschritt' || zeichnenText.indexOf("reiter === '" + r + "' ? tab") >= 0) &&
@@ -462,7 +467,7 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   var start = N.navHtml();
   var startB = navKnoepfe(start, 'bereich'), startR = navKnoepfe(start, 'reiter');
   pruefe('Start: Perlentaucher ist gewählt, Fortschritt ist offen',
-    N.reiter() === 'fortschritt' && startB.length === 2 && startB[0].an && !startB[1].an &&
+    N.reiter() === 'fortschritt' && startB.length === 3 && startB[0].an && !startB[1].an && !startB[2].an &&
     startR.filter(function (k) { return k.an; }).map(function (k) { return k.id; }).join() === 'fortschritt');
   pruefe('Start: unter Perlentaucher stehen nur dessen sechs Reiter',
     startR.map(function (k) { return k.id; }).join('|') === N.BEREICHE[0].reiter.join('|'));
@@ -473,8 +478,14 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   N.bereichWaehlen('verwaltung');
   var verw = N.navHtml(), verwR = navKnoepfe(verw, 'reiter');
   pruefe('Verwaltung wählen: Kinder ist offen, darunter Kinder (4) und Sicherung',
-    N.reiter() === 'kinder' && navKnoepfe(verw, 'bereich')[1].an &&
+    N.reiter() === 'kinder' && navKnoepfe(verw, 'bereich')[2].an &&
     verwR.map(function (k) { return k.text; }).join('|') === 'Kinder (4)|Sicherung' && verwR[0].an);
+  N.bereichWaehlen('abyss');
+  var aby = N.navHtml(), abyR = navKnoepfe(aby, 'reiter');
+  pruefe('Abyss of Numbers wählen: Klasse ist offen, darunter Klasse und Schwierige Aufgaben',
+    N.reiter() === 'an_klasse' && navKnoepfe(aby, 'bereich')[1].an &&
+    abyR.map(function (k) { return k.text; }).join('|') === 'Klasse|Schwierige Aufgaben' && abyR[0].an);
+  N.bereichWaehlen('verwaltung');
   N.reiterWaehlen('sicherung');
   pruefe('Reiter Sicherung wählen', N.reiter() === 'sicherung' && navKnoepfe(N.navHtml(), 'reiter')[1].an);
   N.bereichWaehlen('perlentaucher');
@@ -500,7 +511,120 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
     bereicheZeile.replace(/, \{ id: 'verwaltung'[^\]]*\] \}/, '') + '\nvar reiter = "fortschritt", zuletztReiter = {};\n' +
     ['esc', 'knopf', 'bereichVon', 'reiterName', 'bereichWaehlen', 'reiterWaehlen', 'navHtml'].map(funktion).join('\n') +
     '\nreturn { bereichVon: bereichVon, BEREICHE: BEREICHE };')([], [], []);
-  pruefe('Gegenprobe: ohne Verwaltung fehlen Kinder und Sicherung', N3.BEREICHE.length === 1 && !N3.bereichVon('kinder') && !N3.bereichVon('sicherung'));
+  pruefe('Gegenprobe: ohne Verwaltung fehlen Kinder und Sicherung', N3.BEREICHE.length === 2 && !N3.bereichVon('kinder') && !N3.bereichVon('sicherung'));
+
+  // ---- Bereich Abyss of Numbers: Laden, Zeichnen, Sortieren, Download ----
+  // Mit dem echten Berichtsmodul aus dem Nachbarordner „Abyss of Numbers“
+  // (falls vorhanden) und ausgedachten Daten. Nicht geprüft: das Nachladen
+  // im Browser von der Abyss-Seite und das echte Firebase.
+  var abyssZeilen = quelle.match(/^\s*var (ABYSS_\w+|abyss) = .*;.*$/mg) || [];
+  pruefe('Abyss: Einstellungen und Zustand stehen in lehrer.js', abyssZeilen.length === 4);
+  var ABYSS_FUNKTIONEN = ['esc', 'zahl', 'abyssEintraege', 'abyssSortWert', 'abyssZeilen', 'abyssSortieren', 'berichtTabelle',
+    'abyssStatus', 'abyssKopf', 'tabAnKlasse', 'abyssSummenDatei', 'tabAnSchwer'];
+  function abyssBauer(kinderA, escErsatz) {
+    return new Function('kinder', 'heuteFuerDateiname', 'escErsatz',
+      abyssZeilen.join('\n') + '\n' + ABYSS_FUNKTIONEN.map(funktion).join('\n') +
+      '\nif (escErsatz) esc = escErsatz;' +
+      '\nreturn { abyss: abyss, eintraege: abyssEintraege, zeilen: abyssZeilen, sortieren: abyssSortieren, tabelle: berichtTabelle,' +
+      ' klasse: tabAnKlasse, schwer: tabAnSchwer, summen: abyssSummenDatei, MIN: ABYSS_MIN_KINDER };')(
+      kinderA, function () { return '2026-11-20'; }, escErsatz || null);
+  }
+  function schnapp(docs) {
+    return { forEach: function (f) { Object.keys(docs).forEach(function (id) { f({ id: id, data: function () { return docs[id]; } }); }); } };
+  }
+  var A3 = abyssBauer([{ id: 'cccc3333', vorname: 'Tom' }, { id: 'aaaa1111', vorname: 'Mila' }, { id: 'dddd4444', vorname: 'Ada' }, { id: 'bbbb2222', vorname: 'Ben' }]);
+  var ein = A3.eintraege(schnapp({ aaaa1111: { spielstand: '{"x":1}' }, cccc3333: { spielstand: '' }, bbbb2222: { spielstand: 42 }, ffff9999: { spielstand: '{}' } }));
+  pruefe('Abyss: Einträge nur für Kinder mit Stand, nach Vornamen sortiert, Codes ohne Kind fallen weg',
+    ein.map(function (e) { return e.name; }).join('|') === 'Ben|Mila|Tom' && JSON.stringify(ein).indexOf('aaaa1111') < 0);
+  pruefe('Abyss: Text bleibt Text, leerer Stand bleibt leer, kein Text wird null',
+    ein[1].text === '{"x":1}' && ein[2].text === '' && ein[0].text === null);
+
+  var boese = '<img src=x onerror=alert(1)>';
+  var tabBoese = { title: boese, note: boese, columns: [{ key: 'name', label: boese }, { key: 'x', label: '<script>' }],
+    rows: [{ cells: { name: boese, x: '"><script>' }, child: 0 }] };
+  var htmlBoese = A3.tabelle(tabBoese, { sortierbar: ['name'], kind: true });
+  function sicher(html) { return html.indexOf('<img') < 0 && html.indexOf('<script') < 0 && html.indexOf('&lt;img') >= 0; }
+  pruefe('Abyss: Titel, Spalten, Zellen und Hinweis gehen durch esc()', sicher(htmlBoese));
+  pruefe('Gegenprobe: ohne esc() käme HTML aus dem Spielstand in die Seite',
+    !sicher(abyssBauer([], function (s) { return String(s); }).tabelle(tabBoese, { sortierbar: ['name'], kind: true })));
+  pruefe('Abyss: Name als Knopf zur Ansicht „Kind“ nur mit kind:true und ganzzahligem child',
+    /data-ankind="0"/.test(htmlBoese) && !/data-ankind/.test(A3.tabelle(tabBoese)) &&
+    !/data-ankind/.test(A3.tabelle({ title: 't', columns: [{ key: 'name', label: 'n' }], rows: [{ cells: { name: 'a' }, child: '0" onclick="x' }] }, { kind: true })));
+  pruefe('Abyss: leere Tabelle zeigt einen Satz statt nichts', /Noch keine Einträge/.test(A3.tabelle({ title: 't', columns: [{ key: 'a', label: 'A' }], rows: [] })));
+
+  var sortRows = [
+    { cells: { name: 'Mila', zuletzt: '01.11.2026', hilfe: '' } },
+    { cells: { name: 'Ada', zuletzt: 'noch nicht gespielt', hilfe: '' } },
+    { cells: { name: 'Ben', zuletzt: '15.11.2026', hilfe: 'Mal' } },
+    { cells: { name: 'Tom', zuletzt: '03.10.2027', hilfe: 'Geteilt, Plus' } }];
+  function namen(rows) { return rows.map(function (r) { return r.cells.name; }).join(','); }
+  A3.sortieren('zuletzt');
+  pruefe('Abyss: „zuletzt gespielt“ zuerst neueste oben (Jahr zählt), ohne Datum unten', namen(A3.zeilen(sortRows, A3.abyss.sort)) === 'Tom,Ben,Mila,Ada');
+  A3.sortieren('zuletzt');
+  pruefe('Abyss: zweiter Klick dreht um, ohne Datum bleibt unten', namen(A3.zeilen(sortRows, A3.abyss.sort)) === 'Mila,Ben,Tom,Ada');
+  A3.sortieren('hilfe');
+  pruefe('Abyss: „Braucht Hilfe“ zuerst Kinder mit Eintrag, leere unten', namen(A3.zeilen(sortRows, A3.abyss.sort)) === 'Tom,Ben,Mila,Ada');
+  A3.sortieren('name');
+  pruefe('Abyss: Vorname aufsteigend', namen(A3.zeilen(sortRows, A3.abyss.sort)) === 'Ada,Ben,Mila,Tom');
+  A3.sortieren('sterne');
+  pruefe('Abyss: nur Vorname, zuletzt und Hilfe sind sortierbar', A3.abyss.sort.key === 'name');
+  pruefe('Abyss: Sortieren ändert die Zeilen des Berichts nicht', namen(sortRows) === 'Mila,Ada,Ben,Tom');
+
+  var sum = A3.summen({ kinder: 25, jeKlasse: { 3: { kinder: 22, antwort: { add: [5, 1, 0] }, lauf: {} }, 4: { kinder: 2, antwort: {}, lauf: {} } } });
+  pruefe('Abyss: Download nur mit Klassenstufen ab ' + A3.MIN + ' Kindern, kleinere werden genannt',
+    Object.keys(sum.daten.jeKlasse).join() === '3' && sum.weggelassen.join() === '4' && sum.daten.kinder === 22 && !sum.leer);
+  pruefe('Abyss: Download ohne Namen und Codes', !/name|vorname|code|Kind /i.test(JSON.stringify(sum.daten).replace('mindestKinderJeKlasse', '')));
+  pruefe('Abyss: unter ' + A3.MIN + ' Kindern je Stufe gibt es nichts herunterzuladen',
+    A3.summen({ jeKlasse: { 3: { kinder: 2 } } }).leer && A3.summen(null).leer);
+
+  A3.abyss.zustand = 'fehler'; A3.abyss.fehler = boese;
+  var fehlerHtml = A3.klasse();
+  pruefe('Abyss: Ladefehler wird gemeldet (mit esc) und lässt sich neu laden', /id="anneu"/.test(fehlerHtml) && sicher(fehlerHtml));
+  A3.abyss.zustand = 'laedt';
+  pruefe('Abyss: während des Ladens ein Satz, keine Tabelle', /werden geladen/.test(A3.schwer()) && !/<table/.test(A3.schwer()));
+  var ladeText = funktion('abyssLaden');
+  pruefe('Abyss: lädt Modul, Konfiguration und an_stand von der eigenen Adresse',
+    /var ABYSS_BASIS = '\.\.\/abyss-of-numbers\/';/.test(quelle) && /src\/teacher\/report\.js/.test(ladeText) &&
+    /src\/platform\/config-loader\.js/.test(ladeText) && /config\/teacher\/stages\.de\.json/.test(ladeText) &&
+    /collection\('an_stand'\)\.get\(\)/.test(ladeText) && !/https?:/.test(ladeText));
+
+  // Echtes Berichtsmodul aus dem Abyss-Projekt (veröffentlicht unter abyss-of-numbers/, lokal unter game/)
+  var abyssSpiel = path.join(__dirname, '..', '..', '..', '..', 'Abyss of Numbers', 'game');
+  if (!fs.existsSync(path.join(abyssSpiel, 'src', 'teacher', 'report.js'))) {
+    console.log('hinweis Abyss-Ordner nicht gefunden, Prüfung mit dem echten Berichtsmodul übersprungen: ' + abyssSpiel);
+  } else {
+    var url = require('url');
+    var modul = await import(url.pathToFileURL(path.join(abyssSpiel, 'src', 'teacher', 'report.js')).href);
+    var lader = await import(url.pathToFileURL(path.join(abyssSpiel, 'src', 'platform', 'config-loader.js')).href);
+    var konfig = await lader.loadConfig(function (p) { return Promise.resolve(JSON.parse(fs.readFileSync(path.join(abyssSpiel, 'config', p), 'utf8'))); });
+    var stufen = JSON.parse(fs.readFileSync(path.join(abyssSpiel, 'config', 'teacher', 'stages.de.json'), 'utf8'));
+    var daten = JSON.parse(fs.readFileSync(path.join(abyssSpiel, 'tools', 'report-preview-data.json'), 'utf8'));
+    daten[0].name = boese;
+    var bericht = modul.buildReport(daten, konfig, stufen, { tzOffsetMinutes: -480 });
+    var A4 = abyssBauer([]);
+    A4.abyss.zustand = 'fertig'; A4.abyss.bericht = bericht;
+    var klasseHtml = A4.klasse();
+    var mitKind = bericht.klasse.rows.filter(function (r) { return Number.isInteger(r.child); }).length;
+    pruefe('Abyss (echtes Modul): Klasse zeigt eine Zeile je Kind (' + daten.length + ')',
+      (klasseHtml.match(/<tr>/g) || []).length === daten.length + 1);
+    pruefe('Abyss (echtes Modul): lesbare Stände haben einen Namensknopf, die anderen nicht (' + mitKind + ')',
+      mitKind > 0 && mitKind < daten.length && (klasseHtml.match(/data-ankind=/g) || []).length === mitKind);
+    pruefe('Abyss (echtes Modul): Vorname aus der Kinderliste geht durch esc()', sicher(klasseHtml));
+    pruefe('Abyss (echtes Modul): Vorname, zuletzt und Hilfe haben Sortierknöpfe',
+      ['name', 'zuletzt', 'hilfe'].every(function (k) { return klasseHtml.indexOf('data-ansort="' + k + '"') >= 0; }) &&
+      (klasseHtml.match(/data-ansort=/g) || []).length === 3);
+    A4.abyss.kind = 0;
+    var kindHtml = A4.klasse();
+    pruefe('Abyss (echtes Modul): Ansicht „Kind“ mit Zurück-Knopf, Name und allen Tabellen des Kindes',
+      /id="anzurueck"/.test(kindHtml) && sicher(kindHtml) &&
+      (kindHtml.match(/<table/g) || []).length === bericht.kinder[0].tables.length && !/data-ansort/.test(kindHtml));
+    A4.abyss.kind = null;
+    var schwerHtml = A4.schwer();
+    pruefe('Abyss (echtes Modul): Schwierige Aufgaben zeigt alle Klassentabellen und den Download-Knopf',
+      (schwerHtml.match(/<table/g) || []).length === bericht.schwer.length && /id="ansummen"(?! disabled)/.test(schwerHtml));
+    var datei = A4.summen(bericht.summen);
+    pruefe('Abyss (echtes Modul): Download ohne Vornamen', JSON.stringify(datei.daten).indexOf('Kind ') < 0 && !datei.leer);
+  }
 
   console.log('\n' + (schlecht ? 'FEHLER' : 'OK') + ': ' + gut + ' von ' + (gut + schlecht) + ' Prüfungen bestanden.');
   process.exit(schlecht ? 1 : 0);

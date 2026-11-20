@@ -17,7 +17,7 @@
      auftauchen; die Adresse gibt es nur auf dem Aufkleber. -->
 <meta name="robots" content="noindex, nofollow">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=72">
+<link rel="stylesheet" href="css/style.css?v=73">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -92,6 +92,10 @@
   .namensknopf b { display: block; font-size: 16px; }
   .namensknopf .code { display: block; }
   .namensknopf:hover b { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+  /* Abyss of Numbers: sortierbare Spaltenköpfe */
+  .sortknopf { font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; background: none;
+    border: 0; padding: 4px 0; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+  .sortknopf:hover, th[aria-sort] .sortknopf { color: var(--brand-d); }
   .muehe { list-style: none; margin: 0; padding: 0; counter-reset: m; }
   .muehe li { counter-increment: m; display: grid; align-items: center; gap: 6px 14px;
     grid-template-columns: 28px minmax(140px, 1fr) minmax(90px, 2fr) 60px auto; padding: 10px 0; }
@@ -149,14 +153,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" integrity="sha384-ZaR6mWzmJtrRibZ1Vm7SoHFr8OXjyAuGAXalGDKqbxFT18oi/z+oZLIRFkpeNor1" crossorigin="anonymous"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" integrity="sha384-I1LYojsZ5RM1cOda44Z2h42Qa6YfsQ1XkXxREnhp4ueYBR/4d1pG1K+NZM537Vsj" crossorigin="anonymous"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js" integrity="sha384-Ke0FJhH7LyRqDxZ0wt+/OXV38yfQVu7g9VPEEGjYmB4RVOY/ta04uecRhsMwT7V3" crossorigin="anonymous"></script>
-<script src="js/config.js?v=72"></script>
-<script src="js/words.js?v=72"></script>
-<script src="js/bilder.js?v=72"></script>
-<script src="js/quiz.js?v=72"></script>
-<script src="js/mascot.js?v=72"></script>
-<script src="js/malen.js?v=72"></script>
-<script src="js/merge.js?v=72"></script>
-<script src="js/cloud.js?v=72"></script>
-<script src="js/lehrer.js?v=72"></script>
+<script src="js/config.js?v=73"></script>
+<script src="js/words.js?v=73"></script>
+<script src="js/bilder.js?v=73"></script>
+<script src="js/quiz.js?v=73"></script>
+<script src="js/mascot.js?v=73"></script>
+<script src="js/malen.js?v=73"></script>
+<script src="js/merge.js?v=73"></script>
+<script src="js/cloud.js?v=73"></script>
+<script src="js/lehrer.js?v=73"></script>
 </body>
 </html>
