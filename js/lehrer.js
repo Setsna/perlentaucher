@@ -1910,8 +1910,9 @@
     return '<h2 class="sec">Plattformen freigeben</h2>' +
       '<div class="hinweis">Hier legst du fest, welche Lernplattformen deine Klasse benutzen darf. ' +
       '<b>Gesperrt</b> heißt: Auf der Lernlagune steht „Bald offen“, und die Plattform lässt die Kinder ' +
-      'nach der Code-Eingabe nicht hinein. <b>Stand heute:</b> Lernlagune und Plattformen lesen die Schalter ' +
-      'noch nicht, sie wirken erst nach den nächsten Umbauschritten. Die Liste ist öffentlich lesbar ' +
+      'nach der Code-Eingabe nicht hinein. <b>So wirkt es:</b> Die Lernlagune zeigt den Stempel nach dem Neuladen, ' +
+      'die Plattformen sperren beim nächsten Öffnen. Ein Kind, das die Plattform gerade offen hat, merkt es erst dann. ' +
+      'Als Testkind markierte Kinder kommen immer hinein. Die Liste ist öffentlich lesbar ' +
       '(nur offen oder gesperrt, keine Namen). Der Perlentaucher ist immer offen.</div>' +
       '<section class="card">' + inhalt + '</section>' + testkindTeil;
   }
