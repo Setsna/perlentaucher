@@ -956,6 +956,41 @@ service cloud.firestore {
       allow delete: if istLehrer();
     }
 
+    // ---------- Oeffentlich: Freigabe der Lernplattformen ----------
+    // Ein einziges Dokument: oeffentlich/plattformen. Je Plattform true
+    // (offen) oder false (gesperrt), dazu geaendert. Keine Kinderdaten,
+    // keine Namen, keine Codes. Lesen darf jeder, auch ohne Anmeldung
+    // (die Lernlagune fragt es ab). Schreiben nur die Lehrkraft.
+    // Neue Plattform: Schluessel hier dazu (wie in PLATTFORMEN, js/lehrer.js).
+
+    function freigabeSchluessel() {
+      return ['zahlenschwarm', 'flaschenpost', 'riffakten', 'seesternwerkstatt',
+              'korallenriff', 'chancenbucht', 'leuchtturmuhr', 'kieselwaage',
+              'walgesang', 'zeitenstrom', 'satzwerft', 'abyss'];
+    }
+    function freigabeWertOk(d, k) {
+      return !(k in d) || d[k] is bool;
+    }
+    function freigabeGueltig(d) {
+      return d.keys().hasOnly(freigabeSchluessel().concat(['geaendert']))
+        && d.keys().hasAll(['geaendert'])
+        && d.geaendert is number && d.geaendert >= 0
+        && freigabeWertOk(d, 'zahlenschwarm') && freigabeWertOk(d, 'flaschenpost')
+        && freigabeWertOk(d, 'riffakten') && freigabeWertOk(d, 'seesternwerkstatt')
+        && freigabeWertOk(d, 'korallenriff') && freigabeWertOk(d, 'chancenbucht')
+        && freigabeWertOk(d, 'leuchtturmuhr') && freigabeWertOk(d, 'kieselwaage')
+        && freigabeWertOk(d, 'walgesang') && freigabeWertOk(d, 'zeitenstrom')
+        && freigabeWertOk(d, 'satzwerft') && freigabeWertOk(d, 'abyss');
+    }
+
+    match /oeffentlich/{id} {
+      allow get:    if id == 'plattformen' || istLehrer();
+      allow list:   if istLehrer();
+      allow create, update: if istLehrer() && id == 'plattformen'
+                            && freigabeGueltig(request.resource.data);
+      allow delete: if false;
+    }
+
     // ---------- Alles Uebrige ist gesperrt ----------
     match /{document=**} {
       allow read, write: if false;
