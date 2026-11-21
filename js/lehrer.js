@@ -3,7 +3,7 @@
    Zwei Ebenen (BEREICHE): oben die Bereiche, darunter ihre Reiter.
    Perlentaucher: Fortschritt | Auswertung | Lernwörter | Sachthemen |
    Einstellungen | Bilder. Abyss of Numbers: Klasse | Schwierige
-   Aufgaben. Verwaltung: Kinder | Sicherung.
+   Aufgaben. Verwaltung: Kinder | Sicherung | Plattformen.
    Anmeldung mit Google. Wer in den Firestore-Regeln nicht als
    Lehrkraft eingetragen ist, sieht hier nichts.
    ========================================================== */
@@ -18,7 +18,7 @@
   // erste Bereich mit seinem ersten Reiter ist der Start. Ein neuer Bereich
   // (Abyss of Numbers, Etappe 3) ist ein Eintrag hier plus sein Reiter in
   // reiterName() und zeichnen(). Eine Zeile, damit der Test sie findet.
-  var BEREICHE = [{ id: 'perlentaucher', name: 'Perlentaucher', reiter: ['fortschritt', 'auswertung', 'woerter', 'themen', 'einstellungen', 'bilder'] }, { id: 'abyss', name: 'Abyss of Numbers', reiter: ['an_klasse', 'an_schwer'] }, { id: 'verwaltung', name: 'Verwaltung', reiter: ['kinder', 'sicherung'] }];
+  var BEREICHE = [{ id: 'perlentaucher', name: 'Perlentaucher', reiter: ['fortschritt', 'auswertung', 'woerter', 'themen', 'einstellungen', 'bilder'] }, { id: 'abyss', name: 'Abyss of Numbers', reiter: ['an_klasse', 'an_schwer'] }, { id: 'verwaltung', name: 'Verwaltung', reiter: ['kinder', 'sicherung', 'plattformen'] }];
   var zuletztReiter = {};   // Bereich -> zuletzt offener Reiter
 
   // Stände der anderen Lernplattformen im gemeinsamen Konto: je Kind ein Dokument
@@ -229,6 +229,7 @@
       : reiter === 'auswertung' ? tabAuswertung()
       : reiter === 'bilder' ? tabBilder()
       : reiter === 'sicherung' ? tabSicherung()
+      : reiter === 'plattformen' ? tabPlattformen()
       : reiter === 'an_klasse' ? tabAnKlasse()
       : reiter === 'an_schwer' ? tabAnSchwer()
       : tabFortschritt();
@@ -263,6 +264,7 @@
     if (reiter === 'auswertung') bindeAuswertung();
     if (reiter === 'bilder') bindeBilder();
     if (reiter === 'sicherung') bindeSicherung();
+    if (reiter === 'plattformen') bindePlattformen();
     if (reiter === 'an_klasse') bindeAbyss();
     if (reiter === 'an_schwer') bindeAbyss();
   }
@@ -279,7 +281,7 @@
     var namen = {
       fortschritt: 'Fortschritt', auswertung: 'Auswertung', woerter: 'Lernwörter (' + woerter.length + ')',
       themen: 'Sachthemen (' + fragen.length + ')', einstellungen: 'Einstellungen', bilder: 'Bilder',
-      kinder: 'Kinder (' + kinder.length + ')', sicherung: 'Sicherung',
+      kinder: 'Kinder (' + kinder.length + ')', sicherung: 'Sicherung', plattformen: 'Plattformen',
       an_klasse: 'Klasse', an_schwer: 'Schwierige Aufgaben'
     };
     return namen[id] || esc(id);
@@ -920,7 +922,7 @@
   // (Perlentaucher und die anderen Plattformen) in resetFragen.
   function kinderZeile(k) {
     var f = staende[k.id];
-    return '<tr><td><b>' + esc(k.vorname) + '</b></td><td class="code">' + esc(fmtCode(k.id)) + '</td>' +
+    return '<tr><td><b>' + esc(k.vorname) + '</b>' + (k.testkind === true ? ' <span class="muted">(Testkind)</span>' : '') + '</td><td class="code">' + esc(fmtCode(k.id)) + '</td>' +
       '<td>' + (f ? zahl(f.xp) + ' Perlen' : 'noch nie angemeldet') + '</td>' +
       '<td>' + aktivText(f) + '</td>' +
       '<td style="white-space:nowrap">' +
@@ -1801,6 +1803,174 @@
   }
 
   // ==========================================================
+  //  Reiter: Plattformen (Freigabe)
+  //  Ein öffentlich lesbares Dokument oeffentlich/plattformen: je
+  //  Schlüssel aus PLATTFORMEN true (offen) oder false (gesperrt), dazu
+  //  geaendert (ms). Keine Kinderdaten, keine Namen, keine Codes. Lesen
+  //  darf jeder ohne Anmeldung (Lernlagune), schreiben nur die Lehrkraft.
+  //  Für die Leser gilt: fehlt ein Schlüssel oder das Dokument, ist die
+  //  Plattform offen. Hier im Reiter wird eine Plattform, die in einem
+  //  schon gespeicherten Dokument fehlt, als neu und gesperrt vorgeschlagen
+  //  (neue Plattform startet gesperrt); wirksam erst nach „Speichern“.
+  //  Der Perlentaucher hat keinen Schalter, er ist immer offen.
+  //  Dazu das Kennzeichen testkind: true in kinder/<code> (Testkind kommt
+  //  später auch in gesperrte Plattformen).
+  // ==========================================================
+  var freigabe = { stand: 'neu', doc: null, entwurf: null, fehler: '' };   // stand: neu | laedt | da | fehler
+
+  // Ausgangswerte der Schalter: gespeicherter Wert; ohne Dokument offen
+  // (so wirkt es für die Leser); im Dokument fehlend = neu, gesperrt.
+  function freigabeEntwurf(doc) {
+    var e = {};
+    PLATTFORMEN.forEach(function (pf) {
+      var v = doc ? doc[pf.schluessel] : undefined;
+      e[pf.schluessel] = typeof v === 'boolean' ? v : !doc;
+    });
+    return e;
+  }
+  function freigabeNeu(doc, schluessel) { return !!doc && typeof doc[schluessel] !== 'boolean'; }
+  // Das Dokument, wie es gespeichert wird: alle Schlüssel, nur true/false.
+  function freigabeDaten(entwurf, jetzt) {
+    var d = {};
+    PLATTFORMEN.forEach(function (pf) { d[pf.schluessel] = entwurf[pf.schluessel] === true; });
+    d.geaendert = jetzt;
+    return d;
+  }
+  function zeitText(ms) {
+    if (typeof ms !== 'number' || !isFinite(ms)) return 'unbekannt';
+    var d = new Date(ms), z = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear() + ', ' + z(d.getHours()) + ':' + z(d.getMinutes()) + ' Uhr';
+  }
+  function freigabeFehlerText(e) {
+    return e && e.code === 'permission-denied'
+      ? 'Die Firestore-Regeln erlauben das noch nicht (Block „oeffentlich“ fehlt oder ist nicht veröffentlicht).'
+      : esc((e && e.message) || 'unbekannter Fehler');
+  }
+
+  function freigabeLaden() {
+    freigabe.stand = 'laedt';
+    return db.collection('oeffentlich').doc('plattformen').get().then(function (s) {
+      freigabe.doc = s.exists ? s.data() : null;
+      freigabe.entwurf = freigabeEntwurf(freigabe.doc);
+      freigabe.stand = 'da';
+    }).catch(function (e) {
+      freigabe.stand = 'fehler';
+      freigabe.fehler = freigabeFehlerText(e);
+    }).then(function () { if (reiter === 'plattformen') zeichnen(); });
+  }
+
+  function freigabeZeile(pf) {
+    var s = pf.schluessel, offen = freigabe.entwurf[s] === true;
+    var radio = function (wert, text, an) {
+      return '<label><input type="radio" name="fg_' + esc(s) + '" value="' + wert + '" data-fg="' + esc(s) + '"' +
+        (an ? ' checked' : '') + '> ' + text + '</label>';
+    };
+    return '<tr><td><b>' + esc(pf.name) + '</b>' +
+      (freigabeNeu(freigabe.doc, s) ? ' <span class="neu">neu, noch nicht gespeichert</span>' : '') + '</td>' +
+      '<td><div class="schalter" role="radiogroup" aria-label="' + esc('Freigabe ' + pf.name) + '">' +
+      radio('offen', 'offen', offen) + radio('zu', 'gesperrt', !offen) + '</div></td></tr>';
+  }
+
+  function testkinder() { return kinder.filter(function (k) { return k.testkind === true; }); }
+
+  function tabPlattformen() {
+    var inhalt;
+    if (freigabe.stand === 'fehler') {
+      inhalt = '<div class="melden fehler">Die Freigaben konnten nicht geladen werden: ' + freigabe.fehler + '</div>' +
+        '<div class="knopfreihe"><button class="btn" id="fgneu">Noch einmal laden</button></div>';
+    } else if (freigabe.stand !== 'da') {
+      inhalt = '<p class="muted">Wird geladen …</p>';
+    } else {
+      inhalt = '<p>' + (freigabe.doc
+        ? 'Zuletzt gespeichert: <b>' + esc(zeitText(freigabe.doc.geaendert)) + '</b>'
+        : 'Noch nie gespeichert. Bis dahin gelten alle Plattformen als offen.') + '</p>' +
+        '<div class="tabwrap"><table class="tabelle"><thead><tr><th>Plattform</th><th>Freigabe</th></tr></thead><tbody>' +
+        '<tr><td><b>Perlentaucher</b></td><td class="muted">immer offen</td></tr>' +
+        PLATTFORMEN.map(freigabeZeile).join('') + '</tbody></table></div>' +
+        '<div class="knopfreihe"><button class="btn" id="fgspeichern">Speichern</button>' +
+        '<span id="fgstatus" class="muted" aria-live="polite"></span></div>' +
+        '<div id="fgmeldung"></div>';
+    }
+
+    var tk = testkinder();
+    var andere = kinder.filter(function (k) { return k.testkind !== true; });
+    var testkindTeil = '<h2 class="sec">Testkind</h2><section class="card">' +
+      '<div class="hinweis">Ein Testkind kommt auch in gesperrte Plattformen, damit du sie vor dem Freigeben ' +
+      'selbst ausprobieren kannst. Sonst ist es ein ganz normales Kind mit denselben Regeln.</div>' +
+      (tk.length ? '<ul class="tkliste">' + tk.map(function (k) {
+        return '<li><b>' + esc(k.vorname) + '</b> <span class="code">' + esc(fmtCode(k.id)) + '</span> ' +
+          '<button class="btn ghost mini" data-tkaus="' + esc(k.id) + '">Kennzeichen entfernen</button></li>';
+      }).join('') + '</ul>' : '<p class="muted">Noch kein Kind als Testkind markiert.</p>') +
+      (andere.length ? '<div class="knopfreihe"><label for="tkwahl">Kind:</label> <select id="tkwahl">' +
+        andere.map(function (k) {
+          return '<option value="' + esc(k.id) + '">' + esc(k.vorname) + ' (' + esc(fmtCode(k.id)) + ')</option>';
+        }).join('') + '</select> <button class="btn ghost" id="tkan">Als Testkind markieren</button></div>' : '') +
+      '</section>';
+
+    return '<h2 class="sec">Plattformen freigeben</h2>' +
+      '<div class="hinweis">Hier legst du fest, welche Lernplattformen deine Klasse benutzen darf. ' +
+      '<b>Gesperrt</b> heißt: Auf der Lernlagune steht „Bald offen“, und die Plattform lässt die Kinder ' +
+      'nach der Code-Eingabe nicht hinein. <b>Stand heute:</b> Lernlagune und Plattformen lesen die Schalter ' +
+      'noch nicht, sie wirken erst nach den nächsten Umbauschritten. Die Liste ist öffentlich lesbar ' +
+      '(nur offen oder gesperrt, keine Namen). Der Perlentaucher ist immer offen.</div>' +
+      '<section class="card">' + inhalt + '</section>' + testkindTeil;
+  }
+
+  function freigabeSpeichern() {
+    var knopf = el('fgspeichern'), m = el('fgmeldung');
+    var daten = freigabeDaten(freigabe.entwurf, Date.now());
+    knopf.disabled = true;
+    m.innerHTML = '<div class="melden">Wird gespeichert …</div>';
+    db.collection('oeffentlich').doc('plattformen').set(daten).then(function () {
+      freigabe.doc = daten;
+      freigabe.entwurf = freigabeEntwurf(daten);
+      var zu = PLATTFORMEN.filter(function (pf) { return !daten[pf.schluessel]; }).map(function (pf) { return pf.name; });
+      melde('Gespeichert (' + esc(zeitText(daten.geaendert)) + '). ' + (zu.length
+        ? 'Gesperrt: ' + esc(zu.join(', ')) + '. Alle anderen sind offen.'
+        : 'Alle Plattformen sind offen.'));
+      zeichnen();
+    }).catch(function (e) {
+      knopf.disabled = false;
+      m.innerHTML = '<div class="melden fehler">Nicht gespeichert: ' + freigabeFehlerText(e) +
+        ' Deine Auswahl steht noch da, du kannst es noch einmal versuchen.</div>';
+    });
+  }
+
+  function testkindSetzen(id, an) {
+    var k = kinder.filter(function (x) { return x.id === id; })[0];
+    if (!k) return;
+    var aenderung = an ? { testkind: true } : { testkind: firebase.firestore.FieldValue.delete() };
+    db.collection('kinder').doc(id).update(aenderung).then(function () {
+      if (an) k.testkind = true; else delete k.testkind;
+      melde(esc(k.vorname) + (an ? ' ist jetzt als Testkind markiert.' : ' ist kein Testkind mehr.'));
+      zeichnen();
+    }).catch(function (e) {
+      melde('Nicht gespeichert: ' + esc(e && e.message), 'fehler');
+      zeichnen();
+    });
+  }
+
+  function bindePlattformen() {
+    if (freigabe.stand === 'neu') { freigabeLaden(); return; }
+    var neu = el('fgneu');
+    if (neu) neu.onclick = function () { freigabeLaden(); zeichnen(); };
+    var sp = el('fgspeichern');
+    if (sp) sp.onclick = freigabeSpeichern;
+    document.querySelectorAll('[data-fg]').forEach(function (r) {
+      r.onchange = function () {
+        freigabe.entwurf[r.getAttribute('data-fg')] = r.value === 'offen';
+        var s = el('fgstatus');
+        if (s) s.textContent = 'Noch nicht gespeichert.';
+      };
+    });
+    var an = el('tkan');
+    if (an) an.onclick = function () { testkindSetzen(el('tkwahl').value, true); };
+    document.querySelectorAll('[data-tkaus]').forEach(function (b) {
+      b.onclick = function () { testkindSetzen(b.getAttribute('data-tkaus'), false); };
+    });
+  }
+
+  // ==========================================================
   //  Reiter: Sicherung
   //  Firestore legt im kostenlosen Tarif keine Sicherungen an.
   //  Hier holst du dir alles als eine Datei und kannst sie
@@ -1813,8 +1983,10 @@
   // nie angezeigt oder ausgewertet. ra_faelle und ra_loesungen sind die Akten der
   // Riff-Akten (keine Kinderdaten); sie werden nur mitgesichert, gepflegt werden
   // sie im Lehrerbereich der Riff-Akten.
+  // oeffentlich ist das Dokument mit den Plattform-Freigaben (Reiter Plattformen),
+  // keine Kinderdaten.
   // Ältere Sicherungen ohne diese Bereiche bleiben einlesbar.
-  var SAMMLUNGEN = ['kinder', 'lernwoerter', 'quizfragen', 'einstellungen', 'klassenwochen', 'fortschritt', 'bilder', 'zs_stand', 'fp_stand', 'ra_stand', 'ra_faelle', 'ra_loesungen', 'sw_stand', 'kr_stand', 'cb_stand', 'lu_stand', 'kw_stand', 'wg_stand', 'ze_stand', 'sa_stand', 'an_stand'];
+  var SAMMLUNGEN = ['kinder', 'lernwoerter', 'quizfragen', 'einstellungen', 'klassenwochen', 'fortschritt', 'bilder', 'zs_stand', 'fp_stand', 'ra_stand', 'ra_faelle', 'ra_loesungen', 'sw_stand', 'kr_stand', 'cb_stand', 'lu_stand', 'kw_stand', 'wg_stand', 'ze_stand', 'sa_stand', 'an_stand', 'oeffentlich'];
   var sicherungInhalt = null;      // eingelesene Datei, noch nicht geschrieben
 
   function tabSicherung() {
@@ -1864,15 +2036,18 @@
   function alleHolen(mitBildern) {
     var aufgaben = SAMMLUNGEN.filter(function (c) { return c !== 'bilder' || mitBildern; })
       .map(function (c) {
-        return db.collection(c).get().then(function (snap) {
+        var holen = db.collection(c).get().then(function (snap) {
           var raus = {};
           snap.forEach(function (d) { raus[d.id] = d.data(); });
           return [c, raus];
         });
+        // Die Plattform-Freigaben dürfen die Sicherung nie verhindern
+        // (z. B. solange die Regel dafür fehlt). Dann fehlt nur dieser Bereich.
+        return c === 'oeffentlich' ? holen.catch(function () { return [c, null]; }) : holen;
       });
     return Promise.all(aufgaben).then(function (teile) {
       var daten = {};
-      teile.forEach(function (t) { daten[t[0]] = t[1]; });
+      teile.forEach(function (t) { if (t[1]) daten[t[0]] = t[1]; });
       return daten;
     });
   }
@@ -1896,7 +2071,8 @@
       var anzahl = SAMMLUNGEN.reduce(function (s, c) {
         return s + (daten[c] ? Object.keys(daten[c]).length : 0); }, 0);
       m.innerHTML = '<div class="melden ok">Sicherung heruntergeladen: ' + anzahl +
-        ' Datensätze, ' + Math.round(text.length / 1024) + ' KB.</div>';
+        ' Datensätze, ' + Math.round(text.length / 1024) + ' KB.' +
+        (daten.oeffentlich ? '' : ' Die Plattform-Freigaben fehlen darin (nicht lesbar).') + '</div>';
     }).catch(function (e) {
       m.innerHTML = '<div class="melden fehler">Fehlgeschlagen: ' + esc(e.message) + '</div>';
     });
@@ -1977,6 +2153,7 @@
       sicherungInhalt = null;
       melde(n + ' Datensätze zurückgespielt.');
       bilderVon = {};
+      freigabe.stand = 'neu';
       laden();
     }).catch(function (e) {
       m.innerHTML = '<div class="melden fehler">Abgebrochen nach einem Fehler: ' + esc(e.message) +

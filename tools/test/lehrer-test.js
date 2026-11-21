@@ -455,10 +455,10 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
   pruefe('Perlentaucher hat Fortschritt, Auswertung, Lernwörter, Sachthemen, Einstellungen, Bilder',
     N.BEREICHE[0].reiter.join('|') === 'fortschritt|auswertung|woerter|themen|einstellungen|bilder');
   pruefe('Abyss of Numbers hat Klasse und Schwierige Aufgaben', N.BEREICHE[1].reiter.join('|') === 'an_klasse|an_schwer');
-  pruefe('Verwaltung hat Kinder und Sicherung', N.BEREICHE[2].reiter.join('|') === 'kinder|sicherung');
-  pruefe('jeder der acht alten und zwei neuen Reiter steht in genau einem Bereich, kein Reiter doppelt',
-    ALTE.concat(['an_klasse', 'an_schwer']).every(function (r) { return alleReiter.filter(function (x) { return x === r; }).length === 1; }) &&
-    alleReiter.length === ALTE.length + 2);
+  pruefe('Verwaltung hat Kinder, Sicherung und Plattformen', N.BEREICHE[2].reiter.join('|') === 'kinder|sicherung|plattformen');
+  pruefe('jeder der acht alten und drei neuen Reiter steht in genau einem Bereich, kein Reiter doppelt',
+    ALTE.concat(['an_klasse', 'an_schwer', 'plattformen']).every(function (r) { return alleReiter.filter(function (x) { return x === r; }).length === 1; }) &&
+    alleReiter.length === ALTE.length + 3);
   var zeichnenText = funktion('zeichnen');
   pruefe('zeichnen() kennt jeden Reiter (Inhalt und binde…)', alleReiter.every(function (r) {
     return (r === 'fortschritt' || zeichnenText.indexOf("reiter === '" + r + "' ? tab") >= 0) &&
@@ -477,9 +477,9 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
     /data-bereich="verwaltung" aria-pressed="false"/.test(start));
   N.bereichWaehlen('verwaltung');
   var verw = N.navHtml(), verwR = navKnoepfe(verw, 'reiter');
-  pruefe('Verwaltung wählen: Kinder ist offen, darunter Kinder (4) und Sicherung',
+  pruefe('Verwaltung wählen: Kinder ist offen, darunter Kinder (4), Sicherung und Plattformen',
     N.reiter() === 'kinder' && navKnoepfe(verw, 'bereich')[2].an &&
-    verwR.map(function (k) { return k.text; }).join('|') === 'Kinder (4)|Sicherung' && verwR[0].an);
+    verwR.map(function (k) { return k.text; }).join('|') === 'Kinder (4)|Sicherung|Plattformen' && verwR[0].an);
   N.bereichWaehlen('abyss');
   var aby = N.navHtml(), abyR = navKnoepfe(aby, 'reiter');
   pruefe('Abyss of Numbers wählen: Klasse ist offen, darunter Klasse und Schwierige Aufgaben',
@@ -625,6 +625,79 @@ var kinderListe = [{ id: 'aaaa1111', vorname: 'Mila' }, { id: 'bbbb2222', vornam
     var datei = A4.summen(bericht.summen);
     pruefe('Abyss (echtes Modul): Download ohne Vornamen', JSON.stringify(datei.daten).indexOf('Kind ') < 0 && !datei.leer);
   }
+
+  // ---- Reiter Plattformen (Freigabe, seit 21.11.2026) ----
+  // Geprüft: Ausgangswerte der Schalter, Daten zum Speichern, Zeichnen mit
+  // esc(), Testkind-Liste, Sicherung mit und ohne lesbaren Bereich oeffentlich.
+  // Nicht geprüft: Klicks, das echte Firebase, die Regeln.
+  var F = new Function('kinder',
+    plattformenZeile + '\nvar freigabe = { stand: "da", doc: null, entwurf: null, fehler: "" };\n' +
+    ['esc', 'fmtCode', 'freigabeEntwurf', 'freigabeNeu', 'freigabeDaten', 'zeitText', 'freigabeFehlerText',
+     'freigabeZeile', 'testkinder', 'tabPlattformen'].map(funktion).join('\n') +
+    '\nreturn { PLATTFORMEN: PLATTFORMEN, freigabe: freigabe, entwurf: freigabeEntwurf, neu: freigabeNeu, daten: freigabeDaten,' +
+    ' zeit: zeitText, fehlerText: freigabeFehlerText, tab: tabPlattformen };')(
+    [{ id: 'aaaa1111', vorname: '<b>Mila</b>' }, { id: 'bbbb2222', vorname: 'Tom', testkind: true }]);
+  var schl = F.PLATTFORMEN.map(function (pf) { return pf.schluessel; });
+  var e0 = F.entwurf(null);
+  pruefe('Freigabe: ohne Dokument stehen alle zwölf Plattformen auf offen',
+    schl.length === 12 && schl.every(function (k) { return e0[k] === true; }));
+  var gespeichert = { zahlenschwarm: false, flaschenpost: true, geaendert: 5 };
+  var e1 = F.entwurf(gespeichert);
+  pruefe('Freigabe: gespeicherte Werte gelten, fehlende Plattform im Dokument ist neu und gesperrt',
+    e1.zahlenschwarm === false && e1.flaschenpost === true && e1.abyss === false &&
+    F.neu(gespeichert, 'abyss') && !F.neu(gespeichert, 'flaschenpost') && !F.neu(null, 'abyss'));
+  pruefe('Freigabe: Text statt Wahrheitswert zählt als neu (gesperrt)', F.entwurf({ riffakten: 'ja', geaendert: 1 }).riffakten === false);
+  var d1 = F.daten(e1, 1795300000000);
+  pruefe('Freigabe: gespeichert werden genau die zwölf Schlüssel und geaendert, nur true/false',
+    Object.keys(d1).sort().join('|') === schl.concat(['geaendert']).sort().join('|') &&
+    schl.every(function (k) { return typeof d1[k] === 'boolean'; }) && d1.geaendert === 1795300000000 &&
+    d1.zahlenschwarm === false && d1.flaschenpost === true && !('perlentaucher' in d1));
+  pruefe('Freigabe: Zeitpunkt lesbar, Unsinn als unbekannt', /^\d+\.\d+\.\d{4}, \d\d:\d\d Uhr$/.test(F.zeit(1795300000000)) && F.zeit('x') === 'unbekannt');
+  pruefe('Freigabe: fehlende Regel gibt einen verständlichen Text', /Block „oeffentlich“/.test(F.fehlerText({ code: 'permission-denied' })) &&
+    F.fehlerText({ message: '<i>' }) === '&lt;i&gt;');
+  F.freigabe.doc = gespeichert; F.freigabe.entwurf = e1;
+  var th = F.tab();
+  pruefe('Freigabe: eine Zeile je Plattform mit zwei Schaltern, Perlentaucher ohne Schalter',
+    (th.match(/data-fg="/g) || []).length === 24 && /Perlentaucher<\/b><\/td><td class="muted">immer offen/.test(th) &&
+    th.indexOf('data-fg="perlentaucher"') < 0);
+  pruefe('Freigabe: gespeicherter Stand ist angehakt',
+    /name="fg_zahlenschwarm" value="zu" data-fg="zahlenschwarm" checked/.test(th) &&
+    /name="fg_flaschenpost" value="offen" data-fg="flaschenpost" checked/.test(th));
+  pruefe('Freigabe: neue Plattformen tragen den Hinweis (zehn Stück)', (th.match(/neu, noch nicht gespeichert/g) || []).length === 10);
+  pruefe('Freigabe: letzte Änderung, Speichern-Knopf und Meldefeld da', /Zuletzt gespeichert/.test(th) && /id="fgspeichern"/.test(th) && /id="fgmeldung"/.test(th));
+  pruefe('Testkind: Tom steht in der Liste mit Knopf, Mila zur Auswahl, Namen durch esc()',
+    /data-tkaus="bbbb2222"/.test(th) && /<option value="aaaa1111">&lt;b&gt;Mila&lt;\/b&gt;/.test(th) && th.indexOf('<b>Mila</b>') < 0 &&
+    th.indexOf('<option value="bbbb2222"') < 0);
+  F.freigabe.stand = 'fehler'; F.freigabe.fehler = 'kaputt';
+  var tf = F.tab();
+  pruefe('Freigabe: Ladefehler zeigt Meldung und Knopf, keine Schalter', /melden fehler/.test(tf) && /id="fgneu"/.test(tf) && tf.indexOf('data-fg=') < 0);
+  F.freigabe.stand = 'laedt';
+  pruefe('Freigabe: während des Ladens keine Schalter', F.tab().indexOf('data-fg=') < 0 && /Wird geladen/.test(F.tab()));
+
+  // Sicherung: oeffentlich gehört dazu, darf die Sicherung aber nie verhindern
+  var keinUm = { melde: function () {}, alsDateiSichern: function () { return true; } };
+  var LS = bauen(attrappe({}), [], keinUm);
+  pruefe('SAMMLUNGEN enthält oeffentlich', LS.SAMMLUNGEN.indexOf('oeffentlich') >= 0);
+  pruefe('Sicherung mit oeffentlich/plattformen wird angenommen',
+    LS.sicherungPruefen({ format: 'perlentaucher-sicherung', daten: { oeffentlich: { plattformen: d1 } } }) === null);
+  var inh = frisch(); inh.oeffentlich = { plattformen: d1 };
+  var alles = await bauen(attrappe(inh), [], keinUm).alleHolen(false);
+  pruefe('Sicherung holt oeffentlich/plattformen', !!(alles.oeffentlich && alles.oeffentlich.plattformen.zahlenschwarm === false));
+  function mitFehler(c) {
+    var dbF = attrappe(frisch()), orig = dbF.collection;
+    dbF.collection = function (x) {
+      var r = orig(x);
+      if (x === c) r.get = function () { return Promise.reject({ code: 'permission-denied', message: 'nein' }); };
+      return r;
+    };
+    return bauen(dbF, [], keinUm);
+  }
+  var ohne = await mitFehler('oeffentlich').alleHolen(false);
+  pruefe('Sicherung klappt auch, wenn oeffentlich nicht lesbar ist (Bereich fehlt dann)',
+    !!(ohne && !('oeffentlich' in ohne) && ohne.kinder && ohne.kinder.aaaa1111));
+  var abgelehnt = false;
+  await mitFehler('kinder').alleHolen(false).catch(function () { abgelehnt = true; });
+  pruefe('Gegenprobe: nicht lesbare kinder brechen die Sicherung weiter ab', abgelehnt);
 
   console.log('\n' + (schlecht ? 'FEHLER' : 'OK') + ': ' + gut + ' von ' + (gut + schlecht) + ' Prüfungen bestanden.');
   process.exit(schlecht ? 1 : 0);

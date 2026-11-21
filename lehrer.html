@@ -17,7 +17,7 @@
      auftauchen; die Adresse gibt es nur auf dem Aufkleber. -->
 <meta name="robots" content="noindex, nofollow">
 <title>Perlentaucher – Lehrerbereich</title>
-<link rel="stylesheet" href="css/style.css?v=73">
+<link rel="stylesheet" href="css/style.css?v=74">
 <style>
   body { -webkit-user-select: text; user-select: text; }
   /* Die Kinder-App begrenzt #app auf 920px. Der Lehrerbereich
@@ -93,6 +93,15 @@
   .namensknopf .code { display: block; }
   .namensknopf:hover b { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
   /* Abyss of Numbers: sortierbare Spaltenköpfe */
+  .schalter { display: flex; gap: 8px; flex-wrap: wrap; }
+  .schalter label { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 12px;
+    border: 2px solid var(--line); background: #F4FAFD; font-weight: 700; cursor: pointer; }
+  .schalter label:has(input[value="offen"]:checked) { border-color: var(--good-d); background: var(--good-bg); color: var(--good-d); }
+  .schalter label:has(input[value="zu"]:checked) { border-color: var(--bad-d); background: var(--bad-bg); color: var(--bad-d); }
+  .schalter input { width: 20px; height: 20px; margin: 0; accent-color: var(--brand); }
+  .neu { background: var(--sand); color: var(--sand-ink); border-radius: 8px; padding: 2px 8px; font-size: 13px; font-weight: 700; }
+  .tkliste { list-style: none; padding: 0; margin: 12px 0 0; }
+  .tkliste li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 0; }
   .sortknopf { font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; background: none;
     border: 0; padding: 4px 0; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
   .sortknopf:hover, th[aria-sort] .sortknopf { color: var(--brand-d); }
@@ -153,14 +162,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" integrity="sha384-ZaR6mWzmJtrRibZ1Vm7SoHFr8OXjyAuGAXalGDKqbxFT18oi/z+oZLIRFkpeNor1" crossorigin="anonymous"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" integrity="sha384-I1LYojsZ5RM1cOda44Z2h42Qa6YfsQ1XkXxREnhp4ueYBR/4d1pG1K+NZM537Vsj" crossorigin="anonymous"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js" integrity="sha384-Ke0FJhH7LyRqDxZ0wt+/OXV38yfQVu7g9VPEEGjYmB4RVOY/ta04uecRhsMwT7V3" crossorigin="anonymous"></script>
-<script src="js/config.js?v=73"></script>
-<script src="js/words.js?v=73"></script>
-<script src="js/bilder.js?v=73"></script>
-<script src="js/quiz.js?v=73"></script>
-<script src="js/mascot.js?v=73"></script>
-<script src="js/malen.js?v=73"></script>
-<script src="js/merge.js?v=73"></script>
-<script src="js/cloud.js?v=73"></script>
-<script src="js/lehrer.js?v=73"></script>
+<script src="js/config.js?v=74"></script>
+<script src="js/words.js?v=74"></script>
+<script src="js/bilder.js?v=74"></script>
+<script src="js/quiz.js?v=74"></script>
+<script src="js/mascot.js?v=74"></script>
+<script src="js/malen.js?v=74"></script>
+<script src="js/merge.js?v=74"></script>
+<script src="js/cloud.js?v=74"></script>
+<script src="js/lehrer.js?v=74"></script>
 </body>
 </html>
